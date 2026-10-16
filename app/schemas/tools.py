@@ -91,7 +91,7 @@ class WorkItemOut(BaseModel):
     )
     source_url: str = Field(description="Deep link to Jira record")
     source_updated_at: datetime = Field(description="When updated at source")
-    retrieved_at: datetime = Field(description="When ingested by ARGUS")
+    retrieved_at: datetime = Field(description="When ingested by Headref")
 
 
 class GetAssignedWorkItemsOutput(BaseModel):
@@ -145,7 +145,7 @@ class PullRequestOut(BaseModel):
     merged_at: datetime | None = Field(default=None, description="Timestamp when merged")
     source_url: str = Field(description="Deep link to GitHub PR")
     source_updated_at: datetime = Field(description="When updated at source")
-    retrieved_at: datetime = Field(description="When ingested by ARGUS")
+    retrieved_at: datetime = Field(description="When ingested by Headref")
 
 
 class GetPullRequestsOutput(BaseModel):
@@ -185,7 +185,7 @@ class CommitOut(BaseModel):
     )
     committed_at: datetime = Field(description="Timestamp when commit was authored")
     source_url: str = Field(description="Deep link to commit")
-    retrieved_at: datetime = Field(description="When ingested by ARGUS")
+    retrieved_at: datetime = Field(description="When ingested by Headref")
 
 
 class GetCommitsOutput(BaseModel):
@@ -229,7 +229,7 @@ class ReviewOut(BaseModel):
     )
     submitted_at: datetime = Field(description="Timestamp when review was submitted")
     source_url: str = Field(description="Deep link to review")
-    retrieved_at: datetime = Field(description="When ingested by ARGUS")
+    retrieved_at: datetime = Field(description="When ingested by Headref")
 
 
 class GetReviewsOutput(BaseModel):

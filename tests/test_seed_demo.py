@@ -39,7 +39,7 @@ def test_seed_demo_runs_offline_and_populates_data(db_session: Session) -> None:
     # 1. Complete demo team exists
     org = db_session.scalar(select(Organization))
     assert org is not None
-    assert org.name == "ARGUS Demo Corp"
+    assert org.name == "headref Demo Corp"
 
     team = db_session.scalar(select(Team).where(Team.organization_id == org.id))
     assert team is not None
@@ -60,7 +60,7 @@ def test_seed_demo_runs_offline_and_populates_data(db_session: Session) -> None:
         assert lnk.verified_at is not None
 
     # 3. Canonical repositories and projects exist
-    repo = db_session.scalar(select(Repository).where(Repository.full_name == "keshan-dev/argus"))
+    repo = db_session.scalar(select(Repository).where(Repository.full_name == "keshan-dev/headref"))
     assert repo is not None
 
     projects = db_session.scalars(select(Project)).all()

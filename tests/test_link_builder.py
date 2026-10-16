@@ -53,7 +53,7 @@ def test_link_branch_name_creates_high_link(db_session: Session) -> None:
     db_session.flush()
 
     proj = Project(organization_id=org.id, key="AUTH", name="Auth")
-    repo = Repository(organization_id=org.id, full_name="keshan-dev/argus")
+    repo = Repository(organization_id=org.id, full_name="keshan-dev/headref")
     db_session.add_all([proj, repo])
     db_session.flush()
 
@@ -78,7 +78,7 @@ def test_link_branch_name_creates_high_link(db_session: Session) -> None:
         branch_name="feature/AUTH-245-login",
         state="open",
         created_at_source=now,
-        source_url="https://github.com/keshan-dev/argus/pull/1",
+        source_url="https://github.com/keshan-dev/headref/pull/1",
         source_updated_at=now,
         retrieved_at=now,
     )
@@ -107,7 +107,7 @@ def test_link_jira_remote_link_creates_high_link(db_session: Session) -> None:
     db_session.flush()
 
     proj = Project(organization_id=org.id, key="AUTH", name="Auth")
-    repo = Repository(organization_id=org.id, full_name="keshan-dev/argus")
+    repo = Repository(organization_id=org.id, full_name="keshan-dev/headref")
     db_session.add_all([proj, repo])
     db_session.flush()
 
@@ -129,7 +129,7 @@ def test_link_jira_remote_link_creates_high_link(db_session: Session) -> None:
         branch_name="main",
         state="open",
         created_at_source=now,
-        source_url="https://github.com/keshan-dev/argus/pull/1",
+        source_url="https://github.com/keshan-dev/headref/pull/1",
         source_updated_at=now,
         retrieved_at=now,
     )
@@ -139,7 +139,7 @@ def test_link_jira_remote_link_creates_high_link(db_session: Session) -> None:
     remote_links = [
         {
             "object": {
-                "url": "https://github.com/keshan-dev/argus/pull/1",
+                "url": "https://github.com/keshan-dev/headref/pull/1",
                 "title": "GitHub PR #1",
             }
         }
@@ -165,7 +165,7 @@ def test_link_pr_title_and_body_creates_medium_link(db_session: Session) -> None
     db_session.flush()
 
     proj = Project(organization_id=org.id, key="AUTH", name="Auth")
-    repo = Repository(organization_id=org.id, full_name="keshan-dev/argus")
+    repo = Repository(organization_id=org.id, full_name="keshan-dev/headref")
     db_session.add_all([proj, repo])
     db_session.flush()
 
@@ -192,7 +192,7 @@ def test_link_pr_title_and_body_creates_medium_link(db_session: Session) -> None
         branch_name="patch-1",
         state="open",
         created_at_source=now,
-        source_url="https://github.com/keshan-dev/argus/pull/1",
+        source_url="https://github.com/keshan-dev/headref/pull/1",
         source_updated_at=now,
         retrieved_at=now,
     )
@@ -217,7 +217,7 @@ def test_link_commit_message_creates_medium_link(db_session: Session) -> None:
     db_session.flush()
 
     proj = Project(organization_id=org.id, key="AUTH", name="Auth")
-    repo = Repository(organization_id=org.id, full_name="keshan-dev/argus")
+    repo = Repository(organization_id=org.id, full_name="keshan-dev/headref")
     db_session.add_all([proj, repo])
     db_session.flush()
 
@@ -267,7 +267,7 @@ def test_no_ticket_reference_creates_no_link(db_session: Session) -> None:
     db_session.flush()
 
     proj = Project(organization_id=org.id, key="AUTH", name="Auth")
-    repo = Repository(organization_id=org.id, full_name="keshan-dev/argus")
+    repo = Repository(organization_id=org.id, full_name="keshan-dev/headref")
     db_session.add_all([proj, repo])
     db_session.flush()
 
@@ -293,7 +293,7 @@ def test_no_ticket_reference_creates_no_link(db_session: Session) -> None:
         branch_name="chore/dep-bump",
         state="closed",
         created_at_source=now,
-        source_url="https://github.com/keshan-dev/argus/pull/3",
+        source_url="https://github.com/keshan-dev/headref/pull/3",
         source_updated_at=now,
         retrieved_at=now,
     )
@@ -385,7 +385,7 @@ def test_no_link_created_from_timing_or_authorship(db_session: Session) -> None:
     db_session.flush()
 
     proj = Project(organization_id=org.id, key="AUTH", name="Auth")
-    repo = Repository(organization_id=org.id, full_name="keshan-dev/argus")
+    repo = Repository(organization_id=org.id, full_name="keshan-dev/headref")
     db_session.add_all([proj, repo])
     db_session.flush()
 

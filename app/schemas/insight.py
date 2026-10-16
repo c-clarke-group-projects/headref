@@ -31,7 +31,7 @@ class EvidenceItem(BaseModel):
         description="Untrusted source text, capped at EXCERPT_MAX_CHARS and URL-stripped",
     )
     observed_at: datetime = Field(description="When event occurred at source")
-    retrieved_at: datetime = Field(description="When fetched into ARGUS")
+    retrieved_at: datetime = Field(description="When fetched into Headref")
     source_state: Literal["fresh", "stale"] = Field(
         description="Freshness state of source at evidence construction time"
     )

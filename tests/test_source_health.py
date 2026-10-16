@@ -47,7 +47,7 @@ def test_t007_source_health_fresh_and_stale(db_session: Session) -> None:
     # GitHub: fresh (synced 2 hours ago)
     gh_run = SyncRun(
         source="github",
-        scope="keshan-dev/argus",
+        scope="keshan-dev/headref",
         status="success",
         items_fetched=10,
         items_written=10,

@@ -265,7 +265,7 @@ def test_t003_get_pull_requests_success(db_session: Session) -> None:
 
     repo = Repository(
         organization_id=org.id,
-        full_name="keshan-dev/argus",
+        full_name="keshan-dev/headref",
         default_branch="main",
     )
     db_session.add(repo)
@@ -284,7 +284,7 @@ def test_t003_get_pull_requests_success(db_session: Session) -> None:
         checks_state="passing",
         created_at_source=now - timedelta(hours=2),
         source_updated_at=now,
-        source_url="https://github.com/keshan-dev/argus/pull/182",
+        source_url="https://github.com/keshan-dev/headref/pull/182",
     )
     pr_draft = PullRequest(
         repository_id=repo.id,
@@ -296,7 +296,7 @@ def test_t003_get_pull_requests_success(db_session: Session) -> None:
         author_app_user_id=user.id,
         created_at_source=now - timedelta(hours=1),
         source_updated_at=now,
-        source_url="https://github.com/keshan-dev/argus/pull/183",
+        source_url="https://github.com/keshan-dev/headref/pull/183",
     )
     db_session.add_all([pr_open, pr_draft])
     db_session.flush()
@@ -323,7 +323,7 @@ def test_t003_get_pull_requests_success(db_session: Session) -> None:
     assert isinstance(res_nodrafts, GetPullRequestsOutput)
     assert len(res_nodrafts.pull_requests) == 1
     assert res_nodrafts.pull_requests[0].number == 182
-    assert res_nodrafts.pull_requests[0].repo_full_name == "keshan-dev/argus"
+    assert res_nodrafts.pull_requests[0].repo_full_name == "keshan-dev/headref"
     assert res_nodrafts.pull_requests[0].review_state == "approved"
 
 
@@ -350,7 +350,7 @@ def test_t004_get_commits_truncation_detection(db_session: Session) -> None:
     org, team, user = _seed_base_org_and_team(db_session)
     now = datetime.now(UTC)
 
-    repo = Repository(organization_id=org.id, full_name="keshan-dev/argus")
+    repo = Repository(organization_id=org.id, full_name="keshan-dev/headref")
     db_session.add(repo)
     db_session.flush()
 
@@ -361,7 +361,7 @@ def test_t004_get_commits_truncation_detection(db_session: Session) -> None:
             message_excerpt=f"Commit message {idx}",
             author_app_user_id=user.id,
             committed_at=now - timedelta(minutes=idx * 10),
-            source_url=f"https://github.com/keshan-dev/argus/commit/sha_{idx}",
+            source_url=f"https://github.com/keshan-dev/headref/commit/sha_{idx}",
         )
         db_session.add(c)
     db_session.flush()
@@ -405,7 +405,7 @@ def test_t005_get_reviews_direction_filter(db_session: Session) -> None:
     db_session.add(user2)
     db_session.flush()
 
-    repo = Repository(organization_id=org.id, full_name="keshan-dev/argus")
+    repo = Repository(organization_id=org.id, full_name="keshan-dev/headref")
     db_session.add(repo)
     db_session.flush()
 
@@ -419,7 +419,7 @@ def test_t005_get_reviews_direction_filter(db_session: Session) -> None:
         author_app_user_id=user1.id,
         created_at_source=now,
         source_updated_at=now,
-        source_url="https://github.com/keshan-dev/argus/pull/10",
+        source_url="https://github.com/keshan-dev/headref/pull/10",
     )
     db_session.add(pr)
     db_session.flush()
@@ -432,7 +432,7 @@ def test_t005_get_reviews_direction_filter(db_session: Session) -> None:
         state="changes_requested",
         body_excerpt="Please fix unit tests.",
         submitted_at=now,
-        source_url="https://github.com/keshan-dev/argus/pull/10#rev1",
+        source_url="https://github.com/keshan-dev/headref/pull/10#rev1",
     )
     db_session.add(review)
     db_session.flush()

@@ -18,7 +18,7 @@ from app.config import EXCERPT_MAX_CHARS
 from app.models.canonical import Repository
 from app.models.work import Commit, PullRequest, Review
 
-logger = logging.getLogger("argus.integrations.github_normalizer")
+logger = logging.getLogger("headref.integrations.github_normalizer")
 
 # Regex to strip URLs from excerpts per FR-030
 URL_REGEX = re.compile(r"https?://\S+")

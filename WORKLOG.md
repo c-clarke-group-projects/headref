@@ -1,4 +1,4 @@
-# ARGUS Work Log
+# headref Work Log
 
 **Append new entries at the top. Do not rewrite previous entries unless correcting a
 factual mistake.**
@@ -60,24 +60,26 @@ criterion in `TASKS.md` is met.
 
 ---
 
-## 2026-10-17 | Keshan | GitHub OAuth Login Integration
+## 2026-10-17 | Keshan | GitHub OAuth Login Integration for Headref
 Status: IN_PROGRESS
 
 ### Completed
 1. Added GitHub OAuth settings: `github_oauth_client_id` and `github_oauth_client_secret` in `app/config.py` with `github_oauth_enabled` property. Updated `.env.example` with setup notes.
 2. Implemented `GET /auth/github/login` endpoint with cryptographically secure state generation, redirect cookie state management, and GitHub authorization URL redirection.
-3. Implemented `GET /auth/github/callback` endpoint: validates CSRF state, exchanges authorization code for an access token via GitHub's API, retrieves authenticated GitHub user profile, resolves user against `IdentityLink` in PostgreSQL, and creates signed `argus_session` session cookie.
+3. Implemented `GET /auth/github/callback` endpoint: validates CSRF state, exchanges authorization code for an access token via GitHub's API, retrieves authenticated GitHub user profile, resolves user against `IdentityLink` in PostgreSQL, and creates signed `headref_session` session cookie.
 4. Updated `app/web/templates/login.html` to feature the "Sign in with GitHub" button prominently, showing clear error messaging and an unconfigured notice banner when credentials are absent, alongside an offline demo fallback disclosure.
-5. Added `tests/test_github_oauth.py`: 8 unit and integration tests covering unconfigured states, CSRF state verification, upstream error handling, unmapped GitHub accounts, and successful sign-in.
+5. Renamed application title and service identifier to `Headref` / `headref` in `app/main.py`, `tests/test_health.py`, `app/web/routes.py`, and `app/web/auth.py`.
+6. Added `tests/test_github_oauth.py`: 8 unit and integration tests covering unconfigured states, CSRF state verification, upstream error handling, unmapped GitHub accounts, and successful sign-in.
 
 ### Changed
-`app/config.py`, `.env.example`, `app/web/routes.py`, `app/web/templates/login.html`, `tests/test_github_oauth.py`, `WORKLOG.md`.
+`app/main.py`, `app/config.py`, `.env.example`, `app/web/auth.py`, `app/web/routes.py`, `app/web/templates/login.html`, `tests/test_health.py`, `tests/test_github_oauth.py`, `WORKLOG.md`.
 
 ### Discovered
-Matching by GitHub user ID in `IdentityLink` works seamlessly with both numeric IDs (`external_id`) and GitHub logins (`external_handle`). When an unmapped account attempts to log in, clear actionable error guidance informs them to add their identity to `seed/identity_map.yml`.
+Matching by GitHub user ID in `IdentityLink` works seamlessly with both numeric IDs (`external_id`) and GitHub logins (`external_handle`). When an unmapped account attempts to log in, clear actionable error guidance informs them that their account is not mapped to any Headref team member and points them to `seed/identity_map.yml`.
 
 ### Next Step
-Configure GitHub OAuth App credentials in `.env` and verify the live browser OAuth authorization loop.
+Configure GitHub OAuth App credentials in `.env` and verify the live browser OAuth authorization loop in Headref.
+
 
 ---
 
@@ -163,7 +165,7 @@ Status: IN_PROGRESS
 1. Ingestion scope now comes from configuration, not from a hardcoded default argument.
 `GITHUB_REPOS` and `JIRA_PROJECT_KEYS` are new settings in `app/config.py` with
 `github_scopes()` and `jira_scopes()` helpers, both added to `.env.example` per HOW_TO B2.
-The literal `"keshan-dev/argus"` is gone from `app/sync.py` and `app/scheduler.py`.
+The literal `"keshan-dev/headref"` is gone from `app/sync.py` and `app/scheduler.py`.
 `sync_github` and `sync_jira` resolve the scope when it is not passed, and raise rather
 than guess when several are configured. `run_scheduled_tick` iterates every configured
 scope and guards each one separately, and returns a per scope `details` map alongside the
@@ -1256,7 +1258,7 @@ closed: "Both developers confirm it runs on their machine."
 | Check | Result |
 |---|---|
 | `docker compose up --build -d` | `db` healthy, `api` up (image build 55.5 s) |
-| `GET /health` | 200, `{"status":"ok","service":"argus","version":"0.1.0",...}` |
+| `GET /health` | 200, `{"status":"ok","service":"headref","version":"0.1.0",...}` |
 | `pytest` inside the container | 1 passed |
 | `ruff check .` inside the container | All checks passed |
 | `black --check .` inside the container | 5 files unchanged |
@@ -1319,7 +1321,7 @@ and the outstanding container criterion on P0-005 is now met.
 | Check | Result |
 |---|---|
 | `docker compose up --build` | `db` healthy, `api` up |
-| `GET /health` | 200, `{"status":"ok","service":"argus","version":"0.1.0",...}` |
+| `GET /health` | 200, `{"status":"ok","service":"headref","version":"0.1.0",...}` |
 | `pytest` inside the container | 1 passed |
 | `ruff check .` inside the container | All checks passed |
 | `black --check .` inside the container | 5 files unchanged |
@@ -1605,7 +1607,7 @@ Status: IN_PROGRESS
 
 ### Completed
 Added `scripts/check_ollama.py`, a standard-library-only script that verifies every
-acceptance criterion on issue #5 and prints a WORKLOG block. It runs the real ARGUS
+acceptance criterion on issue #5 and prints a WORKLOG block. It runs the real headref
 narrative task (stage S4b), not a toy prompt, so the numbers reflect actual use.
 
 Verified on my machine. 11 checks passed, 0 failed.
@@ -1691,7 +1693,7 @@ for the next two weeks, so it is the one to protect.
 Status: DONE
 
 ### Completed
-Created the ARGUS documentation set in `docs/`, before any application code:
+Created the headref documentation set in `docs/`, before any application code:
 `README.md`, `PROJECT_REQUIREMENTS.md`, `AGENT_ARCHITECTURE.md`, `AGENT_TOOLS.md`,
 `AI_BEHAVIOR.md`, `DATA_AND_EVIDENCE.md`, `ARCHITECTURE.md`, `DECISIONS.md`, `TASKS.md`,
 `WORKLOG.md`, `TESTING_AND_EVALUATION.md`.
@@ -1760,7 +1762,7 @@ fixtures).
 
 ### AI Assistance
 The documentation set was drafted with an AI assistant from the earlier planning material
-(`ARGUS_MVP_Plan.html`, `TeamPulse_Production_Ready_AI_Agent_Checklist.md`,
+(`headref_MVP_Plan.html`, `TeamPulse_Production_Ready_AI_Agent_Checklist.md`,
 `TeamPulse_Analysis_and_Recommendations.md`). The 5 gaps listed above were identified
 during that review.
 

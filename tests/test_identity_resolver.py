@@ -173,7 +173,7 @@ def test_attribute_pull_requests_never_discards_records(db_session: Session) -> 
     db_session.add(link)
     db_session.flush()
 
-    repo = Repository(organization_id=org.id, full_name="keshan-dev/argus")
+    repo = Repository(organization_id=org.id, full_name="keshan-dev/headref")
     db_session.add(repo)
     db_session.flush()
 

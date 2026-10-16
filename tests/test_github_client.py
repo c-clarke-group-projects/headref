@@ -38,13 +38,13 @@ def test_parse_next_page_url() -> None:
 def test_list_pull_requests_from_fixture() -> None:
     """GitHub client lists pull requests matching expected fields and state."""
     prs_data = load_fixture("pull_requests.json")
-    route = respx.get("https://api.github.com/repos/keshan-dev/argus/pulls").respond(
+    route = respx.get("https://api.github.com/repos/keshan-dev/headref/pulls").respond(
         200,
         json=prs_data,
     )
 
     client = GitHubClient(token="ghp_test_token_123")
-    prs = client.list_pull_requests("keshan-dev", "argus")
+    prs = client.list_pull_requests("keshan-dev", "headref")
 
     assert route.called
     assert len(prs) == 4
@@ -78,12 +78,12 @@ def test_list_pull_requests_from_fixture() -> None:
 def test_list_reviews_from_fixture() -> None:
     """GitHub client lists reviews with state, body, and submitted_at timestamp."""
     reviews_data = load_fixture("reviews.json")
-    route = respx.get("https://api.github.com/repos/keshan-dev/argus/pulls/1/reviews").respond(
+    route = respx.get("https://api.github.com/repos/keshan-dev/headref/pulls/1/reviews").respond(
         200, json=reviews_data
     )
 
     client = GitHubClient(token="ghp_test_token_123")
-    reviews = client.list_reviews("keshan-dev", "argus", pull_number=1)
+    reviews = client.list_reviews("keshan-dev", "headref", pull_number=1)
 
     assert route.called
     assert len(reviews) == 2
@@ -97,12 +97,12 @@ def test_list_reviews_from_fixture() -> None:
 def test_list_commits_from_fixture() -> None:
     """GitHub client lists commits with sha, author, message, and date."""
     commits_data = load_fixture("commits.json")
-    route = respx.get("https://api.github.com/repos/keshan-dev/argus/commits").respond(
+    route = respx.get("https://api.github.com/repos/keshan-dev/headref/commits").respond(
         200, json=commits_data
     )
 
     client = GitHubClient(token="ghp_test_token_123")
-    commits = client.list_commits("keshan-dev", "argus")
+    commits = client.list_commits("keshan-dev", "headref")
 
     assert route.called
     assert len(commits) == 3
@@ -116,12 +116,12 @@ def test_list_commits_from_fixture() -> None:
 def test_list_branches_from_fixture() -> None:
     """GitHub client lists branches with name and commit sha."""
     branches_data = load_fixture("branches.json")
-    route = respx.get("https://api.github.com/repos/keshan-dev/argus/branches").respond(
+    route = respx.get("https://api.github.com/repos/keshan-dev/headref/branches").respond(
         200, json=branches_data
     )
 
     client = GitHubClient(token="ghp_test_token_123")
-    branches = client.list_branches("keshan-dev", "argus")
+    branches = client.list_branches("keshan-dev", "headref")
 
     assert route.called
     assert len(branches) == 3
@@ -142,14 +142,14 @@ def test_list_repositories_from_fixture() -> None:
 
     assert route.called
     assert len(repos) == 1
-    assert repos[0]["name"] == "argus"
-    assert repos[0]["full_name"] == "keshan-dev/argus"
+    assert repos[0]["name"] == "headref"
+    assert repos[0]["full_name"] == "keshan-dev/headref"
 
 
 @respx.mock
 def test_pagination_follows_rfc5988_link_header() -> None:
     """Client automatically paginates through multiple pages using Link header."""
-    base = "https://api.github.com/repos/keshan-dev/argus/pulls?state=all&per_page=100"
+    base = "https://api.github.com/repos/keshan-dev/headref/pulls?state=all&per_page=100"
     page1_url = base
     page2_url = f"{base}&page=2"
 
@@ -164,7 +164,7 @@ def test_pagination_follows_rfc5988_link_header() -> None:
     )
 
     client = GitHubClient(token="ghp_test_token_123")
-    results = client.list_pull_requests("keshan-dev", "argus")
+    results = client.list_pull_requests("keshan-dev", "headref")
 
     assert len(results) == 2
     assert results[0]["title"] == "Page 1 Item"
@@ -174,7 +174,7 @@ def test_pagination_follows_rfc5988_link_header() -> None:
 @respx.mock
 def test_github_403_rate_limited() -> None:
     """GitHub rate-limiting signals on 403 raise RateLimitError."""
-    respx.get("https://api.github.com/repos/keshan-dev/argus/pulls").respond(
+    respx.get("https://api.github.com/repos/keshan-dev/headref/pulls").respond(
         403,
         headers={"x-ratelimit-remaining": "0", "retry-after": "60"},
         text="API rate limit exceeded",
@@ -182,7 +182,7 @@ def test_github_403_rate_limited() -> None:
 
     client = GitHubClient(token="ghp_test_token_123", max_attempts=1)
     with pytest.raises(RateLimitError) as exc_info:
-        client.list_pull_requests("keshan-dev", "argus")
+        client.list_pull_requests("keshan-dev", "headref")
 
     assert exc_info.value.status_code == 403
     assert exc_info.value.error_type == "RATE_LIMITED"
@@ -191,14 +191,14 @@ def test_github_403_rate_limited() -> None:
 @respx.mock
 def test_github_401_unauthorized() -> None:
     """GitHub 401 raises AuthError."""
-    respx.get("https://api.github.com/repos/keshan-dev/argus/pulls").respond(
+    respx.get("https://api.github.com/repos/keshan-dev/headref/pulls").respond(
         401,
         text="Bad credentials",
     )
 
     client = GitHubClient(token="invalid_token", max_attempts=1)
     with pytest.raises(AuthError) as exc_info:
-        client.list_pull_requests("keshan-dev", "argus")
+        client.list_pull_requests("keshan-dev", "headref")
 
     assert exc_info.value.status_code == 401
     assert exc_info.value.error_type == "AUTH_FAILED"

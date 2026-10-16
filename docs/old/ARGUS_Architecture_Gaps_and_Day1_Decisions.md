@@ -1,6 +1,6 @@
-# ARGUS - Architecture Gaps, Holes and Day 1 Decisions
+# headref - Architecture Gaps, Holes and Day 1 Decisions
 
-Companion to `ARGUS_MVP_Plan.html` and `TeamPulse_Analysis_and_Recommendations.md`.
+Companion to `headref_MVP_Plan.html` and `TeamPulse_Analysis_and_Recommendations.md`.
 Written for the start of development. Covers 4 things:
 
 1. Contradictions in the current plan that must be resolved before any code is written.

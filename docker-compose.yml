@@ -5,15 +5,15 @@ services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_USER: argus
-      POSTGRES_PASSWORD: argus
-      POSTGRES_DB: argus
+      POSTGRES_USER: headref
+      POSTGRES_PASSWORD: headref
+      POSTGRES_DB: headref
     ports:
       - "5432:5432"
     volumes:
-      - argus_pgdata:/var/lib/postgresql/data
+      - headref_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U argus -d argus"]
+      test: [ "CMD-SHELL", "pg_isready -U headref -d headref" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -37,7 +37,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - .:/app
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command: [ "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload" ]
 
 volumes:
-  argus_pgdata:
+  headref_pgdata:

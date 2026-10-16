@@ -1,4 +1,4 @@
-# ARGUS Architecture Decision Records
+# headref Architecture Decision Records
 
 Decisions that shape the system and are expensive to reverse. Ordinary implementation
 choices do not belong here.
@@ -44,7 +44,7 @@ Owner: Both
 
 ### Context
 
-ARGUS reads text written by other people: pull request descriptions, Jira comments, commit
+headref reads text written by other people: pull request descriptions, Jira comments, commit
 messages. Any of that text can contain instructions aimed at the model. Large language
 models do not reliably ignore injected instructions just because a prompt tells them to.
 
@@ -59,7 +59,7 @@ The question is how much damage a successful injection can do.
 
 ### Decision
 
-Option 3. ARGUS is read-only for the entire MVP. No tool writes to any external system.
+Option 3. headref is read-only for the entire MVP. No tool writes to any external system.
 The LLM is given no tools whatsoever.
 
 ### Reason
@@ -548,7 +548,7 @@ Owner: Developer 1
 ### Context
 
 DEC-002 means the agent reads the database. A database query returns rows whether or not
-the source that filled it is currently reachable. Without something extra, ARGUS cannot
+the source that filled it is currently reachable. Without something extra, headref cannot
 tell the difference between "Jira reports no blockers" and "Jira has been unreachable for
 2 days", and it would report the second as the first. That is the single most damaging
 failure mode this product has.
@@ -726,7 +726,7 @@ Option 3. The MVP runs PostgreSQL and the application container, nothing else.
 - Rate limiting: ingestion is single-process and sequential, so a token bucket in process
   memory is sufficient.
 - Background work: ingestion is a CLI command (DEC-003).
-- Semantic search: not needed. Nearly every ARGUS query is structured, filtered by person,
+- Semantic search: not needed. Nearly every headref query is structured, filtered by person,
   work item and time window. If a genuine need appears, use `pgvector` inside the
   PostgreSQL already running, not a separate service.
 
@@ -872,7 +872,7 @@ Owner: Both
 
 DEC-002 keeps the read path offline. DEC-003 then made ingestion a manually triggered CLI
 command, which leaves data only as fresh as the last time somebody remembered to run it.
-That is not good enough: a lead opening ARGUS before standup needs current data without
+That is not good enough: a lead opening headref before standup needs current data without
 thinking about it.
 
 The question is how to get freshness without putting network calls back into the request

@@ -1,13 +1,13 @@
-# ARGUS Agent Architecture
+# headref Agent Architecture
 
-How the AI part of ARGUS works. For the wider system see `ARCHITECTURE.md`. For behaviour
+How the AI part of headref works. For the wider system see `ARCHITECTURE.md`. For behaviour
 rules see `AI_BEHAVIOR.md`. For tool contracts see `AGENT_TOOLS.md`.
 
 ---
 
 ## 3.1 Agent purpose
 
-ARGUS turns a set of correlated engineering records into a small number of labelled,
+headref turns a set of correlated engineering records into a small number of labelled,
 evidence-cited claims about 1 team member, plus a short readable summary.
 
 **Deterministic code produces the claims. The model writes the summary.** See DEC-018.
@@ -332,11 +332,11 @@ consequential the system can do (DEC-001).
 | Situation | Human involvement |
 |---|---|
 | Reading any insight | None. Read-only output |
-| A conflict is detected | Reported to the lead. The human decides which source is right. ARGUS never resolves it |
+| A conflict is detected | Reported to the lead. The human decides which source is right. headref never resolves it |
 | An unmatched identity appears | A human must confirm the mapping. Until then the activity is unattributed |
 | An `inferred` identity link is proposed | A human must confirm before it is used for attribution (DEC-008) |
 | A blocker is reported | The human decides whether it is real and what to do |
-| The agent returns UNKNOWN | The human investigates manually. ARGUS does not guess to fill the gap |
+| The agent returns UNKNOWN | The human investigates manually. headref does not guess to fill the gap |
 
 **When approval would be required (not in the MVP):** any write action, any notification
 sent to a person other than the requester, any change to identity mappings made
@@ -359,7 +359,7 @@ require the approval machinery deferred by DEC-001.
 - Read any data not present in its evidence set.
 - Read data about a person the requester is not authorized to see. Authorization runs
   before S1, and the evidence set only ever contains the subject's records.
-- Create, modify or delete anything in Jira, GitHub or the ARGUS database.
+- Create, modify or delete anything in Jira, GitHub or the headref database.
 - Set its own confidence. Any confidence value in its output is discarded.
 - Add evidence. Evidence IDs are resolved by code; unknown IDs are dropped.
 - Change its own instructions, permissions or policy, regardless of what retrieved text
@@ -423,6 +423,6 @@ use, the claim-producing design missed a blocker entirely in testing. Correctnes
 into rules; language stayed with the model.
 
 That is the correct shape for this product. The value is in the evidence graph, not in the
-model. A model that is unavailable degrades ARGUS to a still-useful deterministic report.
+model. A model that is unavailable degrades headref to a still-useful deterministic report.
 A model that misbehaves is caught by validation. This should be stated plainly in the
 README rather than hidden, because it is the reason the system can be trusted.

@@ -35,11 +35,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="ARGUS",
+    title="Headref",
     description="Evidence-based engineering team intelligence agent",
     version="0.1.0",
     lifespan=lifespan,
 )
+
 
 # The fonts are repository assets under app/web/static/fonts, committed with their
 # OFL licence. Nothing is copied at import time: a docs directory is not a runtime
@@ -151,7 +152,8 @@ def health() -> Health:
     """
     return Health(
         status="ok",
-        service="argus",
+        service="headref",
         version="0.1.0",
         checked_at=datetime.now(UTC),
     )
+

@@ -1,4 +1,4 @@
-# ARGUS
+# headref
 
 An evidence-based engineering team intelligence agent. It tells a team lead what a team
 member is working on, what is blocking them, and what is at risk, and it shows the
@@ -20,13 +20,13 @@ implements it lives only in someone's head.
 
 Existing dashboards show activity counts. Activity counts do not answer the question.
 
-## 2. What ARGUS does
+## 2. What headref does
 
-ARGUS ingests read-only data from Jira and GitHub, normalizes it into a single database,
+headref ingests read-only data from Jira and GitHub, normalizes it into a single database,
 explicitly links Jira issues to branches, pull requests and commits, and then answers a
 small set of fixed questions about a team member using that linked evidence.
 
-Every statement ARGUS makes is labelled as one of 3 classes:
+Every statement headref makes is labelled as one of 3 classes:
 
 | Class | Meaning | Example |
 |---|---|---|
@@ -45,7 +45,7 @@ needs an accurate picture before it starts.
 **Secondary user:** the team member themselves, to check how their own work appears and
 to correct a wrong identity mapping.
 
-ARGUS is not built for HR, and it is not built to compare people against each other.
+headref is not built for HR, and it is not built to compare people against each other.
 
 ## 4. Main capabilities (MVP)
 
@@ -68,7 +68,7 @@ These are deliberately excluded. Do not add them without a new decision record.
 
 - Slack and Microsoft Teams.
 - Calendar.
-- Any write action. ARGUS never posts, comments, assigns, or changes a ticket.
+- Any write action. headref never posts, comments, assigns, or changes a ticket.
 - Numeric or percentage confidence scores.
 - Vector search or semantic indexing.
 - SSO, multi-tenancy, full RBAC. The MVP uses a login stub.
@@ -82,7 +82,7 @@ See `PROJECT_REQUIREMENTS.md` section 8 for the full MVP / Future / Out of Scope
 
 ## 6. High-level architecture
 
-ARGUS has 2 separate data paths. This separation is the most important rule in the system.
+headref has 2 separate data paths. This separation is the most important rule in the system.
 
 ```text
 WRITE PATH (network, scheduled, Developer 1)
@@ -134,7 +134,7 @@ No Redis, no message queue, no vector database in the MVP. See DEC-013.
 ## 8. Repository structure
 
 ```text
-argus/
+headref/
   README.md
   WORKLOG.md                  <- shared development log, newest entry at top
   docker-compose.yml
@@ -184,7 +184,7 @@ tokens/sec warm versus about 4 tokens/sec when RAM is starved.
 
 ```bash
 git clone <repo-url>
-cd argus
+cd headref
 cp .env.example .env
 # fill in .env with your own read-only tokens, never commit it
 docker compose up --build
@@ -215,7 +215,7 @@ on both machines. See DEC-012.
 
 | File | What it answers |
 |---|---|
-| `README.md` | What is ARGUS, how do I run it |
+| `README.md` | What is headref, how do I run it |
 | `CLAUDE.md` | The project rule set, for both developers and any AI assistant |
 | [`docs/PROJECT_REQUIREMENTS.md`](docs/PROJECT_REQUIREMENTS.md) | What must be built, with numbered requirements (FR / NFR) |
 | [`docs/AGENT_ARCHITECTURE.md`](docs/AGENT_ARCHITECTURE.md) | How the AI agent works, stage by stage |
@@ -269,7 +269,7 @@ These are not suggestions. They apply to every commit.
 | Item | State |
 |---|---|
 | Documentation foundation | Complete |
-| Repository created | Done. `keshan-dev/argus`, 49 issues, 12 labels, 4 milestones |
+| Repository created | Done. `keshan-dev/headref`, 49 issues, 12 labels, 4 milestones |
 | `main` protected | Done. Pull request required, 1 approval, linear history |
 | CI required to pass before merge | Done. 5 checks required: lint, tests, secret scan, migrations, project rules |
 | Decisions ratified by both developers | Done, P0-006, all 19 accepted |

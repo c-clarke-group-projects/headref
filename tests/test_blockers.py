@@ -44,7 +44,7 @@ def _base_pr(
     return PullRequestOut(
         pull_request_id=10,
         number=number,
-        repo_full_name="keshan-dev/argus",
+        repo_full_name="keshan-dev/headref",
         title="feat: refresh token rotation",
         state=state,
         is_draft=is_draft,
@@ -55,7 +55,7 @@ def _base_pr(
         last_review_at=last_review_at,
         source_updated_at=now,
         retrieved_at=now,
-        source_url=f"https://github.com/keshan-dev/argus/pull/{number}",
+        source_url=f"https://github.com/keshan-dev/headref/pull/{number}",
     )
 
 
@@ -125,11 +125,11 @@ def test_bl4_changes_requested_no_commit_positive() -> None:
     commit = CommitOut(
         commit_id=1,
         sha="c1",
-        repo_full_name="keshan-dev/argus",
+        repo_full_name="keshan-dev/headref",
         message_excerpt="old commit",
         branch_name="feature/AUTH-245-token",
         committed_at=review_time - timedelta(hours=2),
-        source_url="https://github.com/keshan-dev/argus/commit/c1",
+        source_url="https://github.com/keshan-dev/headref/commit/c1",
         retrieved_at=review_time,
     )
     blockers = detect_blockers([], [pr], commits=[commit])
@@ -143,11 +143,11 @@ def test_bl4_changes_requested_with_commit_negative() -> None:
     commit = CommitOut(
         commit_id=1,
         sha="c2",
-        repo_full_name="keshan-dev/argus",
+        repo_full_name="keshan-dev/headref",
         message_excerpt="addressed review feedback",
         branch_name="feature/AUTH-245-token",
         committed_at=review_time + timedelta(hours=1),
-        source_url="https://github.com/keshan-dev/argus/commit/c2",
+        source_url="https://github.com/keshan-dev/headref/commit/c2",
         retrieved_at=review_time,
     )
     blockers = detect_blockers([], [pr], commits=[commit])

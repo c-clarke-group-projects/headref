@@ -1,4 +1,4 @@
-"""ARGUS configuration module.
+"""Headref configuration module.
 
 Defines typed application settings and named constants (NFR-006, NFR-011, NFR-021).
 All thresholds, timeouts, and model parameters are defined here in one place.
@@ -142,7 +142,7 @@ class Settings(BaseSettings):
         description="Maximum evidence items presented to reasoning stage.",
     )
     github_repos: str = Field(
-        default="keshan-dev/argus",
+        default="keshan-dev/headref",
         validation_alias=AliasChoices("GITHUB_REPOS", "github_repos"),
         description=(
             "Comma separated owner/repo scopes this deployment ingests. "

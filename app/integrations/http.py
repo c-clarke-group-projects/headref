@@ -34,7 +34,7 @@ from app.integrations.errors import (
     UpstreamError,
 )
 
-logger = logging.getLogger("argus.integrations.http")
+logger = logging.getLogger("headref.integrations.http")
 
 SENSITIVE_HEADER_KEYS = frozenset(
     {

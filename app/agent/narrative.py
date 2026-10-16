@@ -13,7 +13,7 @@ from typing import Any
 import httpx
 from pydantic import BaseModel, Field, ValidationError
 
-logger = logging.getLogger("argus.agent.narrative")
+logger = logging.getLogger("headref.agent.narrative")
 
 OLLAMA_URL = os.getenv("OLLAMA_HOST", "http://localhost:11434") + "/api/chat"
 DEFAULT_MODEL_ID = os.getenv("MODEL_ID", "llama3.2")

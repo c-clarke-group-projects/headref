@@ -44,7 +44,7 @@ def test_clean_excerpt_removes_urls_and_truncates() -> None:
     assert clean_excerpt("   ") is None
 
     # URLs removed
-    text_with_urls = "Fixed bug https://github.com/keshan-dev/argus/issues/14 in production."
+    text_with_urls = "Fixed bug https://github.com/keshan-dev/headref/issues/14 in production."
     assert clean_excerpt(text_with_urls) == "Fixed bug  in production."
 
     # Only URL returns None
@@ -81,13 +81,13 @@ def test_normalize_repository_pure() -> None:
     """normalize_repository transforms payload without database access."""
     payload = {
         "id": 123456,
-        "name": "argus",
-        "full_name": "keshan-dev/argus",
+        "name": "headref",
+        "full_name": "keshan-dev/headref",
         "default_branch": "main",
     }
     repo_dict = normalize_repository(payload, organization_id=1)
     assert repo_dict["organization_id"] == 1
-    assert repo_dict["full_name"] == "keshan-dev/argus"
+    assert repo_dict["full_name"] == "keshan-dev/headref"
     assert repo_dict["default_branch"] == "main"
     assert repo_dict["is_active"] is True
 
@@ -104,14 +104,14 @@ def test_normalize_pull_request_state_derivation_and_fields() -> None:
     open_payload = {
         "number": 14,
         "title": "GitHub normalizer implementation",
-        "body": "Fixes #14. See https://github.com/keshan-dev/argus/pull/14",
+        "body": "Fixes #14. See https://github.com/keshan-dev/headref/pull/14",
         "state": "open",
         "draft": False,
         "head": {"ref": "feat/phase-02"},
         "created_at": "2026-09-20T10:00:00Z",
         "updated_at": "2026-09-20T11:00:00Z",
         "merged_at": None,
-        "html_url": "https://github.com/keshan-dev/argus/pull/14",
+        "html_url": "https://github.com/keshan-dev/headref/pull/14",
     }
     pr_open = normalize_pull_request(open_payload, repository_id=10, retrieved_at=retrieved)
     assert pr_open["repository_id"] == 10
@@ -159,7 +159,7 @@ def test_normalize_commit_pure() -> None:
             "message": "feat: normalizer logic https://example.com/doc",
             "author": {"date": "2026-09-20T09:00:00Z"},
         },
-        "html_url": "https://github.com/keshan-dev/argus/commit/a1b2c3d",
+        "html_url": "https://github.com/keshan-dev/headref/commit/a1b2c3d",
     }
     commit_dict = normalize_commit(
         payload, repository_id=10, retrieved_at=retrieved, branch_name="feat/phase-02"
@@ -183,7 +183,7 @@ def test_normalize_review_pure() -> None:
         "state": "APPROVED",
         "body": "Looks great! Check https://example.com",
         "submitted_at": "2026-09-20T12:00:00Z",
-        "html_url": "https://github.com/keshan-dev/argus/pull/14#pullrequestreview-987654321",
+        "html_url": "https://github.com/keshan-dev/headref/pull/14#pullrequestreview-987654321",
     }
     review_dict = normalize_review(payload, pull_request_id=5, retrieved_at=retrieved)
     assert review_dict["pull_request_id"] == 5
@@ -205,7 +205,7 @@ def test_upsert_repository_idempotent(db_session: Session) -> None:
 
     repo_dict = {
         "organization_id": org.id,
-        "full_name": "keshan-dev/argus",
+        "full_name": "keshan-dev/headref",
         "default_branch": "main",
         "is_active": True,
     }
@@ -234,7 +234,7 @@ def test_upsert_pull_request_idempotent(db_session: Session) -> None:
     db_session.add(org)
     db_session.flush()
 
-    repo = Repository(organization_id=org.id, full_name="keshan-dev/argus")
+    repo = Repository(organization_id=org.id, full_name="keshan-dev/headref")
     db_session.add(repo)
     db_session.flush()
 
@@ -250,7 +250,7 @@ def test_upsert_pull_request_idempotent(db_session: Session) -> None:
         "author_app_user_id": None,
         "created_at_source": now,
         "merged_at": None,
-        "source_url": "https://github.com/keshan-dev/argus/pull/14",
+        "source_url": "https://github.com/keshan-dev/headref/pull/14",
         "source_updated_at": now,
         "retrieved_at": now,
     }
@@ -282,7 +282,7 @@ def test_upsert_commit_idempotent(db_session: Session) -> None:
     db_session.add(org)
     db_session.flush()
 
-    repo = Repository(organization_id=org.id, full_name="keshan-dev/argus")
+    repo = Repository(organization_id=org.id, full_name="keshan-dev/headref")
     db_session.add(repo)
     db_session.flush()
 
@@ -294,7 +294,7 @@ def test_upsert_commit_idempotent(db_session: Session) -> None:
         "branch_name": "feat/phase-02",
         "author_app_user_id": None,
         "committed_at": now,
-        "source_url": "https://github.com/keshan-dev/argus/commit/a1b2c3d",
+        "source_url": "https://github.com/keshan-dev/headref/commit/a1b2c3d",
         "retrieved_at": now,
     }
 
@@ -319,7 +319,7 @@ def test_upsert_review_idempotent(db_session: Session) -> None:
     db_session.add(org)
     db_session.flush()
 
-    repo = Repository(organization_id=org.id, full_name="keshan-dev/argus")
+    repo = Repository(organization_id=org.id, full_name="keshan-dev/headref")
     db_session.add(repo)
     db_session.flush()
 
@@ -331,7 +331,7 @@ def test_upsert_review_idempotent(db_session: Session) -> None:
         state="open",
         branch_name="feat/review-fixture",
         created_at_source=now,
-        source_url="https://github.com/keshan-dev/argus/pull/14",
+        source_url="https://github.com/keshan-dev/headref/pull/14",
         source_updated_at=now,
         retrieved_at=now,
     )
@@ -345,7 +345,7 @@ def test_upsert_review_idempotent(db_session: Session) -> None:
         "state": "changes_requested",
         "body_excerpt": "Please fix tests",
         "submitted_at": now,
-        "source_url": "https://github.com/keshan-dev/argus/reviews/12345",
+        "source_url": "https://github.com/keshan-dev/headref/reviews/12345",
         "retrieved_at": now,
     }
 
@@ -371,7 +371,7 @@ def test_batch_ingest_pull_requests_skips_malformed(db_session: Session) -> None
     db_session.add(org)
     db_session.flush()
 
-    repo = Repository(organization_id=org.id, full_name="keshan-dev/argus")
+    repo = Repository(organization_id=org.id, full_name="keshan-dev/headref")
     db_session.add(repo)
     db_session.flush()
 
@@ -411,7 +411,7 @@ def test_batch_ingest_commits_skips_malformed(db_session: Session) -> None:
     db_session.add(org)
     db_session.flush()
 
-    repo = Repository(organization_id=org.id, full_name="keshan-dev/argus")
+    repo = Repository(organization_id=org.id, full_name="keshan-dev/headref")
     db_session.add(repo)
     db_session.flush()
 

@@ -13,8 +13,8 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY . .
 
 # Do not run as root.
-RUN useradd --create-home --uid 1000 argus && chown -R argus:argus /app
-USER argus
+RUN useradd --create-home --uid 1000 headref && chown -R headref:headref /app
+USER headref
 
 EXPOSE 8000
 

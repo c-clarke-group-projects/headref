@@ -97,7 +97,7 @@ def test_sync_trigger_concurrency_deduplication(client: TestClient):
     running_run = SyncRun(
         id=42,
         source="github",
-        scope="keshan-dev/argus",
+        scope="keshan-dev/headref",
         status="running",
         started_at=NOW,
     )
@@ -125,7 +125,7 @@ def test_sync_status_polling(client: TestClient):
     finished_run = SyncRun(
         id=43,
         source="github",
-        scope="keshan-dev/argus",
+        scope="keshan-dev/headref",
         status="success",
         started_at=NOW,
         items_skipped=0,

@@ -43,8 +43,8 @@ def test_sync_github_success(db_session: Session) -> None:
     mock_client = MagicMock()
     mock_client.get_repository.return_value = {
         "id": 1,
-        "name": "argus",
-        "full_name": "keshan-dev/argus",
+        "name": "headref",
+        "full_name": "keshan-dev/headref",
         "default_branch": "main",
     }
     mock_client.list_pull_requests.return_value = [
@@ -84,7 +84,7 @@ def test_sync_github_success(db_session: Session) -> None:
     run = sync_github(
         session=db_session,
         team_id=1,
-        scope="keshan-dev/argus",
+        scope="keshan-dev/headref",
         gh_client=mock_client,
     )
     assert run.status == "success"
@@ -97,7 +97,7 @@ def test_sync_github_success(db_session: Session) -> None:
     cursor = db_session.scalar(
         select(SyncCursor).where(
             SyncCursor.source == "github",
-            SyncCursor.scope == "keshan-dev/argus",
+            SyncCursor.scope == "keshan-dev/headref",
         )
     )
     assert cursor is not None
@@ -168,7 +168,7 @@ def test_sync_failure_records_typed_error_and_no_secret_in_detail(
     run = sync_github(
         session=db_session,
         team_id=1,
-        scope="keshan-dev/argus",
+        scope="keshan-dev/headref",
         gh_client=mock_client,
     )
     assert run.status == "failed"
@@ -183,7 +183,7 @@ def test_sync_failure_records_typed_error_and_no_secret_in_detail(
     cursor = db_session.scalar(
         select(SyncCursor).where(
             SyncCursor.source == "github",
-            SyncCursor.scope == "keshan-dev/argus",
+            SyncCursor.scope == "keshan-dev/headref",
         )
     )
     assert cursor is None
@@ -198,7 +198,7 @@ def test_reset_cursor_clears_existing_cursor(db_session: Session) -> None:
     # Pre-seed cursor
     existing_cursor = SyncCursor(
         source="github",
-        scope="keshan-dev/argus",
+        scope="keshan-dev/headref",
         cursor_value="2026-09-01T00:00:00Z",
     )
     db_session.add(existing_cursor)
@@ -207,8 +207,8 @@ def test_reset_cursor_clears_existing_cursor(db_session: Session) -> None:
     mock_client = MagicMock()
     mock_client.get_repository.return_value = {
         "id": 1,
-        "name": "argus",
-        "full_name": "keshan-dev/argus",
+        "name": "headref",
+        "full_name": "keshan-dev/headref",
         "default_branch": "main",
     }
     mock_client.list_pull_requests.return_value = []
@@ -218,7 +218,7 @@ def test_reset_cursor_clears_existing_cursor(db_session: Session) -> None:
     run = sync_github(
         session=db_session,
         team_id=1,
-        scope="keshan-dev/argus",
+        scope="keshan-dev/headref",
         reset_cursor=True,
         gh_client=mock_client,
     )
@@ -228,7 +228,7 @@ def test_reset_cursor_clears_existing_cursor(db_session: Session) -> None:
     new_cursor = db_session.scalar(
         select(SyncCursor).where(
             SyncCursor.source == "github",
-            SyncCursor.scope == "keshan-dev/argus",
+            SyncCursor.scope == "keshan-dev/headref",
         )
     )
     assert new_cursor is not None
@@ -244,8 +244,8 @@ def test_idempotency_running_twice_produces_identical_state(db_session: Session)
     mock_client = MagicMock()
     mock_client.get_repository.return_value = {
         "id": 1,
-        "name": "argus",
-        "full_name": "keshan-dev/argus",
+        "name": "headref",
+        "full_name": "keshan-dev/headref",
         "default_branch": "main",
     }
     mock_client.list_pull_requests.return_value = [
@@ -276,7 +276,7 @@ def test_idempotency_running_twice_produces_identical_state(db_session: Session)
 
     # Run 1
     run1 = sync_github(
-        session=db_session, team_id=1, scope="keshan-dev/argus", gh_client=mock_client
+        session=db_session, team_id=1, scope="keshan-dev/headref", gh_client=mock_client
     )
     assert run1.status == "success"
 
@@ -285,7 +285,7 @@ def test_idempotency_running_twice_produces_identical_state(db_session: Session)
 
     # Run 2
     run2 = sync_github(
-        session=db_session, team_id=1, scope="keshan-dev/argus", gh_client=mock_client
+        session=db_session, team_id=1, scope="keshan-dev/headref", gh_client=mock_client
     )
     assert run2.status == "success"
 
@@ -302,7 +302,7 @@ def test_cli_main_entrypoint(monkeypatch: pytest.MonkeyPatch, db_session: Sessio
 
     mock_run = SyncRun(
         source="github",
-        scope="keshan-dev/argus",
+        scope="keshan-dev/headref",
         status="success",
         items_fetched=10,
         items_written=10,

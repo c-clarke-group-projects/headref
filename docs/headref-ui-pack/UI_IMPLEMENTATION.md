@@ -1,7 +1,7 @@
 # Headref UI implementation handoff
 
 How to turn the Headref UI canvas (the bold version) into the real Jinja2 interface in
-`keshan-dev/argus`. Read this together with `DESIGN.md`. `DESIGN.md` still owns the rules,
+`keshan-dev/headref`. Read this together with `DESIGN.md`. `DESIGN.md` still owns the rules,
 routes, contracts and copy. This file owns the look, the component markup and the file
 layout.
 
@@ -410,7 +410,7 @@ screen sections with the screen PRs.
 4. **Dark mode.** Tokens are in place but untested against the canvas; run the AA check.
 5. **Not equal sign.** The Latin font subset has no `≠`, so it falls back to a system font.
    Fine visually; swap to an SVG if it ever looks off.
-6. **Rename.** Templates already say Headref. The ARGUS rename items in `DESIGN.md` 1a still
+6. **Rename.** Templates already say Headref. The headref rename items in `DESIGN.md` 1a still
    need their own PR.
 
 ---

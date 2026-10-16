@@ -1,6 +1,6 @@
-# ARGUS Build Order
+# headref Build Order
 
-A layer by layer guide for building ARGUS by hand, in the order the layers depend on
+A layer by layer guide for building headref by hand, in the order the layers depend on
 each other, with what to learn before writing each one.
 
 **Who this is for:** a developer who is building this project to learn the stack, not
@@ -26,7 +26,7 @@ the 2-developer parallelism and the 3-week triage.
 Terms like "controller" and "service" come from Spring and ASP.NET MVC. Python and
 FastAPI use different names for the same jobs. This table is the translation.
 
-| Term you know | ARGUS name | Location | What it actually does |
+| Term you know | headref name | Location | What it actually does |
 |---|---|---|---|
 | Entity, Model | Model | `app/models/` | SQLAlchemy classes that map to PostgreSQL tables |
 | DTO, ViewModel | Schema, Contract | `app/schemas/` | Pydantic classes that define what crosses a boundary |

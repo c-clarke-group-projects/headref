@@ -1,4 +1,4 @@
-"""ARGUS agent package.
+"""Headref agent package.
 
 Contains the complete Phase 4 agent reasoning pipeline:
 - S1 Planning & S2 Retrieval (`planner.py`, `orchestrator.py`)

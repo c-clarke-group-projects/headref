@@ -25,7 +25,7 @@ from app.db import get_sync_session
 from app.models.operations import SyncRun
 from app.sync import sync_github, sync_jira
 
-logger = logging.getLogger("argus.scheduler")
+logger = logging.getLogger("headref.scheduler")
 
 
 def recover_stuck_syncs(

@@ -57,7 +57,7 @@ from app.tools.get_reviews import get_reviews
 from app.tools.get_source_health import get_source_health
 from app.tools.get_work_item_links import get_work_item_links
 
-logger = logging.getLogger("argus.agent")
+logger = logging.getLogger("headref.agent")
 
 # "All open items with a due date" (the risks question) reaches back further than any
 # activity window, so it uses its own, very long, lookback.

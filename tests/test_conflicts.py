@@ -40,7 +40,7 @@ def _make_pull_request(
     return PullRequestOut(
         pull_request_id=10,
         number=number,
-        repo_full_name="keshan-dev/argus",
+        repo_full_name="keshan-dev/headref",
         title="feat: refresh token rotation",
         state=state,
         is_draft=False,
@@ -50,7 +50,7 @@ def _make_pull_request(
         created_at=now,
         source_updated_at=now,
         retrieved_at=now,
-        source_url=f"https://github.com/keshan-dev/argus/pull/{number}",
+        source_url=f"https://github.com/keshan-dev/headref/pull/{number}",
     )
 
 
@@ -125,11 +125,11 @@ def test_cf3_done_with_subsequent_commits_positive() -> None:
     commit = CommitOut(
         commit_id=1,
         sha="c123456789",
-        repo_full_name="keshan-dev/argus",
+        repo_full_name="keshan-dev/headref",
         message_excerpt="fix: extra cleanup on AUTH-245",
         branch_name="feature/AUTH-245-token",
         committed_at=commit_time,
-        source_url="https://github.com/keshan-dev/argus/commit/c123456789",
+        source_url="https://github.com/keshan-dev/headref/commit/c123456789",
         retrieved_at=commit_time,
     )
 
@@ -152,11 +152,11 @@ def test_cf3_done_with_prior_commits_negative() -> None:
     commit = CommitOut(
         commit_id=1,
         sha="c123456789",
-        repo_full_name="keshan-dev/argus",
+        repo_full_name="keshan-dev/headref",
         message_excerpt="fix: extra cleanup on AUTH-245",
         branch_name="feature/AUTH-245-token",
         committed_at=commit_time,
-        source_url="https://github.com/keshan-dev/argus/commit/c123456789",
+        source_url="https://github.com/keshan-dev/headref/commit/c123456789",
         retrieved_at=commit_time,
     )
 

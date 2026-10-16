@@ -1,4 +1,4 @@
-# ARGUS Testing and Evaluation
+# headref Testing and Evaluation
 
 Software testing and AI evaluation. They are different activities with different pass
 conditions, and both are required.
@@ -138,7 +138,7 @@ sources are `fresh`.
 - `classification == "unknown"`.
 - `confidence == "UNKNOWN"`.
 - Reason is `NO_EVIDENCE`.
-- The response states that work not tracked in these tools is not visible to ARGUS.
+- The response states that work not tracked in these tools is not visible to headref.
 - No claim asserts the person is not working.
 
 **Fails if:** any claim asserts inactivity, or a fabricated explanation appears.

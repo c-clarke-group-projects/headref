@@ -183,7 +183,7 @@ def test_no_secret_in_logs(caplog: pytest.LogCaptureFixture) -> None:
     query_secret = "top_secret_param_value_67890"
 
     client = HttpClient()
-    with caplog.at_level(logging.DEBUG, logger="argus.integrations.http"):
+    with caplog.at_level(logging.DEBUG, logger="headref.integrations.http"):
         client.get(
             f"https://api.github.com/sensitive?token={query_secret}&other=safe",
             headers={

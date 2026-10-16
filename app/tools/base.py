@@ -15,7 +15,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.db import is_timeout_error
 from app.schemas.errors import ToolFailure
 
-logger = logging.getLogger("argus.tools")
+logger = logging.getLogger("headref.tools")
 
 SECRET_REDACT_REGEX = re.compile(
     r"(token|bearer|basic|key|password|secret|authorization)"

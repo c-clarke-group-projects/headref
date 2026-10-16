@@ -17,7 +17,7 @@ from app.models.agent import AgentRun
 from app.models.agent import Insight as CachedInsightModel
 from app.schemas.insight import MemberInsight
 
-logger = logging.getLogger("argus.agent.cache")
+logger = logging.getLogger("headref.agent.cache")
 
 DEFAULT_CACHE_TTL_SECONDS = 3600
 

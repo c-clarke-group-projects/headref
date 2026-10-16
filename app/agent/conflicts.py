@@ -1,7 +1,7 @@
 """Conflict detection rules CF-1 through CF-4 (P4-002, Issue #26).
 
 Detects cross-source disagreements between Jira and GitHub per DATA_AND_EVIDENCE.md 6.7.
-ARGUS reports both states and never resolves conflicts or picks a winner (C-1, C-2, DEC-005).
+Headref reports both states and never resolves conflicts or picks a winner (C-1, C-2, DEC-005).
 """
 
 import re

@@ -1,5 +1,5 @@
 [project]
-name = "argus"
+name = "headref"
 version = "0.1.0"
 description = "Evidence-based engineering team intelligence agent"
 requires-python = ">=3.11,<3.12"

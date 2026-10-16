@@ -1,4 +1,4 @@
-# ARGUS Project Rules
+# headref Project Rules
 
 The operating rules for this repository. They apply to both developers and to any AI
 coding assistant working in this project.

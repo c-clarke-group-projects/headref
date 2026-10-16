@@ -1,6 +1,6 @@
 # Headref UI pack
 
-Everything needed to build the Headref UI canvas design in `keshan-dev/argus`.
+Everything needed to build the Headref UI canvas design in `keshan-dev/headref`.
 
 ## Quick start
 
