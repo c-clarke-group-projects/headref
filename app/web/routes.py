@@ -852,28 +852,46 @@ def get_repos_page(
     db_repos = db.scalars(select(Repository)).all() if db else []
     synced_names = {r.full_name.lower(): r for r in db_repos}
 
+    org_logins = {o.get("login", "").lower() for o in orgs if isinstance(o, dict) and o.get("login")}
+    actor_handle = (actor.display_name or "").lower()
+
     for r in repos:
         fn = (r.get("full_name") or "").lower()
         r["is_synced"] = fn in synced_names
+        owner_dict = r.get("owner") if isinstance(r.get("owner"), dict) else {}
+        owner_login = owner_dict.get("login") or (r.get("full_name", "").split("/")[0] if "/" in r.get("full_name", "") else "unknown")
+        r["owner"] = {"login": owner_login}
+        r["owner_login"] = owner_login
+        if not r.get("name"):
+            r["name"] = r.get("full_name", "").split("/")[-1] if "/" in r.get("full_name", "") else r.get("full_name", "")
+        r["is_personal"] = (owner_login.lower() == actor_handle) or (owner_login.lower() not in org_logins)
 
     known_fetched = {(r.get("full_name") or "").lower() for r in repos}
     for dbr in db_repos:
         if dbr.full_name.lower() not in known_fetched:
+            owner_login = dbr.full_name.split("/")[0] if "/" in dbr.full_name else "unknown"
             repos.append({
                 "full_name": dbr.full_name,
                 "name": dbr.full_name.split("/")[-1],
-                "owner": {"login": dbr.full_name.split("/")[0]},
+                "owner": {"login": owner_login},
+                "owner_login": owner_login,
                 "description": "Configured repository in database",
                 "private": False,
                 "is_synced": True,
+                "is_personal": (owner_login.lower() == actor_handle) or (owner_login.lower() not in org_logins),
             })
 
     unmatched_count = 0
     team_name = f"Team {actor.team_id}" if actor.team_id else "Headref"
     if db:
-        unmatched_count = db.scalar(
-            select(func.count(UnmatchedEntity.id)).where(UnmatchedEntity.status == "pending")
-        ) or 0
+        unmatched_count = (
+            db.scalar(
+                select(func.count(UnmatchedEntity.id)).where(
+                    UnmatchedEntity.resolved_app_user_id.is_(None)
+                )
+            )
+            or 0
+        )
         if actor.team_id:
             team_obj = db.get(Team, actor.team_id)
             if team_obj:

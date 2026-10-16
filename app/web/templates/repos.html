@@ -106,14 +106,13 @@
   {% if repos %}
   <div class="grid-2" id="repo-grid">
     {% for repo in repos %}
-    {% set is_personal = (repo.owner.login|lower == actor.display_name|lower) or (orgs and (repo.owner.login|lower not in orgs|map(attribute='login')|map('lower')|list)) %}
     <div 
       class="card card--pad-md repo-card" 
       data-name="{{ repo.name|lower }}" 
       data-fullname="{{ repo.full_name|lower }}"
       data-desc="{{ (repo.description or '')|lower }}"
-      data-owner="{{ repo.owner.login|lower }}"
-      data-is-personal="{{ 'true' if is_personal else 'false' }}"
+      data-owner="{{ repo.owner_login|lower }}"
+      data-is-personal="{{ 'true' if repo.is_personal else 'false' }}"
       style="display: flex; flex-direction: column; justify-content: space-between; border: 1.5px solid {% if repo.is_synced %}var(--ok){% else %}var(--ash){% endif %}; transition: transform 0.15s ease, box-shadow 0.15s ease;"
     >
       <div>
@@ -121,7 +120,7 @@
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="color: var(--slate);">{{ i.icon("github", 20) }}</span>
             <span style="font-size: 13px; font-weight: 600; color: var(--slate); text-transform: uppercase; letter-spacing: 0.04em;">
-              {{ repo.owner.login }}
+              {{ repo.owner_login }}
             </span>
           </div>
           <div>

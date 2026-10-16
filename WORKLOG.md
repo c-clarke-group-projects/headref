@@ -71,12 +71,13 @@ Status: DONE
 5. Implemented `POST /repos/select`: validates repository full name, triggers GitHub ingestion (`sync_github`) with automatic contributor provisioning (`auto_create_contributors=True`), and redirects to the team dashboard with a success notice.
 6. Added Repositories link to the top navigation pillbar in `app/web/templates/base.html`, and added sync confirmation notice to `app/web/templates/team.html`.
 7. Added unit and integration tests in `tests/test_github_oauth.py` covering scope validation, user auto-provisioning, `/repos` page rendering with mocked GitHub API responses, and `/repos/select` sync execution.
+8. Resolved `AttributeError: type object 'UnmatchedEntity' has no attribute 'status'` in `GET /repos` by replacing invalid status check with canonical `UnmatchedEntity.resolved_app_user_id.is_(None)`. Verified live page rendering with browser subagent.
 
 ### Changed
 `app/web/routes.py`, `app/web/templates/base.html`, `app/web/templates/repos.html`, `app/web/templates/team.html`, `tests/test_github_oauth.py`, `WORKLOG.md`.
 
 ### Discovered
-Storing the user's OAuth access token in an HttpOnly session cookie enables seamless per-session GitHub API queries (listing organizations and repos) and user-scoped repository ingestion without requiring database schema alterations.
+Storing the user's OAuth access token in an HttpOnly session cookie enables seamless per-session GitHub API queries (listing organizations and repos) and user-scoped repository ingestion without requiring database schema alterations. Unresolved accounts on `UnmatchedEntity` are tracked by `resolved_app_user_id IS NULL`.
 
 ---
 
