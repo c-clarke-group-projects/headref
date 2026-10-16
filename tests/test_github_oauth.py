@@ -98,12 +98,15 @@ def test_github_login_redirects_to_github(client: TestClient, oauth_settings: Se
     assert location.startswith("https://github.com/login/oauth/authorize?")
     assert "client_id=test-client-id" in location
     assert "scope=read%3Auser" in location
+    assert "repo" in location
+    assert "read%3Aorg" in location
     assert "state=" in location
 
     cookies = response.cookies
-    assert "argus_oauth_state" in cookies
-    assert "argus_oauth_next" in cookies
-    assert cookies["argus_oauth_next"] == "/teams/1"
+    assert "headref_oauth_state" in cookies
+    assert "headref_oauth_next" in cookies
+    assert cookies["headref_oauth_next"] == "/teams/1"
+
 
 
 def test_github_login_fails_when_unconfigured(
@@ -140,19 +143,20 @@ def test_github_callback_handles_upstream_error(client: TestClient) -> None:
 
 def test_github_callback_rejects_csrf_mismatch(client: TestClient) -> None:
     """Callback rejects request if state parameter does not match state cookie."""
-    client.cookies.set("argus_oauth_state", "expected-secret-state")
+    client.cookies.set("headref_oauth_state", "expected-secret-state")
     response = client.get(
         "/auth/github/callback?code=mock_code&state=wrong-state", follow_redirects=False
     )
+
     assert response.status_code == status.HTTP_303_SEE_OTHER
     assert "CSRF" in response.headers["location"]
 
 
 @respx.mock
-def test_github_callback_unmapped_user(
+def test_github_callback_auto_provisions_unmapped_user(
     client: TestClient, db_session: Session, oauth_settings: Settings
 ) -> None:
-    """Callback returns clear error when authenticated GitHub user is not in identity map."""
+    """Callback auto-provisions AppUser and IdentityLink when GitHub user is not yet in map."""
     respx.post("https://github.com/login/oauth/access_token").mock(
         return_value=Response(200, json={"access_token": "gho_test_token_123"})
     )
@@ -163,15 +167,24 @@ def test_github_callback_unmapped_user(
         )
     )
 
-    client.cookies.set("argus_oauth_state", "valid-state-123")
+    client.cookies.set("headref_oauth_state", "valid-state-123")
     response = client.get(
         "/auth/github/callback?code=test-code&state=valid-state-123",
         follow_redirects=False,
     )
 
     assert response.status_code == status.HTTP_303_SEE_OTHER
-    assert "/login?error=" in response.headers["location"]
-    assert "stranger" in response.headers["location"]
+    assert response.headers["location"] == "/repos"
+    assert auth.SESSION_COOKIE in response.cookies
+    assert routes.GITHUB_TOKEN_COOKIE in response.cookies
+    assert response.cookies[routes.GITHUB_TOKEN_COOKIE] == "gho_test_token_123"
+
+    user = db_session.query(AppUser).filter_by(display_name="Stranger Danger").first()
+    assert user is not None
+    assert user.is_active is True
+    link = db_session.query(IdentityLink).filter_by(external_id="9999999").first()
+    assert link is not None
+    assert link.app_user_id == user.id
 
 
 @respx.mock
@@ -219,8 +232,8 @@ def test_github_callback_successful_login(
         )
     )
 
-    client.cookies.set("argus_oauth_state", "state_abc_456")
-    client.cookies.set("argus_oauth_next", "/teams/1")
+    client.cookies.set("headref_oauth_state", "state_abc_456")
+    client.cookies.set("headref_oauth_next", "/teams/1")
 
     response = client.get(
         "/auth/github/callback?code=valid-code-789&state=state_abc_456",
@@ -232,5 +245,149 @@ def test_github_callback_successful_login(
 
     # Session cookie must be set and state cookies cleared
     assert auth.SESSION_COOKIE in response.cookies
+    assert routes.GITHUB_TOKEN_COOKIE in response.cookies
+    assert response.cookies[routes.GITHUB_TOKEN_COOKIE] == "gho_valid_oauth_token"
     assert auth.read_session(response.cookies[auth.SESSION_COOKIE]) == user.id
-    assert "argus_oauth_state" not in response.cookies or response.cookies["argus_oauth_state"] == ""
+    assert "headref_oauth_state" not in response.cookies or response.cookies["headref_oauth_state"] == ""
+
+
+def test_repos_page_requires_auth(client: TestClient) -> None:
+    """Unauthenticated access to /repos redirects to /login."""
+    response = client.get("/repos", follow_redirects=False)
+    assert response.status_code == status.HTTP_303_SEE_OTHER
+    assert "/login" in response.headers["location"]
+
+
+@respx.mock
+def test_repos_page_renders_with_mocked_github(
+    client: TestClient, db_session: Session
+) -> None:
+    """Authenticated user visiting /repos sees their organizations and repositories."""
+    org = Organization(name="Demo Org")
+    db_session.add(org)
+    db_session.flush()
+    team = Team(organization_id=org.id, name="Eng")
+    db_session.add(team)
+    db_session.flush()
+    user = AppUser(
+        organization_id=org.id,
+        team_id=team.id,
+        display_name="Keshan",
+        role_label="Backend",
+        is_active=True,
+    )
+    db_session.add(user)
+    db_session.commit()
+
+    respx.get("https://api.github.com/user/orgs").mock(
+        return_value=Response(
+            200,
+            json=[{"id": 1, "login": "my-cool-org", "description": "Cool Org"}],
+        )
+    )
+    respx.get("https://api.github.com/user/repos").mock(
+        return_value=Response(
+            200,
+            json=[
+                {
+                    "id": 101,
+                    "name": "argus",
+                    "full_name": "keshan-dev/argus",
+                    "owner": {"login": "keshan-dev"},
+                    "description": "Headref repository",
+                    "private": False,
+                    "stargazers_count": 5,
+                    "language": "Python",
+                }
+            ],
+        )
+    )
+
+    client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
+    client.cookies.set(routes.GITHUB_TOKEN_COOKIE, "gho_dummy_token")
+
+    response = client.get("/repos")
+    assert response.status_code == 200
+    assert "Available Repositories" in response.text
+    assert "my-cool-org" in response.text
+    assert "keshan-dev/argus" in response.text
+
+
+def test_select_repo_triggers_sync_and_redirects(
+    client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """POST /repos/select invokes sync_github and redirects with ?synced=true."""
+    org = Organization(name="Demo Org")
+    db_session.add(org)
+    db_session.flush()
+    team = Team(organization_id=org.id, name="Eng")
+    db_session.add(team)
+    db_session.flush()
+    user = AppUser(
+        organization_id=org.id,
+        team_id=team.id,
+        display_name="Keshan",
+        role_label="Backend",
+        is_active=True,
+    )
+    db_session.add(user)
+    db_session.commit()
+
+    sync_called = []
+
+    def mock_sync_github(session, team_id, scope, gh_client, auto_create_contributors):
+        sync_called.append({
+            "team_id": team_id,
+            "scope": scope,
+            "auto_create_contributors": auto_create_contributors,
+        })
+
+    monkeypatch.setattr(routes, "sync_github", mock_sync_github)
+
+    client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
+    client.cookies.set(routes.GITHUB_TOKEN_COOKIE, "gho_dummy_token")
+
+    response = client.post(
+        "/repos/select",
+        data={"repo_full_name": "keshan-dev/argus"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == status.HTTP_303_SEE_OTHER
+    assert "/?synced=true" in response.headers["location"]
+    assert "keshan-dev%2Fargus" in response.headers["location"]
+    assert len(sync_called) == 1
+    assert sync_called[0]["scope"] == "keshan-dev/argus"
+    assert sync_called[0]["auto_create_contributors"] is True
+
+
+def test_select_repo_rejects_invalid_name(
+    client: TestClient, db_session: Session
+) -> None:
+    """POST /repos/select rejects invalid repository format."""
+    org = Organization(name="Demo Org")
+    db_session.add(org)
+    db_session.flush()
+    team = Team(organization_id=org.id, name="Eng")
+    db_session.add(team)
+    db_session.flush()
+    user = AppUser(
+        organization_id=org.id,
+        team_id=team.id,
+        display_name="Keshan",
+        role_label="Backend",
+        is_active=True,
+    )
+    db_session.add(user)
+    db_session.commit()
+
+    client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
+
+    response = client.post(
+        "/repos/select",
+        data={"repo_full_name": "invalid_format_without_slash"},
+        follow_redirects=False,
+    )
+    assert response.status_code == status.HTTP_303_SEE_OTHER
+    assert "/repos?error=" in response.headers["location"]
+

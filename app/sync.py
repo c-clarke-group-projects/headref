@@ -48,7 +48,7 @@ from app.models.canonical import Organization, Project, Repository
 from app.models.operations import SyncCursor, SyncRun
 from app.models.work import PullRequest, WorkItem
 
-logger = logging.getLogger("argus.sync")
+logger = logging.getLogger("headref.sync")
 
 # An Authorization header renders as "Authorization: Bearer <credential>", so the
 # scheme word has to be consumed too or the credential after it survives redaction.
@@ -124,7 +124,9 @@ def sync_github(
     scope: str | None = None,
     reset_cursor: bool = False,
     gh_client: GitHubClient | None = None,
+    auto_create_contributors: bool = False,
 ) -> SyncRun:
+
     """Run end-to-end GitHub ingestion, normalization, identity attribution and links."""
     scope = scope or _only_configured_scope(github_scopes(), "GitHub")
     logger.info("Starting GitHub sync for scope=%s, team_id=%d", scope, team_id)
@@ -194,9 +196,20 @@ def sync_github(
             all_persisted_reviews.extend(revs)
 
         # Identity resolution
-        attribute_pull_requests(session, prs, raw_prs)
-        attribute_commits(session, commits, raw_commits)
-        attribute_reviews(session, all_persisted_reviews, all_raw_reviews)
+        attribute_pull_requests(
+            session, prs, raw_prs, auto_create=auto_create_contributors, team_id=team_id
+        )
+        attribute_commits(
+            session, commits, raw_commits, auto_create=auto_create_contributors, team_id=team_id
+        )
+        attribute_reviews(
+            session,
+            all_persisted_reviews,
+            all_raw_reviews,
+            auto_create=auto_create_contributors,
+            team_id=team_id,
+        )
+
 
         # Link building
         projects = session.scalars(select(Project)).all()
@@ -360,7 +373,7 @@ def sync_jira(
 
 def main(argv: list[str] | None = None) -> int:
     """CLI entrypoint for running integration synchronizations."""
-    parser = argparse.ArgumentParser(description="ARGUS Ingestion Sync CLI")
+    parser = argparse.ArgumentParser(description="Headref Ingestion Sync CLI")
     parser.add_argument(
         "--source",
         choices=["github", "jira", "all"],

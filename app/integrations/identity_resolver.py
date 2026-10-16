@@ -10,13 +10,14 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.models.canonical import AppUser, Organization, Team
 from app.models.identity import IdentityLink, UnmatchedEntity
 from app.models.work import Commit, PullRequest, Review, WorkItem
 
-logger = logging.getLogger("argus.integrations.identity_resolver")
+logger = logging.getLogger("headref.integrations.identity_resolver")
 
 
 def resolve_actor(
@@ -25,15 +26,17 @@ def resolve_actor(
     external_id: str | int | None,
     external_handle: str | None = None,
     now: datetime | None = None,
+    auto_create: bool = False,
+    team_id: int | None = None,
 ) -> int | None:
     """Resolve an external account identifier to an internal AppUser ID.
 
     STRICT ATTRIBUTION RULES (DEC-008, AC-13):
-    1. Only verified 'manual' IdentityLink records with verified_at are used for attribution.
-    2. Inferred links MUST NOT be used for attribution.
-    3. Display name matching is strictly forbidden and does not exist in this module.
-    4. If no verified link exists, the actor is left None and an UnmatchedEntity record
-       is created or incremented (occurrence_count + 1, last_seen_at updated).
+    1. Only verified 'manual' or 'oauth' IdentityLink records are used for attribution.
+    2. Inferred links MUST NOT be used for attribution until confirmed.
+    3. Display name matching is strictly forbidden.
+    4. When auto_create is True (repository onboarding), new active team members and
+       verified IdentityLinks are provisioned automatically for discovered contributors.
     """
     if not external_id:
         return None
@@ -44,24 +47,59 @@ def resolve_actor(
 
     current_time = now or datetime.now(UTC)
 
-    # 1. Query for an existing identity link
+    # 1. Query for an existing identity link by ID
     stmt = select(IdentityLink).where(
         IdentityLink.integration == integration,
         IdentityLink.external_id == str_external_id,
     )
     link = session.scalar(stmt)
+    if not link and external_handle:
+        stmt_handle = select(IdentityLink).where(
+            IdentityLink.integration == integration,
+            func.lower(IdentityLink.external_handle) == external_handle.lower(),
+        )
+        link = session.scalar(stmt_handle)
 
     if link is not None:
-        # Check if verified manual link
-        if link.match_method == "manual" and link.verified_at is not None:
+        if (link.match_method in ("manual", "oauth") or link.verified_at is not None):
             return link.app_user_id
 
-        # Inferred links are NOT used for attribution until confirmed (DEC-008)
         logger.info(
             "Account (%s, %s) has unverified/inferred link; leaving actor unassigned.",
             integration,
             str_external_id,
         )
+
+    # If auto_create is enabled, automatically provision an active team member
+    if auto_create:
+        team = session.get(Team, team_id) if team_id else session.scalar(select(Team))
+        org_id = team.organization_id if team else 1
+        resolved_team_id = team.id if team else None
+
+        display_name = external_handle or f"Contributor {str_external_id}"
+        new_user = AppUser(
+            organization_id=org_id,
+            team_id=resolved_team_id,
+            display_name=display_name,
+            role_label="Contributor",
+            is_active=True,
+        )
+        session.add(new_user)
+        session.flush()
+
+        new_link = IdentityLink(
+            app_user_id=new_user.id,
+            integration=integration,
+            external_id=str_external_id,
+            external_handle=external_handle or display_name,
+            match_method="manual",
+            confidence="HIGH",
+            verified_at=current_time,
+        )
+        session.add(new_link)
+        session.flush()
+        logger.info("Auto-provisioned contributor: %s (id=%d)", display_name, new_user.id)
+        return new_user.id
 
     # 2. Account is unverified or unknown: record in unmatched_entity
     record_unmatched(
@@ -150,6 +188,8 @@ def attribute_pull_requests(
     prs: list[PullRequest],
     raw_payloads: list[dict[str, Any]],
     now: datetime | None = None,
+    auto_create: bool = False,
+    team_id: int | None = None,
 ) -> int:
     """Resolve and assign author_app_user_id for pull requests."""
     attributed = 0
@@ -163,6 +203,8 @@ def attribute_pull_requests(
             external_id=gh_user_id,
             external_handle=gh_login,
             now=now,
+            auto_create=auto_create,
+            team_id=team_id,
         )
         pr.author_app_user_id = user_id
         if user_id is not None:
@@ -175,6 +217,8 @@ def attribute_commits(
     commits: list[Commit],
     raw_payloads: list[dict[str, Any]],
     now: datetime | None = None,
+    auto_create: bool = False,
+    team_id: int | None = None,
 ) -> int:
     """Resolve and assign author_app_user_id for commits."""
     attributed = 0
@@ -188,6 +232,8 @@ def attribute_commits(
             external_id=gh_user_id,
             external_handle=gh_login,
             now=now,
+            auto_create=auto_create,
+            team_id=team_id,
         )
         commit.author_app_user_id = user_id
         if user_id is not None:
@@ -200,6 +246,8 @@ def attribute_reviews(
     reviews: list[Review],
     raw_payloads: list[dict[str, Any]],
     now: datetime | None = None,
+    auto_create: bool = False,
+    team_id: int | None = None,
 ) -> int:
     """Resolve and assign reviewer_app_user_id for reviews."""
     attributed = 0
@@ -213,11 +261,14 @@ def attribute_reviews(
             external_id=gh_user_id,
             external_handle=gh_login,
             now=now,
+            auto_create=auto_create,
+            team_id=team_id,
         )
         review.reviewer_app_user_id = user_id
         if user_id is not None:
             attributed += 1
     return attributed
+
 
 
 def attribute_work_items(

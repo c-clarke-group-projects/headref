@@ -37,7 +37,18 @@
 </section>
 {% endblock %}
 
-{% block banners %}{{ n.banners(overview.source_health, overview.unmatched_count) }}{% endblock %}
+{% block banners %}
+{% if request.query_params.get("synced") %}
+<div class="banners" style="margin-bottom: var(--s-3);">
+  <div class="banner" style="background: var(--card); border: 1.5px solid var(--ok); padding: var(--s-3) var(--s-4);">
+    <span class="banner__dot" style="background: var(--ok); box-shadow: none;"></span>
+    <span>Repository <strong>{{ request.query_params.get("repo") or "selected" }}</strong> was synced successfully. Active team members, commits, and pull requests are now updated!</span>
+    <a class="navlink banner__action" href="/repos" style="background: var(--mist)">Change repository</a>
+  </div>
+</div>
+{% endif %}
+{{ n.banners(overview.source_health, overview.unmatched_count) }}
+{% endblock %}
 
 {% block content %}
 <section class="section grid-3">

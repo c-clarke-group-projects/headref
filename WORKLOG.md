@@ -60,6 +60,26 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-17 | Keshan | GitHub Authenticated Organization & Repository Onboarding
+Status: DONE
+
+### Completed
+1. Expanded GitHub OAuth scope to `read:user,repo,read:org` to support access to personal repositories and organization memberships.
+2. Implemented automatic user onboarding in `GET /auth/github/callback`: new GitHub accounts logging in are automatically provisioned with active `AppUser` and verified `IdentityLink` records, and redirected to `/repos`.
+3. Stored GitHub access token securely in an HttpOnly, SameSite=lax `headref_gh_token` cookie, cleared on logout.
+4. Created dedicated repository and organization selection page at `GET /repos`: lists the user's organizations, personal and org repositories, and marks already ingested repositories. Supports organization pill filtering, live name searching, and custom repository input.
+5. Implemented `POST /repos/select`: validates repository full name, triggers GitHub ingestion (`sync_github`) with automatic contributor provisioning (`auto_create_contributors=True`), and redirects to the team dashboard with a success notice.
+6. Added Repositories link to the top navigation pillbar in `app/web/templates/base.html`, and added sync confirmation notice to `app/web/templates/team.html`.
+7. Added unit and integration tests in `tests/test_github_oauth.py` covering scope validation, user auto-provisioning, `/repos` page rendering with mocked GitHub API responses, and `/repos/select` sync execution.
+
+### Changed
+`app/web/routes.py`, `app/web/templates/base.html`, `app/web/templates/repos.html`, `app/web/templates/team.html`, `tests/test_github_oauth.py`, `WORKLOG.md`.
+
+### Discovered
+Storing the user's OAuth access token in an HttpOnly session cookie enables seamless per-session GitHub API queries (listing organizations and repos) and user-scoped repository ingestion without requiring database schema alterations.
+
+---
+
 ## 2026-10-17 | Keshan | GitHub OAuth Login Integration for Headref
 Status: IN_PROGRESS
 

@@ -16,7 +16,7 @@ import httpx
 from app.config import HTTP_MAX_ATTEMPTS, HTTP_TIMEOUT_SECONDS, settings
 from app.integrations.http import HttpClient
 
-logger = logging.getLogger("argus.integrations.github")
+logger = logging.getLogger("headref.integrations.github")
 
 # Regex to extract URL with rel="next" from RFC-5988 Link header
 _NEXT_LINK_REGEX = re.compile(r'<([^>]+)>;\s*rel="next"')
@@ -115,6 +115,11 @@ class GitHubClient:
         else:
             url = "/user/repos"
         return self._paginate(url, params={"per_page": 100})
+
+    def list_organizations(self) -> list[dict[str, Any]]:
+        """List organizations for the authenticated user."""
+        return self._paginate("/user/orgs", params={"per_page": 100})
+
 
     def list_pull_requests(
         self,

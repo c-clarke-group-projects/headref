@@ -8,6 +8,7 @@ strictly against DEC-007 (current_work, blockers, risks).
 import asyncio
 import hmac
 import logging
+import re
 import secrets
 from datetime import UTC, datetime
 from typing import Any, Literal
@@ -23,11 +24,13 @@ from app.agent.planner import build_plan
 from app.agent.team_overview import generate_team_overview
 from app.config import get_settings
 from app.db import get_sync_session
-from app.models.canonical import AppUser, Team
+from app.integrations.github import GitHubClient
+from app.models.canonical import AppUser, Organization, Repository, Team
 from app.models.identity import IdentityLink, UnmatchedEntity
 from app.models.operations import SyncRun
 from app.scheduler import resolve_team_scopes, run_scheduled_tick
 from app.schemas.errors import ToolFailure
+from app.sync import sync_github
 from app.schemas.insight import MemberInsight, TeamOverview
 from app.schemas.sync import SyncStatus, SyncStatusResponse, SyncTriggerResponse
 from app.schemas.tools import (
@@ -511,8 +514,11 @@ def safe_next(value: str | None) -> str:
     return value
 
 
-OAUTH_STATE_COOKIE = "argus_oauth_state"
-OAUTH_NEXT_COOKIE = "argus_oauth_next"
+OAUTH_STATE_COOKIE = "headref_oauth_state"
+OAUTH_NEXT_COOKIE = "headref_oauth_next"
+GITHUB_TOKEN_COOKIE = "headref_gh_token"
+REPO_NAME_REGEX = re.compile(r"^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$")
+
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -561,7 +567,7 @@ def github_login(
     params = {
         "client_id": settings.github_oauth_client_id,
         "redirect_uri": callback_url,
-        "scope": "read:user",
+        "scope": "read:user,repo,read:org",
         "state": state,
     }
     authorize_url = f"https://github.com/login/oauth/authorize?{urlencode(params)}"
@@ -655,7 +661,8 @@ async def github_callback(
                 headers={
                     "Authorization": f"Bearer {access_token}",
                     "Accept": "application/vnd.github+json",
-                    "User-Agent": "ARGUS-Intelligence-Agent",
+                    "User-Agent": "Headref-Intelligence-Agent",
+
                 },
             )
             if user_resp.status_code != 200:
@@ -693,24 +700,62 @@ async def github_callback(
         )
 
     if not link:
-        logger.warning(
-            "Unmapped GitHub account tried to log in: id=%s login=%s", gh_user_id, gh_login
-        )
-        return _login_err(
-            f"GitHub account @{gh_login} (ID {gh_user_id}) is not mapped to any ARGUS team member. "
-            "Please add it to seed/identity_map.yml."
-        )
+        team = db.scalar(select(Team))
+        org = db.scalar(select(Organization))
+        if not org:
+            org = Organization(name="Default Organization")
+            db.add(org)
+            db.flush()
+        if not team:
+            team = Team(organization_id=org.id, name="Core Team")
+            db.add(team)
+            db.flush()
 
-    user = db.get(AppUser, link.app_user_id)
-    if not user or not user.is_active:
-        logger.warning("Mapped user %s is inactive or missing", link.app_user_id)
-        return _login_err("Mapped team member account is inactive or not found.")
+        user = AppUser(
+            organization_id=org.id,
+            team_id=team.id,
+            display_name=gh_user.get("name") or gh_login,
+            role_label="Engineer",
+            is_active=True,
+        )
+        db.add(user)
+        db.flush()
+
+        link = IdentityLink(
+            app_user_id=user.id,
+            integration="github",
+            external_id=str(gh_user_id),
+            external_handle=gh_login,
+            match_method="oauth",
+            confidence="HIGH",
+            verified_at=datetime.now(UTC),
+        )
+        db.add(link)
+        db.commit()
+    else:
+        user = db.get(AppUser, link.app_user_id)
+        if not user or not user.is_active:
+            logger.warning("Mapped user %s is inactive or missing", link.app_user_id)
+            return _login_err("Mapped team member account is inactive or not found.")
+        if user.team_id is None:
+            team = db.scalar(select(Team))
+            if team:
+                user.team_id = team.id
+                db.commit()
 
     logger.info("GitHub OAuth login successful: user_id=%s gh_login=%s", user.id, gh_login)
-    redirect = RedirectResponse(url=next_url, status_code=status.HTTP_303_SEE_OTHER)
+    dest_url = "/repos" if next_url == "/" else next_url
+    redirect = RedirectResponse(url=dest_url, status_code=status.HTTP_303_SEE_OTHER)
     redirect.set_cookie(
         SESSION_COOKIE,
         sign_session(user.id),
+        max_age=SESSION_MAX_AGE_SECONDS,
+        httponly=True,
+        samesite="lax",
+    )
+    redirect.set_cookie(
+        GITHUB_TOKEN_COOKIE,
+        access_token,
         max_age=SESSION_MAX_AGE_SECONDS,
         httponly=True,
         samesite="lax",
@@ -775,4 +820,139 @@ def logout_redirect() -> Response:
     """Log out and redirect to login page."""
     redirect = RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
     redirect.delete_cookie(SESSION_COOKIE)
+    redirect.delete_cookie(GITHUB_TOKEN_COOKIE)
     return redirect
+
+
+@router.get("/repos", response_class=HTMLResponse)
+def get_repos_page(
+    request: Request,
+    actor: ActorDep,
+    db: DbDep,
+) -> HTMLResponse:
+    """Repository and organization selection page for Headref."""
+    settings = get_settings()
+    token = request.cookies.get(GITHUB_TOKEN_COOKIE) or (settings.github_token if settings else None)
+
+    orgs: list[dict[str, Any]] = []
+    repos: list[dict[str, Any]] = []
+    fetch_error: str | None = None
+
+    if token:
+        try:
+            with GitHubClient(token=token) as gh:
+                orgs = gh.list_organizations()
+                repos = gh.list_repositories()
+        except Exception as exc:
+            logger.warning("Failed to fetch GitHub organizations or repos: %s", exc)
+            fetch_error = "Could not fetch fresh repositories from GitHub. You may still manually specify a repository."
+    else:
+        fetch_error = "No GitHub access token available. Please sign in with GitHub to view your repositories."
+
+    db_repos = db.scalars(select(Repository)).all() if db else []
+    synced_names = {r.full_name.lower(): r for r in db_repos}
+
+    for r in repos:
+        fn = (r.get("full_name") or "").lower()
+        r["is_synced"] = fn in synced_names
+
+    known_fetched = {(r.get("full_name") or "").lower() for r in repos}
+    for dbr in db_repos:
+        if dbr.full_name.lower() not in known_fetched:
+            repos.append({
+                "full_name": dbr.full_name,
+                "name": dbr.full_name.split("/")[-1],
+                "owner": {"login": dbr.full_name.split("/")[0]},
+                "description": "Configured repository in database",
+                "private": False,
+                "is_synced": True,
+            })
+
+    unmatched_count = 0
+    team_name = f"Team {actor.team_id}" if actor.team_id else "Headref"
+    if db:
+        unmatched_count = db.scalar(
+            select(func.count(UnmatchedEntity.id)).where(UnmatchedEntity.status == "pending")
+        ) or 0
+        if actor.team_id:
+            team_obj = db.get(Team, actor.team_id)
+            if team_obj:
+                team_name = team_obj.name
+
+    return templates.TemplateResponse(
+        request=request,
+        name="repos.html",
+        context={
+            "request": request,
+            "actor": actor,
+            "team_name": team_name,
+            "unmatched_count": unmatched_count,
+            "nav_current": "repos",
+            "orgs": orgs,
+            "repos": repos,
+            "synced_repos": [r.full_name for r in db_repos],
+            "fetch_error": fetch_error,
+            "error": request.query_params.get("error"),
+            "now": datetime.now(UTC),
+        },
+    )
+
+
+@router.post("/repos/select")
+async def select_repository(
+    request: Request,
+    actor: ActorDep,
+    db: DbDep,
+) -> Response:
+    """Select a GitHub repository to ingest and track with team updates."""
+    content_type = request.headers.get("content-type", "")
+    is_json = "application/json" in content_type
+    if is_json:
+        data = await request.json()
+        repo_full_name = (data.get("repo_full_name") or data.get("repo") or "").strip()
+    else:
+        body = (await request.body()).decode("utf-8")
+        parsed = parse_qs(body)
+        repo_full_name = (parsed.get("repo_full_name", [""])[0] or parsed.get("repo", [""])[0]).strip()
+
+    if not repo_full_name or not REPO_NAME_REGEX.match(repo_full_name):
+        err = "Invalid repository format. Please use 'owner/repo' (e.g. 'octocat/Hello-World')."
+        if is_json:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=err)
+        return RedirectResponse(
+            url=f"/repos?error={urlencode({'e': err})[2:]}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+
+    settings = get_settings()
+    token = request.cookies.get(GITHUB_TOKEN_COOKIE) or (settings.github_token if settings else None)
+
+    try:
+        gh_client = GitHubClient(token=token) if token else None
+        team_id = actor.team_id or 1
+        sync_github(
+            session=db,
+            team_id=team_id,
+            scope=repo_full_name,
+            gh_client=gh_client,
+            auto_create_contributors=True,
+        )
+        logger.info("Successfully synced repository %s for actor %s", repo_full_name, actor.id)
+    except Exception as exc:
+        logger.error("Failed to sync repository %s: %s", repo_full_name, exc)
+        err = f"Failed to sync {repo_full_name}: {str(exc)}"
+        if is_json:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err)
+        return RedirectResponse(
+            url=f"/repos?error={urlencode({'e': err})[2:]}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+
+    dest_url = f"/?synced=true&repo={urlencode({'r': repo_full_name})[2:]}"
+    if is_json:
+        return Response(
+            content='{"success": true, "redirect": "' + dest_url + '"}',
+            media_type="application/json",
+            status_code=status.HTTP_200_OK,
+        )
+    return RedirectResponse(url=dest_url, status_code=status.HTTP_303_SEE_OTHER)

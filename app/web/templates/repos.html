@@ -1,0 +1,274 @@
+{#
+  Repositories selection page for Headref.
+  Allows authenticated GitHub users to view their organizations and personal
+  repositories, and select a repository to ingest and track.
+#}
+{% extends "base.html" %}
+{% import "partials/icons.html" as i %}
+
+{% block title %}Repositories · Headref{% endblock %}
+
+{% block hero %}
+<section class="hero">
+  <div>
+    <p class="hero__meta">
+      <span class="hero__dot" aria-hidden="true"></span>
+      GitHub Workspaces &middot; {{ repos|length }} Repositor{{ "ies" if repos|length != 1 else "y" }} &middot; {{ orgs|length }} Organization{{ "s" if orgs|length != 1 }}
+    </p>
+    <h1 class="hero__title">Select a repository to track</h1>
+    <p class="hero__lead">
+      Choose a repository from your GitHub organizations or personal account. Headref will automatically ingest contributors, pull requests, commits, and reviews into your team dashboard.
+    </p>
+  </div>
+</section>
+{% endblock %}
+
+{% block banners %}
+{% if error %}
+<div class="banners" style="margin-bottom: var(--s-4);">
+  <div class="banner banner--unavailable" role="alert">
+    <span class="banner__icon">{{ i.icon("warning", 18) }}</span>
+    <span>{{ error }}</span>
+  </div>
+</div>
+{% endif %}
+{% if fetch_error %}
+<div class="banners" style="margin-bottom: var(--s-4);">
+  <div class="banner" style="background: var(--card); border: 1.5px solid var(--unknown); padding: var(--s-3) var(--s-4);">
+    <span class="banner__dot" style="background: var(--unknown); box-shadow: none;"></span>
+    <span>{{ fetch_error }}</span>
+    <a class="navlink banner__action" href="/login" style="background: var(--mist)">Sign in again</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="section" style="margin-top: var(--s-4);">
+  <!-- Filter & Search Card -->
+  <div class="card card--pad-md" style="margin-bottom: var(--s-5);">
+    <div style="display: flex; flex-direction: column; gap: var(--s-4);">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--s-4);">
+        <div>
+          <h2 class="card__title" style="margin: 0 0 var(--s-1) 0;">Available Repositories</h2>
+          <p class="caption" style="margin: 0;">Filter by organization or search by repository name</p>
+        </div>
+        
+        <!-- Live Search Input -->
+        <div style="position: relative; min-width: 280px;">
+          <input 
+            type="search" 
+            id="repo-search" 
+            placeholder="Search repositories..." 
+            style="width: 100%; padding: 10px 16px; border-radius: var(--r-pill); border: 1.5px solid var(--ash); background: var(--canvas); font-family: var(--font-sans); font-size: var(--fs-small); outline: none;"
+          >
+        </div>
+      </div>
+
+      <!-- Org Filter Tabs -->
+      <div class="pillbar" id="org-filter-bar" style="overflow-x: auto; max-width: 100%; padding: 4px; display: inline-flex; gap: 4px;" role="tablist" aria-label="Filter repositories by organization">
+        <button type="button" class="navlink active" data-filter="all" style="border: 0; cursor: pointer; font-size: var(--fs-caption); padding: 6px 14px; border-radius: var(--r-pill); background: var(--ink); color: #fff;">
+          All ({{ repos|length }})
+        </button>
+        <button type="button" class="navlink" data-filter="personal" style="border: 0; cursor: pointer; font-size: var(--fs-caption); padding: 6px 14px; border-radius: var(--r-pill); background: var(--mist); color: var(--ink);">
+          Personal
+        </button>
+        {% for org in orgs %}
+        <button type="button" class="navlink" data-filter="{{ org.login|lower }}" style="border: 0; cursor: pointer; font-size: var(--fs-caption); padding: 6px 14px; border-radius: var(--r-pill); background: var(--mist); color: var(--ink);">
+          {{ org.login }}
+        </button>
+        {% endfor %}
+      </div>
+
+      <!-- Manual Repo Input Accordion -->
+      <details style="margin-top: var(--s-2); padding-top: var(--s-3); border-top: 1px solid var(--ash);">
+        <summary style="cursor: pointer; font-size: var(--fs-small); color: var(--slate); font-weight: 500;">
+          Don't see your repository? Enter an exact GitHub repository name
+        </summary>
+        <form method="post" action="/repos/select" style="margin-top: var(--s-3); display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: center;" data-repo-form>
+          <input 
+            type="text" 
+            name="repo_full_name" 
+            placeholder="owner/repository-name (e.g. facebook/react)" 
+            pattern="^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$"
+            required
+            style="flex: 1; min-width: 240px; padding: 10px 16px; border-radius: var(--r-pill); border: 1.5px solid var(--ash); background: var(--canvas); font-family: var(--font-mono); font-size: var(--fs-small); outline: none;"
+          >
+          <button type="submit" class="btn btn--primary" style="padding: 10px 22px; font-size: var(--fs-small);">
+            Ingest Repository {{ i.icon("arrow-right", 14) }}
+          </button>
+        </form>
+      </details>
+    </div>
+  </div>
+
+  <!-- Repository Cards Grid -->
+  {% if repos %}
+  <div class="grid-2" id="repo-grid">
+    {% for repo in repos %}
+    {% set is_personal = (repo.owner.login|lower == actor.display_name|lower) or (orgs and (repo.owner.login|lower not in orgs|map(attribute='login')|map('lower')|list)) %}
+    <div 
+      class="card card--pad-md repo-card" 
+      data-name="{{ repo.name|lower }}" 
+      data-fullname="{{ repo.full_name|lower }}"
+      data-desc="{{ (repo.description or '')|lower }}"
+      data-owner="{{ repo.owner.login|lower }}"
+      data-is-personal="{{ 'true' if is_personal else 'false' }}"
+      style="display: flex; flex-direction: column; justify-content: space-between; border: 1.5px solid {% if repo.is_synced %}var(--ok){% else %}var(--ash){% endif %}; transition: transform 0.15s ease, box-shadow 0.15s ease;"
+    >
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s-3); margin-bottom: var(--s-2);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: var(--slate);">{{ i.icon("github", 20) }}</span>
+            <span style="font-size: 13px; font-weight: 600; color: var(--slate); text-transform: uppercase; letter-spacing: 0.04em;">
+              {{ repo.owner.login }}
+            </span>
+          </div>
+          <div>
+            {% if repo.private %}
+            <span class="badge badge--sm" style="background: var(--mist); color: var(--slate);">Private</span>
+            {% else %}
+            <span class="badge badge--sm badge--outline">Public</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <h3 style="font-size: 20px; font-weight: 600; margin: 0 0 var(--s-2) 0; word-break: break-word;">
+          {{ repo.name }}
+        </h3>
+
+        <p style="font-size: var(--fs-small); color: var(--slate); line-height: 1.5; margin: 0 0 var(--s-4) 0; min-height: 3em;">
+          {{ repo.description or "No description provided for this repository." }}
+        </p>
+      </div>
+
+      <div style="padding-top: var(--s-3); border-top: 1px solid var(--mist); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--s-3);">
+        <div style="display: flex; align-items: center; gap: var(--s-3); font-size: var(--fs-micro); color: var(--slate);">
+          {% if repo.language %}
+          <span><strong>{{ repo.language }}</strong></span>
+          {% endif %}
+          {% if repo.stargazers_count is defined and repo.stargazers_count > 0 %}
+          <span>&star; {{ repo.stargazers_count }}</span>
+          {% endif %}
+        </div>
+
+        <div style="display: flex; align-items: center; gap: var(--s-2);">
+          {% if repo.is_synced %}
+          <span class="badge badge--sm" style="background: var(--mint); color: #000; font-weight: 600;">
+            {{ i.icon("check", 12) }} Synced
+          </span>
+          <form method="post" action="/repos/select" style="margin: 0;" data-repo-form>
+            <input type="hidden" name="repo_full_name" value="{{ repo.full_name }}">
+            <button type="submit" class="btn btn--quiet" style="padding: 6px 14px; font-size: var(--fs-small); background: var(--mist); border-radius: var(--r-pill); border: 0; cursor: pointer;">
+              Re-sync
+            </button>
+          </form>
+          <a href="/?repo={{ repo.full_name }}" class="btn btn--primary" style="padding: 6px 14px; font-size: var(--fs-small); border-radius: var(--r-pill); text-decoration: none;">
+            View Team &rarr;
+          </a>
+          {% else %}
+          <form method="post" action="/repos/select" style="margin: 0;" data-repo-form>
+            <input type="hidden" name="repo_full_name" value="{{ repo.full_name }}">
+            <button type="submit" class="btn btn--primary" style="padding: 8px 18px; font-size: var(--fs-small); border-radius: var(--r-pill); border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+              Select &amp; Ingest {{ i.icon("arrow-right", 12) }}
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div id="no-repos-match" class="card card--pad" style="display: none; text-align: center; margin-top: var(--s-5);">
+    <p style="font-size: var(--fs-h3); font-weight: 600; margin: 0 0 var(--s-2) 0;">No matching repositories found</p>
+    <p class="caption">Try clearing your search query or selecting a different organization tab.</p>
+  </div>
+
+  {% else %}
+  <div class="card card--pad" style="text-align: center;">
+    <p style="font-size: var(--fs-h3); font-weight: 600; margin: 0 0 var(--s-2) 0;">No repositories detected</p>
+    <p style="color: var(--slate); max-width: 500px; margin: 0 auto var(--s-4) auto;">
+      We could not find any repositories in your GitHub account or organizations. You can manually enter an exact repository full name above to ingest it.
+    </p>
+  </div>
+  {% endif %}
+</section>
+
+<script>
+  (function() {
+    const searchInput = document.getElementById('repo-search');
+    const filterButtons = document.querySelectorAll('#org-filter-bar button');
+    const cards = document.querySelectorAll('.repo-card');
+    const noMatch = document.getElementById('no-repos-match');
+    let activeFilter = 'all';
+
+    function filterCards() {
+      const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+      let visibleCount = 0;
+
+      cards.forEach(card => {
+        const name = card.dataset.name || '';
+        const fullname = card.dataset.fullname || '';
+        const desc = card.dataset.desc || '';
+        const owner = card.dataset.owner || '';
+        const isPersonal = card.dataset.isPersonal === 'true';
+
+        let matchesFilter = false;
+        if (activeFilter === 'all') {
+          matchesFilter = true;
+        } else if (activeFilter === 'personal') {
+          matchesFilter = isPersonal;
+        } else {
+          matchesFilter = (owner === activeFilter);
+        }
+
+        const matchesQuery = !query || fullname.includes(query) || name.includes(query) || desc.includes(query);
+
+        if (matchesFilter && matchesQuery) {
+          card.style.display = 'flex';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      if (noMatch) {
+        noMatch.style.display = visibleCount === 0 ? 'block' : 'none';
+      }
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener('input', filterCards);
+    }
+
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterButtons.forEach(b => {
+          b.classList.remove('active');
+          b.style.background = 'var(--mist)';
+          b.style.color = 'var(--ink)';
+        });
+        btn.classList.add('active');
+        btn.style.background = 'var(--ink)';
+        btn.style.color = '#fff';
+        activeFilter = btn.dataset.filter;
+        filterCards();
+      });
+    });
+
+    // Loading indicator on select forms
+    document.querySelectorAll('form[data-repo-form]').forEach(form => {
+      form.addEventListener('submit', function() {
+        const btn = form.querySelector('button[type="submit"]');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = 'Ingesting &amp; Syncing...';
+          btn.style.opacity = '0.7';
+          btn.style.cursor = 'wait';
+        }
+      });
+    });
+  })();
+</script>
+{% endblock %}
