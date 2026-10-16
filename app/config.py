@@ -48,6 +48,22 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("JIRA_API_TOKEN", "jira_api_token"),
         description="Atlassian Jira API token.",
     )
+    github_oauth_client_id: str = Field(
+        default="",
+        validation_alias=AliasChoices("GITHUB_OAUTH_CLIENT_ID", "github_oauth_client_id"),
+        description="GitHub OAuth application client ID.",
+    )
+    github_oauth_client_secret: str = Field(
+        default="",
+        validation_alias=AliasChoices("GITHUB_OAUTH_CLIENT_SECRET", "github_oauth_client_secret"),
+        description="GitHub OAuth application client secret.",
+    )
+
+    @property
+    def github_oauth_enabled(self) -> bool:
+        """True if GitHub OAuth credentials are configured."""
+        return bool(self.github_oauth_client_id and self.github_oauth_client_secret)
+
 
     # -------------------------------------------------------------------------
     # Operational Settings

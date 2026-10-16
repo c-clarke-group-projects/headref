@@ -1,9 +1,6 @@
 {#
-  S0 Login stub. Not authentication; real login is Stage 2.
-  Context: request, users (active users, PROPOSED: confirm listing them on
-  an unauthenticated page is acceptable, else use a numeric User ID input),
-  next (safe relative path), error (optional str)
-  No JS: the form posts to a page route that sets the cookie and redirects.
+  Login page supporting GitHub OAuth authentication with offline demo fallback.
+  Context: request, users, next, error, oauth_enabled
 #}
 {% import "partials/icons.html" as i %}
 {% import "partials/badges.html" as b %}
@@ -28,26 +25,56 @@
       </div>
     </section>
     <section class="login__form">
-      <span class="login__badge">Demo sign in</span>
+      <span class="login__badge">GitHub Authentication</span>
       <h2 class="page-title" style="margin-top: 20px; font-size: 56px">Sign in</h2>
-      <p class="muted" style="margin-top: 14px">This is a login stub for the MVP. It does not check a password.</p>
-      <form method="post" action="/login">
-        <input type="hidden" name="next" value="{{ next or '/' }}">
-        <div class="field">
-          <label for="user_id">Person</label>
-          <select id="user_id" name="user_id" required>
-            {% if users %}
-              {% for u in users %}<option value="{{ u.user_id }}">{{ u.display_name }}</option>{% endfor %}
-            {% else %}
-              <option value="" disabled selected>No users found (seed database first)</option>
-            {% endif %}
-          </select>
-        </div>
-        {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
-        <button type="submit" class="btn btn--primary btn--block" style="margin-top: 20px">Sign in{{ i.icon("arrow-right") }}</button>
-      </form>
-      <p class="caption" style="margin-top: 20px">Real sign in arrives in Stage 2.</p>
+      <p class="muted" style="margin-top: 14px">Sign in with your team GitHub account to access your team intelligence dashboard.</p>
+
+      {% if error %}
+        <p class="form-error" role="alert" style="margin-top: 20px">{{ error }}</p>
+      {% endif %}
+
+      <div style="margin-top: 32px">
+        {% if oauth_enabled %}
+          <a href="/auth/github/login?next={{ next or '/' }}" class="btn btn--primary btn--block" style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; min-height: 54px;">
+            {{ i.icon("github", 20) }}
+            <span>Sign in with GitHub</span>
+          </a>
+        {% else %}
+          <div class="banner banner--unavailable">
+            <div class="banner__icon">{{ i.icon("warning", 18) }}</div>
+            <div>
+              <strong>GitHub OAuth not configured</strong>
+              <p class="caption" style="margin-top: 4px; color: inherit">
+                Set <code>GITHUB_OAUTH_CLIENT_ID</code> and <code>GITHUB_OAUTH_CLIENT_SECRET</code> in <code>.env</code> to activate GitHub authentication.
+              </p>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+
+      <p class="caption" style="margin-top: 24px">
+        Your GitHub account is matched against <code>seed/identity_map.yml</code> to resolve your verified team member identity.
+      </p>
+
+      <details style="margin-top: 32px; border-top: 1px solid var(--mist); padding-top: 16px;">
+        <summary class="caption" style="cursor: pointer; color: var(--slate); user-select: none;">Offline demo sign in (stub fallback)</summary>
+        <form method="post" action="/login" style="margin-top: 16px">
+          <input type="hidden" name="next" value="{{ next or '/' }}">
+          <div class="field" style="margin-top: 0">
+            <label for="user_id">Select Person</label>
+            <select id="user_id" name="user_id" required>
+              {% if users %}
+                {% for u in users %}<option value="{{ u.user_id }}">{{ u.display_name }}</option>{% endfor %}
+              {% else %}
+                <option value="" disabled selected>No users found (seed database first)</option>
+              {% endif %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn--quiet btn--block" style="margin-top: 16px">Demo Sign in{{ i.icon("arrow-right") }}</button>
+        </form>
+      </details>
     </section>
   </main>
 </body>
 </html>
+

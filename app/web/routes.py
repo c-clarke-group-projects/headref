@@ -6,11 +6,14 @@ strictly against DEC-007 (current_work, blockers, risks).
 """
 
 import asyncio
+import hmac
 import logging
+import secrets
 from datetime import UTC, datetime
 from typing import Any, Literal
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlencode
 
+import httpx
 from fastapi import APIRouter, HTTPException, Query, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import and_, func, or_, select
@@ -508,18 +511,24 @@ def safe_next(value: str | None) -> str:
     return value
 
 
+OAUTH_STATE_COOKIE = "argus_oauth_state"
+OAUTH_NEXT_COOKIE = "argus_oauth_next"
+
+
 @router.get("/login", response_class=HTMLResponse)
 def get_login_page(
     request: Request,
     db: DbDep,
 ) -> HTMLResponse:
-    """Render login stub page."""
+    """Render login page with GitHub authentication and fallback demo option."""
+    settings = get_settings()
     users = []
     if db:
         users = db.scalars(
             select(AppUser).where(AppUser.is_active.is_(True)).order_by(AppUser.display_name)
         ).all()
     next_url = safe_next(request.query_params.get("next"))
+    error = request.query_params.get("error")
     return templates.TemplateResponse(
         request=request,
         name="login.html",
@@ -527,9 +536,189 @@ def get_login_page(
             "request": request,
             "users": users,
             "next": next_url,
-            "error": None,
+            "error": error,
+            "oauth_enabled": settings.github_oauth_enabled,
         },
     )
+
+
+@router.get("/auth/github/login")
+def github_login(
+    request: Request,
+    next: str = "/",
+) -> Response:
+    """Redirect to GitHub OAuth authorize endpoint with CSRF state token."""
+    settings = get_settings()
+    if not settings.github_oauth_enabled:
+        err = "GitHub OAuth is not configured. Set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET in .env."
+        return RedirectResponse(
+            url=f"/login?error={urlencode({'e': err})[2:]}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+
+    state = secrets.token_urlsafe(32)
+    callback_url = str(request.url_for("github_callback"))
+    params = {
+        "client_id": settings.github_oauth_client_id,
+        "redirect_uri": callback_url,
+        "scope": "read:user",
+        "state": state,
+    }
+    authorize_url = f"https://github.com/login/oauth/authorize?{urlencode(params)}"
+    redirect = RedirectResponse(url=authorize_url, status_code=status.HTTP_303_SEE_OTHER)
+    redirect.set_cookie(
+        OAUTH_STATE_COOKIE,
+        state,
+        max_age=600,
+        httponly=True,
+        samesite="lax",
+    )
+    redirect.set_cookie(
+        OAUTH_NEXT_COOKIE,
+        safe_next(next),
+        max_age=600,
+        httponly=True,
+        samesite="lax",
+    )
+    return redirect
+
+
+@router.get("/auth/github/callback", name="github_callback")
+async def github_callback(
+    request: Request,
+    db: DbDep,
+    code: str | None = None,
+    state: str | None = None,
+    error: str | None = None,
+    error_description: str | None = None,
+) -> Response:
+    """Handle OAuth redirect callback from GitHub, exchange code, and map identity."""
+    settings = get_settings()
+
+    def _login_err(msg: str) -> Response:
+        res = RedirectResponse(
+            url=f"/login?error={urlencode({'e': msg})[2:]}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+        res.delete_cookie(OAUTH_STATE_COOKIE)
+        res.delete_cookie(OAUTH_NEXT_COOKIE)
+        return res
+
+    if error:
+        err_msg = error_description or error or "OAuth authorization failed"
+        logger.warning("GitHub OAuth callback returned error: %s", err_msg)
+        return _login_err(f"GitHub sign-in error: {err_msg}")
+
+    cookie_state = request.cookies.get(OAUTH_STATE_COOKIE)
+    if not state or not cookie_state or not hmac.compare_digest(state, cookie_state):
+        logger.warning("GitHub OAuth CSRF mismatch: state=%s cookie=%s", state, cookie_state)
+        return _login_err("Invalid or expired OAuth state (CSRF verification failed).")
+
+    if not code:
+        return _login_err("Missing authorization code from GitHub.")
+
+    next_url = safe_next(request.cookies.get(OAUTH_NEXT_COOKIE, "/"))
+
+    try:
+        async with httpx.AsyncClient(timeout=settings.http_timeout_seconds) as http_client:
+            token_resp = await http_client.post(
+                "https://github.com/login/oauth/access_token",
+                headers={"Accept": "application/json"},
+                data={
+                    "client_id": settings.github_oauth_client_id,
+                    "client_secret": settings.github_oauth_client_secret,
+                    "code": code,
+                    "redirect_uri": str(request.url_for("github_callback")),
+                },
+            )
+            if token_resp.status_code != 200:
+                logger.error(
+                    "GitHub token exchange status %d: %s",
+                    token_resp.status_code,
+                    token_resp.text,
+                )
+                return _login_err(f"GitHub token exchange returned status {token_resp.status_code}.")
+
+            token_data = token_resp.json()
+            access_token = token_data.get("access_token")
+            if not access_token:
+                desc = (
+                    token_data.get("error_description")
+                    or token_data.get("error")
+                    or "Unknown error"
+                )
+                logger.error("GitHub token exchange error: %s", desc)
+                return _login_err(f"GitHub error: {desc}")
+
+            user_resp = await http_client.get(
+                "https://api.github.com/user",
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/vnd.github+json",
+                    "User-Agent": "ARGUS-Intelligence-Agent",
+                },
+            )
+            if user_resp.status_code != 200:
+                logger.error(
+                    "GitHub user fetch status %d: %s",
+                    user_resp.status_code,
+                    user_resp.text,
+                )
+                return _login_err(
+                    f"Failed to fetch user profile from GitHub (HTTP {user_resp.status_code})."
+                )
+
+            gh_user = user_resp.json()
+    except (httpx.TimeoutException, httpx.RequestError) as exc:
+        logger.error("Network error during GitHub OAuth: %s", exc)
+        return _login_err("Network error contacting GitHub. Please try again.")
+
+    gh_user_id = gh_user.get("id")
+    gh_login = gh_user.get("login") or ""
+    if not gh_user_id:
+        return _login_err("GitHub profile is missing a numeric user ID.")
+
+    link = db.scalar(
+        select(IdentityLink).where(
+            IdentityLink.integration == "github",
+            IdentityLink.external_id == str(gh_user_id),
+        )
+    )
+    if not link and gh_login:
+        link = db.scalar(
+            select(IdentityLink).where(
+                IdentityLink.integration == "github",
+                func.lower(IdentityLink.external_handle) == gh_login.lower(),
+            )
+        )
+
+    if not link:
+        logger.warning(
+            "Unmapped GitHub account tried to log in: id=%s login=%s", gh_user_id, gh_login
+        )
+        return _login_err(
+            f"GitHub account @{gh_login} (ID {gh_user_id}) is not mapped to any ARGUS team member. "
+            "Please add it to seed/identity_map.yml."
+        )
+
+    user = db.get(AppUser, link.app_user_id)
+    if not user or not user.is_active:
+        logger.warning("Mapped user %s is inactive or missing", link.app_user_id)
+        return _login_err("Mapped team member account is inactive or not found.")
+
+    logger.info("GitHub OAuth login successful: user_id=%s gh_login=%s", user.id, gh_login)
+    redirect = RedirectResponse(url=next_url, status_code=status.HTTP_303_SEE_OTHER)
+    redirect.set_cookie(
+        SESSION_COOKIE,
+        sign_session(user.id),
+        max_age=SESSION_MAX_AGE_SECONDS,
+        httponly=True,
+        samesite="lax",
+    )
+    redirect.delete_cookie(OAUTH_STATE_COOKIE)
+    redirect.delete_cookie(OAUTH_NEXT_COOKIE)
+    return redirect
+
 
 
 @router.post("/login")

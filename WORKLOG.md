@@ -60,6 +60,27 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-17 | Keshan | GitHub OAuth Login Integration
+Status: IN_PROGRESS
+
+### Completed
+1. Added GitHub OAuth settings: `github_oauth_client_id` and `github_oauth_client_secret` in `app/config.py` with `github_oauth_enabled` property. Updated `.env.example` with setup notes.
+2. Implemented `GET /auth/github/login` endpoint with cryptographically secure state generation, redirect cookie state management, and GitHub authorization URL redirection.
+3. Implemented `GET /auth/github/callback` endpoint: validates CSRF state, exchanges authorization code for an access token via GitHub's API, retrieves authenticated GitHub user profile, resolves user against `IdentityLink` in PostgreSQL, and creates signed `argus_session` session cookie.
+4. Updated `app/web/templates/login.html` to feature the "Sign in with GitHub" button prominently, showing clear error messaging and an unconfigured notice banner when credentials are absent, alongside an offline demo fallback disclosure.
+5. Added `tests/test_github_oauth.py`: 8 unit and integration tests covering unconfigured states, CSRF state verification, upstream error handling, unmapped GitHub accounts, and successful sign-in.
+
+### Changed
+`app/config.py`, `.env.example`, `app/web/routes.py`, `app/web/templates/login.html`, `tests/test_github_oauth.py`, `WORKLOG.md`.
+
+### Discovered
+Matching by GitHub user ID in `IdentityLink` works seamlessly with both numeric IDs (`external_id`) and GitHub logins (`external_handle`). When an unmapped account attempts to log in, clear actionable error guidance informs them to add their identity to `seed/identity_map.yml`.
+
+### Next Step
+Configure GitHub OAuth App credentials in `.env` and verify the live browser OAuth authorization loop.
+
+---
+
 ## 2026-10-08 | Isiwara | Web shell hardening (WP6)
 Status: IN_PROGRESS
 
