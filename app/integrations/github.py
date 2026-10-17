@@ -30,6 +30,27 @@ def parse_next_page_url(link_header: str | None) -> str | None:
     return match.group(1) if match else None
 
 
+_ACTIVE_GITHUB_TOKEN: str | None = None
+
+
+def set_active_github_token(token: str | None) -> None:
+    """Store the authenticated user's GitHub token in memory for sync operations."""
+    global _ACTIVE_GITHUB_TOKEN
+    _ACTIVE_GITHUB_TOKEN = token
+
+
+def get_active_github_token() -> str | None:
+    """Retrieve the active GitHub token from memory, env, or settings."""
+    if _ACTIVE_GITHUB_TOKEN:
+        return _ACTIVE_GITHUB_TOKEN
+    env_token = os.getenv("GITHUB_TOKEN")
+    if env_token:
+        return env_token
+    if settings is not None and settings.github_token:
+        return settings.github_token
+    return None
+
+
 class GitHubClient:
     """Read-only GitHub REST API client."""
 
@@ -42,9 +63,7 @@ class GitHubClient:
         transport: httpx.BaseTransport | None = None,
     ) -> None:
         if token is None:
-            token = os.getenv("GITHUB_TOKEN")
-            if not token and settings is not None:
-                token = settings.github_token
+            token = get_active_github_token()
 
         if not token:
             raise RuntimeError("GITHUB_TOKEN must be configured in environment or settings.")

@@ -19,7 +19,11 @@
 {% set all_unknown = overview.members and (overview.members|selectattr("state", "equalto", "unknown")|list|length == overview.members|length) %}
 <section class="hero">
   <div>
-    <p class="hero__meta"><span class="hero__dot" aria-hidden="true"></span>{% if selected_repo %}<strong>{{ selected_repo }}</strong> &middot; {% endif %}{{ overview.team_name }}, {{ overview.members|length }} member{{ "s" if overview.members|length != 1 }}</p>
+    <p class="hero__meta">
+      <span class="hero__dot" aria-hidden="true"></span>
+      {% if selected_repo %}<strong>{{ selected_repo }}</strong> &middot; {% endif %}
+      {{ overview.team_name }}, {{ overview.members|length }} member{{ "s" if overview.members|length != 1 }}
+    </p>
     <h1 class="hero__title">
       {% if all_unknown %}
         States are unknown until the sources sync.
@@ -54,7 +58,10 @@
 {% block content %}
 <section class="section">
   <div class="card card--pad-md span-all">
-    <div class="card__head"><h2 class="card__title">How to read a statement</h2><span class="caption">Confidence is computed by code, never a number</span></div>
+    <div class="card__head">
+      <h2 class="card__title">How to read a statement</h2>
+      <span class="caption">Confidence is computed by code, never a number</span>
+    </div>
     <div class="legend">
       <div class="legend__item">{{ b.claim_class("fact") }}<p>Directly backed by a source record.</p></div>
       <div class="legend__item">{{ b.claim_class("inference") }}<p>Drawn from 2 or more evidence items.</p></div>
@@ -62,14 +69,23 @@
     </div>
     <div class="legend__conf">
       <span class="caption">Confidence</span>
-      {{ b.confidence("HIGH", short=true) }}{{ b.confidence("MEDIUM", short=true) }}{{ b.confidence("LOW", short=true) }}{{ b.confidence("UNKNOWN", short=true) }}
+      {{ b.confidence("HIGH", short=true) }}
+      {{ b.confidence("MEDIUM", short=true) }}
+      {{ b.confidence("LOW", short=true) }}
+      {{ b.confidence("UNKNOWN", short=true) }}
     </div>
   </div>
 </section>
 
 <section class="section--loose">
   <div class="card__head">
-    <h2 class="page-title" style="font-size: 56px">{% if selected_repo %}{{ selected_repo.split('/')[-1] }} Members{% else %}Members{% endif %}</h2>
+    <h2 class="page-title" style="font-size: 56px">
+      {% if selected_repo %}
+        {{ selected_repo.split('/')[-1] }} Members
+      {% else %}
+        Members
+      {% endif %}
+    </h2>
     <p class="order-note">Member order is alphabetical. Headref does not rank or compare people.</p>
   </div>
 
@@ -89,7 +105,9 @@
           <span class="avatar {{ m.user_id|avatar_tint }}" aria-hidden="true">{{ m.display_name|initials }}</span>
           <div class="member-card__who">
             <a class="member-card__name" href="/members/{{ m.user_id }}{% if selected_repo %}?repo={{ selected_repo }}{% endif %}">{{ m.display_name }}</a>
-            {% if m.role_label %}<p class="member-card__role">{{ m.role_label }}</p>{% endif %}
+            {% if m.role_label %}
+              <p class="member-card__role">{{ m.role_label }}</p>
+            {% endif %}
           </div>
           {{ b.member_state(m.state) }}
         </div>
@@ -103,20 +121,30 @@
               {% set kind = item.kind if item.kind is defined else "risk" %}
               <li>
                 <a class="attn-item" href="/members/{{ m.user_id }}?question={{ 'blockers' if kind == 'blocker' else 'risks' }}">
-                  {{ b.attention_tag(kind) }}<span class="attn-item__text num">{{ item.claim }}</span>{{ i.icon("arrow-right") }}
+                  {{ b.attention_tag(kind) }}
+                  <span class="attn-item__text num">{{ item.claim }}</span>
+                  {{ i.icon("arrow-right") }}
                 </a>
               </li>
             {% endfor %}
           </ul>
-          {% if m.attention_items|length > 3 %}<p class="caption" style="margin-top: var(--s-2)">and {{ m.attention_items|length - 3 }} more</p>{% endif %}
+          {% if m.attention_items|length > 3 %}
+            <p class="caption" style="margin-top: var(--s-2)">and {{ m.attention_items|length - 3 }} more</p>
+          {% endif %}
         {% else %}
           <p class="member-card__reason">No blockers or risks detected.</p>
         {% endif %}
 
         <div class="member-card__foot">
           {% set stale_here = [] %}
-          {% for item in m.attention_items %}{% for ev in item.evidence if ev.source_state == "stale" %}{% set _ = stale_here.append(ev.source) %}{% endfor %}{% endfor %}
-          {% for src in stale_here|unique %}<span class="stale-note">{{ i.icon("clock", 14) }}Uses stale {{ src|source_label }} data</span>{% endfor %}
+          {% for item in m.attention_items %}
+            {% for ev in item.evidence if ev.source_state == "stale" %}
+              {% set _ = stale_here.append(ev.source) %}
+            {% endfor %}
+          {% endfor %}
+          {% for src in stale_here|unique %}
+            <span class="stale-note">{{ i.icon("clock", 14) }}Uses stale {{ src|source_label }} data</span>
+          {% endfor %}
           <a class="btn btn--primary btn--sm" href="/members/{{ m.user_id }}">Open profile{{ i.icon("arrow-right") }}</a>
         </div>
       </article>

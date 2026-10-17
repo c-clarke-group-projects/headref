@@ -24,7 +24,7 @@ from app.agent.planner import build_plan
 from app.agent.team_overview import generate_team_overview
 from app.config import get_settings
 from app.db import get_sync_session
-from app.integrations.github import GitHubClient
+from app.integrations.github import GitHubClient, set_active_github_token
 from app.integrations.jira import JiraClient
 from app.models.canonical import AppUser, Organization, Repository, Team
 from app.models.identity import IdentityLink, UnmatchedEntity
@@ -65,12 +65,24 @@ router = APIRouter(tags=["Headref UI & APIs"])
 @router.get("/api/members/{member_id}/insight", response_model=MemberInsight)
 async def get_member_insight(
     member_id: int,
+    request: Request,
     question: str = Query(..., description="Question type: current_work, blockers, or risks"),
+    repo: str | None = Query(None, description="Filter by repository name"),
     member: MemberGuard = None,
     actor: ActorDep = None,
     db: DbDep = None,
 ) -> MemberInsight:
     """Retrieve member insight for a specific question type (FR-014, FR-028, DEC-007)."""
+    gh_token = request.cookies.get(GITHUB_TOKEN_COOKIE)
+    if gh_token:
+        set_active_github_token(gh_token)
+
+    selected_repo = repo or request.cookies.get("headref_active_repo")
+    if not selected_repo and db:
+        first_repo = db.scalar(select(Repository))
+        if first_repo:
+            selected_repo = first_repo.full_name
+
     plan = build_plan(question)
     return await run_agent(
         session=db,
@@ -78,6 +90,7 @@ async def get_member_insight(
         team_id=member.team_id,
         question_type=plan.question_type,
         actor_user_id=actor.id,
+        repository_name=selected_repo,
     )
 
 
@@ -108,8 +121,10 @@ def get_team_overview(
 _BACKGROUND_SYNCS: set[asyncio.Task[None]] = set()
 
 
-def _do_background_sync(team_id: int) -> None:
+def _do_background_sync(team_id: int, gh_token: str | None = None) -> None:
     """Run a sync tick off the request thread, logging what happened either way."""
+    if gh_token:
+        set_active_github_token(gh_token)
     session = get_sync_session()
     try:
         results = run_scheduled_tick(session, team_id=team_id)
@@ -163,6 +178,7 @@ def _running_runs(db: Any, team_id: int) -> list[SyncRun]:
 )
 async def trigger_team_sync(
     team_id: int,
+    request: Request,
     actor: ActorDep,
     db: DbDep,
 ) -> SyncTriggerResponse:
@@ -194,7 +210,9 @@ async def trigger_team_sync(
             runs=[_to_status(r) for r in in_flight],
         )
 
-    task = asyncio.create_task(asyncio.to_thread(_do_background_sync, team_id))
+    settings = get_settings()
+    gh_token = request.cookies.get(GITHUB_TOKEN_COOKIE) or (settings.github_token if settings else None)
+    task = asyncio.create_task(asyncio.to_thread(_do_background_sync, team_id, gh_token))
     _BACKGROUND_SYNCS.add(task)
     task.add_done_callback(_BACKGROUND_SYNCS.discard)
     logger.info("refresh started for team=%d", team_id)
@@ -258,6 +276,10 @@ def _render_team_page(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to view overview for this team",
         )
+
+    gh_token = request.cookies.get(GITHUB_TOKEN_COOKIE)
+    if gh_token:
+        set_active_github_token(gh_token)
 
     # All synced repositories in database
     db_repos = db.scalars(select(Repository)).all() if db else []
@@ -369,6 +391,18 @@ async def get_member_page(
             detail="Unknown question type",
         )
 
+    gh_token = request.cookies.get(GITHUB_TOKEN_COOKIE)
+    if gh_token:
+        set_active_github_token(gh_token)
+
+    repo_param = request.query_params.get("repo")
+    cookie_repo = request.cookies.get("headref_active_repo")
+    selected_repo = repo_param or cookie_repo
+    if not selected_repo and db:
+        first_repo = db.scalar(select(Repository))
+        if first_repo:
+            selected_repo = first_repo.full_name
+
     member_out = _build_team_member_out(db, member)
     insight = await run_agent(
         session=db,
@@ -376,6 +410,7 @@ async def get_member_page(
         team_id=member.team_id,
         question_type=question,
         actor_user_id=actor.id,
+        repository_name=selected_repo,
     )
 
     signals = signal_rows(question, get_settings(), insight.source_health)
@@ -395,7 +430,7 @@ async def get_member_page(
             if team_obj:
                 team_name = team_obj.name
 
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         request=request,
         name="member.html",
         context={
@@ -411,9 +446,12 @@ async def get_member_page(
             "team_id": member.team_id,
             "nav_current": "member",
             "now": datetime.now(UTC),
-            "selected_repo": request.query_params.get("repo"),
+            "selected_repo": selected_repo,
         },
     )
+    if selected_repo:
+        response.set_cookie("headref_active_repo", selected_repo, max_age=86400 * 30, samesite="lax")
+    return response
 
 
 @router.get("/members/{member_id}/panel", response_class=HTMLResponse)
@@ -432,6 +470,18 @@ async def get_member_panel(
             detail="Unknown question type",
         )
 
+    gh_token = request.cookies.get(GITHUB_TOKEN_COOKIE)
+    if gh_token:
+        set_active_github_token(gh_token)
+
+    repo_param = request.query_params.get("repo")
+    cookie_repo = request.cookies.get("headref_active_repo")
+    selected_repo = repo_param or cookie_repo
+    if not selected_repo and db:
+        first_repo = db.scalar(select(Repository))
+        if first_repo:
+            selected_repo = first_repo.full_name
+
     member_out = _build_team_member_out(db, member)
     insight = await run_agent(
         session=db,
@@ -439,6 +489,7 @@ async def get_member_panel(
         team_id=member.team_id,
         question_type=question,
         actor_user_id=actor.id,
+        repository_name=selected_repo,
     )
     signals = signal_rows(question, get_settings(), insight.source_health)
 

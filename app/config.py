@@ -64,6 +64,16 @@ class Settings(BaseSettings):
         """True if GitHub OAuth credentials are configured."""
         return bool(self.github_oauth_client_id and self.github_oauth_client_secret)
 
+    @property
+    def jira_enabled(self) -> bool:
+        """True if Jira credentials and base URL are configured."""
+        return bool(self.jira_base_url and self.jira_email and self.jira_api_token)
+
+    @property
+    def github_enabled(self) -> bool:
+        """True if GitHub PAT or OAuth credentials are configured."""
+        return bool(self.github_token or self.github_oauth_enabled)
+
 
     # -------------------------------------------------------------------------
     # Operational Settings

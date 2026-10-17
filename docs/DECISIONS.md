@@ -33,6 +33,7 @@ supersedes or amends it, not a workaround.
 | DEC-017 | Local inference with Ollama, no hosted LLM API | Accepted |
 | DEC-018 | The model writes the narrative, code produces the findings | Accepted |
 | DEC-019 | Lane rebalance: data and findings vs agent and interface | Accepted |
+| DEC-020 | Members are analysed from repository history without Jira | Proposed |
 
 ---
 
@@ -1173,3 +1174,59 @@ waits on the other.
 ### Related documents
 
 DEC-015, DEC-018, `TASKS.md` -> Developer Ownership.
+
+---
+
+## DEC-020: Members are analysed from repository history without Jira
+
+Date: 2026-10-17
+Status: Proposed
+Owner: Developer 1, needs Developer 2 agreement (the planner is in their lane, DEC-019)
+
+### Context
+
+Repositories onboarded through `/repos/select` create a member for every GitHub author.
+Most of these teams have no Jira. `current_work` and `blockers` required both Jira and
+GitHub, so for these members the answer was always "Cannot be established: jira is
+unavailable", even with months of pull requests and commits on record. Likely current work
+was also picked from Jira items only.
+
+### Options considered
+
+1. Keep Jira required. Repository-only teams get no answer at all.
+2. Make Jira optional for `current_work` and `blockers`, and infer current work from
+   GitHub when there is no Jira item.
+3. Add a GitHub-only question type. Adds a 4th question, which DEC-007 forbids.
+
+### Decision
+
+Option 2.
+
+- `current_work` and `blockers`: GitHub required, Jira optional. `risks` is unchanged, it
+  is about Jira due dates.
+- When Jira is not usable, the answer lists it under "Not determined" as "jira is
+  unavailable (...), so this answer does not use jira data". It is never silent.
+- With no Jira work item, likely current work is the open pull request with the latest
+  activity, else the branch or repository of the latest commit. It is always classified
+  `inference`, and confidence is computed by `evaluate_confidence` as before.
+- Planned in the same direction, each in its own pull request: a "Likely next" line in
+  the `current_work` answer built by code from assigned not-started items, requested
+  reviews and draft pull requests; and ingestion of GitHub issues.
+
+### Reason
+
+The person reading the page can act on "probably working on PR #14, Jira not checked".
+They cannot act on "Cannot be established". The honesty rule is kept by saying what was
+not checked, rather than refusing to answer.
+
+### Consequences
+
+- A member with no recent GitHub activity still gets the "no activity recorded" message.
+- Jira-only blockers (BL rules that read Jira) are listed as not checked when Jira is
+  missing.
+- Source health is still per source, not per repository (DEC-010). A failing scope marks
+  all GitHub data unavailable. Raised separately in `WORKLOG.md`.
+
+### Related documents
+
+DEC-007, DEC-010, DEC-018, FR-014, FR-020, FR-023.

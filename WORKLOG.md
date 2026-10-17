@@ -60,6 +60,72 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-18 | Keshan | Fix Source Health and Repository Analysis for Authenticated GitHub Users
+Status: DONE
+
+### Completed
+1. Integrated active GitHub OAuth token tracking in memory (`set_active_github_token` and `get_active_github_token`), allowing background sync and on-demand refresh to reuse the authenticated user's access token without requiring GITHUB_TOKEN in `.env`.
+2. Updated background sync scheduler (`app/scheduler.py`) to skip unconfigured sources (Jira when unconfigured, GitHub when no token is present) rather than failing with RuntimeError and inserting false failure rows in `sync_run`.
+3. Updated `resolve_team_scopes` in `app/scheduler.py` to automatically include all onboarded repositories from the database.
+4. Updated `get_source_health` (T-007) so internal RuntimeError from unconfigured scheduler runs does not invalidate valid, fresh repository sync data in PostgreSQL.
+5. Filtered unconfigured Jira out of `source_health` in `generate_team_overview` and `orchestrator._check_health`, removing confusing Jira "Unavailable" tiles and error alert banners when only GitHub is in use.
+6. Scoped member profile analysis (`run_agent`) to the selected repository (`repository_name`), allowing contributors to display their actual likely current work, blockers, and activity without requiring each member to connect their personal GitHub account.
+7. Added unit test in `tests/test_source_health.py` verifying that fresh sync records are preserved when a background tick encounters an unconfigured token RuntimeError.
+
+### Changed
+`app/config.py`, `app/integrations/github.py`, `app/scheduler.py`, `app/tools/get_source_health.py`, `app/agent/team_overview.py`, `app/agent/orchestrator.py`, `app/web/routes.py`, `tests/test_source_health.py`, `WORKLOG.md`.
+
+### Discovered
+Background scheduler ticks were executing unconditionally every 5 minutes and triggering RuntimeError when GITHUB_TOKEN or Jira credentials were empty, writing failed `SyncRun` rows that poisoned T-007 source health and closed the reasoning gate for all team members.
+
+---
+
+## 2026-10-17 | Keshan | Analyse members from repository history (DEC-020, part 1 of 3)
+Status: IN_PROGRESS
+
+### Completed
+1. `current_work` and `blockers` now require GitHub only. Jira is optional, and when it is
+   not usable the answer says so under "Not determined" (`GateResult.skipped`).
+2. With no Jira work item, likely current work is inferred from GitHub: the most recently
+   active open pull request, else the latest commit's branch or repository. Always
+   `inference`, confidence from `evaluate_confidence`.
+3. Tests updated for the new plan, plus 4 new tests for the GitHub fallback and the Jira
+   skip note. Planner and orchestrator tests pass.
+4. Fixed the local setup after the argus to headref rename: `.env` `DATABASE_URL`, new
+   database migrated and seeded, stale `argus.egg-info` and old volume removed.
+
+### Changed
+`app/agent/planner.py`, `app/agent/orchestrator.py`, `tests/test_planner.py`,
+`tests/test_orchestrator.py`, `docs/DECISIONS.md` (DEC-020, Proposed).
+
+### Discovered
+- Source health is per source, not per scope. The scheduler fails every tick on
+  `keshan-dev/headref` because `GITHUB_TOKEN` is empty, so GitHub reads as unavailable for
+  every member, including repositories synced successfully through OAuth.
+- `github_repos` default in `app/config.py` is `keshan-dev/headref`, but the GitHub
+  repository is still `keshan-dev/argus`.
+- Blocker "PR open with no review" comes back with confidence UNKNOWN: its evidence key
+  does not match the pull request evidence key. Not changed here.
+- Commits from OAuth-synced repositories have no branch name, so the branch fallback is
+  rarely reached on real data.
+
+### Problems
+15 tests fail and 5 error in `test_github_oauth.py`, `test_headref_ux_and_jira.py`,
+`test_team_overview.py`, `test_ui_team.py`, `tests/web/test_ui_templates.py` (SQLite
+thread errors, missing tables, changed page text). They fail without this change too.
+
+### Decisions Needed
+DEC-020 needs Developer 2 agreement. Fix for per-source health versus per-scope failures.
+
+### Next Step
+Part 2: "Likely next" line in `current_work`. Part 3: GitHub issues ingestion (needs a
+migration, announce first, rule 11).
+
+### AI Assistance
+Implemented with an AI assistant. Check the wording of the GitHub-only claims in the UI.
+
+---
+
 ## 2026-10-17 | Keshan | GitHub Authenticated Organization & Repository Onboarding
 Status: DONE
 

@@ -9,15 +9,19 @@
 {% block title %}Repositories · Headref{% endblock %}
 
 {% block hero %}
+{% set repo_count = repos|length %}
+{% set org_count = orgs|length %}
+{% set synced_count = repos|selectattr("is_synced", "equalto", true)|list|length %}
 <section class="hero">
   <div>
     <p class="hero__meta">
       <span class="hero__dot" aria-hidden="true"></span>
-      GitHub Workspaces &middot; {{ repos|length }} Repositor{{ "ies" if repos|length != 1 else "y" }} &middot; {{ orgs|length }} Organization{{ "s" if orgs|length != 1 }}
+      GitHub Workspaces &middot; {{ repo_count }} {% if repo_count == 1 %}Repository{% else %}Repositories{% endif %} &middot; {{ org_count }} {% if org_count == 1 %}Organization{% else %}Organizations{% endif %}
+      {% if synced_count > 0 %} &middot; <strong style="color: var(--ok)">{{ synced_count }} Synced</strong>{% endif %}
     </p>
     <h1 class="hero__title">Select a repository to track</h1>
     <p class="hero__lead">
-      Choose a repository from your GitHub organizations or personal account. Headref will automatically ingest contributors, pull requests, commits, and reviews into your team dashboard.
+      Choose a repository from your GitHub organizations or personal account. Headref automatically discovers contributors, pull requests, commits, and reviews into your team dashboard.
     </p>
   </div>
 </section>
@@ -44,14 +48,45 @@
 {% endblock %}
 
 {% block content %}
+<style>
+  .repo-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border: 1.5px solid var(--ash);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .repo-card--synced {
+    border-color: var(--ok);
+  }
+  .jira-banner-box {
+    margin-bottom: var(--s-4);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--s-3);
+    background: var(--card);
+    border: 1.5px solid var(--ash);
+  }
+  .jira-banner-box--connected {
+    border-color: var(--ok);
+  }
+</style>
+
 <section class="section" style="margin-top: var(--s-4);">
   <!-- Jira Connection Status Banner -->
-  <div class="card card--pad-md" style="margin-bottom: var(--s-4); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--s-3); background: var(--card); border: 1.5px solid {% if jira_configured %}var(--ok){% else %}var(--ash){% endif %};">
+  <div class="card card--pad-md jira-banner-box{% if jira_configured %} jira-banner-box--connected{% endif %}">
     <div style="display: flex; align-items: center; gap: var(--s-3);">
       <span style="font-size: 22px;">{{ i.source_icon("jira", 22) }}</span>
       <div>
         <h3 style="font-size: var(--fs-body); font-weight: 600; margin: 0 0 2px 0;">
-          Atlassian Jira Integration: {% if jira_configured %}<span style="color: var(--ok)">Connected</span>{% else %}<span style="color: var(--slate)">Not Connected</span>{% endif %}
+          Atlassian Jira Integration: 
+          {% if jira_configured %}
+            <span style="color: var(--ok)">Connected</span>
+          {% else %}
+            <span style="color: var(--slate)">Not Connected</span>
+          {% endif %}
         </h3>
         <p class="caption" style="margin: 0;">
           {% if jira_configured %}
@@ -89,11 +124,17 @@
         </div>
       </div>
 
-      <!-- Org Filter Tabs -->
+      <!-- Org & Status Filter Tabs -->
+      {% set synced_count = repos|selectattr("is_synced", "equalto", true)|list|length %}
       <div class="pillbar" id="org-filter-bar" style="overflow-x: auto; max-width: 100%; padding: 4px; display: inline-flex; gap: 4px;" role="tablist" aria-label="Filter repositories by organization">
         <button type="button" class="navlink active" data-filter="all" style="border: 0; cursor: pointer; font-size: var(--fs-caption); padding: 6px 14px; border-radius: var(--r-pill); background: var(--ink); color: #fff;">
           All ({{ repos|length }})
         </button>
+        {% if synced_count > 0 %}
+        <button type="button" class="navlink" data-filter="synced" style="border: 0; cursor: pointer; font-size: var(--fs-caption); padding: 6px 14px; border-radius: var(--r-pill); background: var(--mist); color: var(--ink);">
+          Synced ({{ synced_count }})
+        </button>
+        {% endif %}
         <button type="button" class="navlink" data-filter="personal" style="border: 0; cursor: pointer; font-size: var(--fs-caption); padding: 6px 14px; border-radius: var(--r-pill); background: var(--mist); color: var(--ink);">
           Personal
         </button>
@@ -131,13 +172,13 @@
   <div class="grid-2" id="repo-grid">
     {% for repo in repos %}
     <div 
-      class="card card--pad-md repo-card" 
+      class="card card--pad-md repo-card{% if repo.is_synced %} repo-card--synced{% endif %}" 
       data-name="{{ repo.name|lower }}" 
       data-fullname="{{ repo.full_name|lower }}"
       data-desc="{{ (repo.description or '')|lower }}"
       data-owner="{{ repo.owner_login|lower }}"
       data-is-personal="{{ 'true' if repo.is_personal else 'false' }}"
-      style="display: flex; flex-direction: column; justify-content: space-between; border: 1.5px solid {% if repo.is_synced %}var(--ok){% else %}var(--ash){% endif %}; transition: transform 0.15s ease, box-shadow 0.15s ease;"
+      data-is-synced="{{ 'true' if repo.is_synced else 'false' }}"
     >
       <div>
         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s-3); margin-bottom: var(--s-2);">
@@ -236,10 +277,13 @@
         const desc = card.dataset.desc || '';
         const owner = card.dataset.owner || '';
         const isPersonal = card.dataset.isPersonal === 'true';
+        const isSynced = card.dataset.isSynced === 'true';
 
         let matchesFilter = false;
         if (activeFilter === 'all') {
           matchesFilter = true;
+        } else if (activeFilter === 'synced') {
+          matchesFilter = isSynced;
         } else if (activeFilter === 'personal') {
           matchesFilter = isPersonal;
         } else {

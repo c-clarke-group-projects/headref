@@ -68,15 +68,24 @@ def generate_team_overview(
     fetch_members = team_members_fn if team_members_fn is not None else get_team_members
 
     # 1. Health check via T-007
-    health_input = GetSourceHealthInput(team_id=team_id, sources=["jira", "github"])
+    from app.config import get_settings
+
+    curr_settings = get_settings()
+    jira_is_active = bool(curr_settings and curr_settings.jira_enabled)
+    sources_to_check = ["jira", "github"] if jira_is_active else ["github"]
+
+    health_input = GetSourceHealthInput(team_id=team_id, sources=sources_to_check)
     health_res = read_tools.source_health(session, health_input)
 
     if isinstance(health_res, ToolFailure) or health_res is None:
         source_health: list[SourceHealthOut] = []
-        unavailable_sources = {"jira", "github"}
+        unavailable_sources = {"github"}
     else:
-        source_health = list(health_res.sources)
-        unavailable_sources = {h.source for h in source_health if h.state == "unavailable"}
+        source_health = [h for h in health_res.sources if (h.source != "jira" or jira_is_active)]
+        # Under DEC-020, only GitHub is strictly required for blockers overview
+        unavailable_sources = {
+            h.source for h in source_health if h.state == "unavailable" and h.source == "github"
+        }
 
     last_synced = {h.source: h.last_success_at for h in source_health}
 

@@ -22,6 +22,8 @@ from app.config import (
     settings,
 )
 from app.db import get_sync_session
+from app.integrations.github import get_active_github_token
+from app.models.canonical import Repository
 from app.models.operations import SyncRun
 from app.sync import sync_github, sync_jira
 
@@ -77,15 +79,19 @@ def recover_stuck_syncs(
     return has_active_run
 
 
-def resolve_team_scopes(team_id: int) -> tuple[list[str], list[str]]:
-    """GitHub and Jira scopes for a team, as (github, jira).
-
-    The MVP ingests 1 team, so the scopes come from GITHUB_REPOS and JIRA_PROJECT_KEYS
-    and are the same whatever team id is asked for. Per team scope is a column on the
-    team table, not a configuration value, and is deferred until a second team exists.
-    The parameter is here so call sites already pass it when that day comes.
-    """
-    return github_scopes(), jira_scopes()
+def resolve_team_scopes(team_id: int, session: Session | None = None) -> tuple[list[str], list[str]]:
+    """GitHub and Jira scopes for a team, as (github, jira)."""
+    gh = []
+    if session is not None:
+        try:
+            db_repos = session.scalars(select(Repository)).all()
+            if db_repos:
+                gh = [r.full_name for r in db_repos]
+        except Exception:
+            pass
+    if not gh:
+        gh = github_scopes()
+    return gh, jira_scopes()
 
 
 def _aggregate(statuses: list[str]) -> str | None:
@@ -112,6 +118,15 @@ def _run_source_tick(
     stuck_timeout_minutes: int,
 ) -> tuple[str | None, dict[str, str]]:
     """Run 1 source across every configured scope, guarding each scope separately."""
+    # Skip unconfigured sources to avoid false failures
+    if source == "jira" and (settings is None or not settings.jira_enabled):
+        logger.debug("Jira integration is not configured; skipping tick")
+        return None, {}
+
+    if source == "github" and not get_active_github_token():
+        logger.debug("GitHub token is not available; skipping tick")
+        return None, {}
+
     per_scope: dict[str, str] = {}
 
     for scope in scopes:
@@ -154,7 +169,7 @@ def run_scheduled_tick(
     Scopes default to the deployment configuration. Pass gh_scope or jira_scope to run
     a single named scope instead, which is what the tests and manual runs do.
     """
-    configured_gh, configured_jira = resolve_team_scopes(team_id)
+    configured_gh, configured_jira = resolve_team_scopes(team_id, session=session)
     gh_scopes = [gh_scope] if gh_scope else configured_gh
     jira_scope_list = [jira_scope] if jira_scope else configured_jira
 

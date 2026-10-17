@@ -12,12 +12,15 @@ import pytest
 from app.agent.orchestrator import (
     AgentRunContext,
     ReadTools,
+    RetrievalResult,
+    github_current_work,
     run_agent,
     run_s1_s2,
     unknown_response,
 )
 from app.agent.planner import PLANS, InvalidQuestionTypeError
 from app.schemas.errors import ToolFailure
+from app.schemas.insight import EvidenceItem
 from app.schemas.tools import (
     CommitOut,
     GetAssignedWorkItemsOutput,
@@ -337,17 +340,20 @@ def test_an_unavailable_required_source_closes_the_gate() -> None:
 
 
 @pytest.mark.parametrize(
-    ("question", "slot"),
+    ("question", "slot", "required"),
     [
-        ("current_work", "likely_current_work"),
-        ("blockers", "blockers"),
-        ("risks", "risks"),
+        ("current_work", "likely_current_work", "github"),
+        ("blockers", "blockers", "github"),
+        ("risks", "risks", "jira"),
     ],
 )
-def test_the_unknown_answer_puts_the_reason_in_the_asked_slot(question: str, slot: str) -> None:
+def test_the_unknown_answer_puts_the_reason_in_the_asked_slot(
+    question: str, slot: str, required: str
+) -> None:
     """A closed gate answers UNKNOWN, never an empty list that reads as "nothing found"."""
+    other = "jira" if required == "github" else "github"
     tools, _, _ = make_tools(
-        health=[_health("jira", "unavailable", "AUTH_FAILED"), _health("github")]
+        health=[_health(required, "unavailable", "AUTH_FAILED"), _health(other)]
     )
     context = _run(question, tools)
     assert context.gate.proceed is False
@@ -358,7 +364,7 @@ def test_the_unknown_answer_puts_the_reason_in_the_asked_slot(question: str, slo
     insight = value[0] if isinstance(value, list) else value
     assert insight.classification == "unknown"
     assert insight.confidence == "UNKNOWN"
-    assert "jira is unavailable (last error: AUTH_FAILED)" in insight.claim
+    assert f"{required} is unavailable (last error: AUTH_FAILED)" in insight.claim
     assert answer.unknowns == [context.gate.reason]
     assert answer.user_id == 5
     assert answer.source_health == context.health
@@ -414,17 +420,33 @@ def test_a_failing_health_tool_fails_closed() -> None:
 
 
 def test_a_failing_tool_on_a_required_source_closes_the_gate() -> None:
-    """A failed T-002 is recorded, the other tools still run, and the gate closes."""
-    tools, calls, _ = make_tools(
-        pull_requests=[_pull_request(7)], failures={"T-002": _failure("T-002")}
-    )
+    """A failed T-003 is recorded, the other tools still run, and the gate closes."""
+    tools, calls, _ = make_tools(work_items=[_work_item(1)], failures={"T-003": _failure("T-003")})
 
     context = _run("blockers", tools)
 
     assert context.gate.proceed is False
-    assert context.gate.reason == "T-002 failed (TIMEOUT)"
+    assert context.gate.reason == "T-003 failed (TIMEOUT)"
+    assert "T-004" in calls
+    assert [failure.tool_id for failure in context.failures] == ["T-003"]
+
+
+@pytest.mark.parametrize("question", ["current_work", "blockers"])
+def test_unavailable_jira_does_not_stop_a_github_answer(question: str) -> None:
+    """Jira is optional here (DEC-020): the run goes on and says Jira was not used."""
+    tools, calls, _ = make_tools(
+        health=[_health("jira", "unavailable"), _health("github")],
+        pull_requests=[_pull_request(7)],
+    )
+
+    context = _run(question, tools)
+
+    assert context.gate.proceed is True
+    assert "T-002" not in calls
     assert "T-003" in calls
-    assert [failure.tool_id for failure in context.failures] == ["T-002"]
+    assert context.gate.skipped == [
+        "jira is unavailable (no successful sync recorded), so this answer does not use jira data"
+    ]
 
 
 def test_a_failing_tool_on_an_optional_source_is_recorded_but_does_not_close_the_gate() -> None:
@@ -466,7 +488,7 @@ async def test_run_agent_gate_closed() -> None:
         session.add(user)
         session.flush()
 
-        tools, _, _ = make_tools(health=[_health("jira", "unavailable"), _health("github")])
+        tools, _, _ = make_tools(health=[_health("jira"), _health("github", "unavailable")])
         insight = await run_agent(
             session=session,
             subject_user_id=user.id,
@@ -545,3 +567,77 @@ async def test_run_agent_full_pipeline_success() -> None:
         assert insight_cached.summary == insight.summary
     finally:
         session.close()
+
+
+# ---------------------------------------------------------------------------
+# Likely current work from GitHub alone (DEC-020)
+# ---------------------------------------------------------------------------
+
+
+def _evidence(index: int, entity_type: str, key: str, summary: str) -> EvidenceItem:
+    return EvidenceItem(
+        id=f"ev_{index}",
+        source="github",
+        entity_type=entity_type,  # type: ignore[arg-type]
+        entity_key=key,
+        source_url="https://github.com/acme/api",
+        summary=summary,
+        observed_at=NOW,
+        retrieved_at=NOW,
+        source_state="fresh",
+    )
+
+
+def _branch_commit(sha: str, branch: str | None, hours_ago: int) -> CommitOut:
+    return _commit().model_copy(
+        update={"sha": sha, "branch_name": branch, "committed_at": NOW - timedelta(hours=hours_ago)}
+    )
+
+
+def test_github_current_work_picks_the_most_recently_active_open_pull_request() -> None:
+    """Open PR with the latest commit wins; merged PRs are history, not current work."""
+    older = _pull_request(1).model_copy(
+        update={"number": 10, "last_commit_at": NOW - timedelta(days=3), "branch_name": "old"}
+    )
+    newer = _pull_request(2).model_copy(
+        update={"number": 11, "last_commit_at": NOW - timedelta(hours=2), "branch_name": "feat/x"}
+    )
+    merged = _pull_request(3).model_copy(
+        update={"number": 12, "state": "merged", "last_commit_at": NOW}
+    )
+    evidence = [
+        _evidence(1, "pull_request", "11", "GitHub pull request #11 in acme/api: state=open"),
+        _evidence(2, "commit", "aaaaaaaa", "GitHub commit aaaaaaaa in acme/api on branch feat/x"),
+        _evidence(3, "commit", "bbbbbbbb", "GitHub commit bbbbbbbb in acme/api on branch feat/x2"),
+        _evidence(4, "pull_request", "10", "GitHub pull request #10 in acme/api: state=open"),
+    ]
+    retrieval = RetrievalResult(pull_requests=[older, newer, merged])
+
+    insight = github_current_work(retrieval, evidence, is_truncated=False, as_of=NOW)
+
+    assert insight is not None
+    assert insight.claim.startswith("Likely working on pull request #11 in acme/api")
+    assert insight.classification == "inference"
+    assert [ev.id for ev in insight.evidence] == ["ev_1", "ev_2"]
+    assert insight.confidence == "MEDIUM"
+
+
+def test_github_current_work_falls_back_to_the_latest_commit_branch() -> None:
+    """With no open PR, the branch of the newest commit is the likely work."""
+    retrieval = RetrievalResult(
+        commits=[_branch_commit("c1", "fix/old", 30), _branch_commit("c2", "feat/new", 1)]
+    )
+    evidence = [_evidence(1, "commit", "c2", "GitHub commit c2 in acme/api on branch feat/new")]
+
+    insight = github_current_work(retrieval, evidence, is_truncated=False, as_of=NOW)
+
+    assert insight is not None
+    assert "branch feat/new in acme/api" in insight.claim
+    assert [ev.id for ev in insight.evidence] == ["ev_1"]
+
+
+def test_github_current_work_is_none_without_github_activity() -> None:
+    """No activity means no claim; the page then says no activity is recorded."""
+    insight = github_current_work(RetrievalResult(), [], is_truncated=False, as_of=NOW)
+
+    assert insight is None

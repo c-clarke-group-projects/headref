@@ -104,6 +104,8 @@ class GateResult(BaseModel):
 
     proceed: bool = True
     reasons: list[str] = Field(default_factory=list)
+    # Optional sources the run went on without. Shown to the reader, never hidden.
+    skipped: list[str] = Field(default_factory=list)
 
     @property
     def reason(self) -> str | None:
@@ -144,13 +146,24 @@ def _check_health(session: Session, context: AgentRunContext, tools: ReadTools) 
 
     If T-007 itself fails, nothing is usable: fail closed, never assume healthy.
     """
-    sources = [*context.plan.required_sources, *context.plan.optional_sources]
+    from app.config import get_settings
+
+    settings = get_settings()
+    jira_is_active = bool(settings and settings.jira_enabled)
+
+    sources = [
+        s
+        for s in [*context.plan.required_sources, *context.plan.optional_sources]
+        if (s != "jira" or jira_is_active)
+    ]
+    if not sources:
+        sources = ["github"]
     data = GetSourceHealthInput(team_id=context.team_id, sources=sources)
     output = _call(context, "T-007", lambda: tools.source_health(session, data))
     if output is None:
         return set()
-    context.health = list(output.sources)
-    return {health.source for health in output.sources if health.state != "unavailable"}
+    context.health = [h for h in output.sources if (h.source != "jira" or jira_is_active)]
+    return {health.source for health in context.health if health.state != "unavailable"}
 
 
 def _retrieve(
@@ -252,6 +265,7 @@ def _evaluate_gate(context: AgentRunContext, usable: set[Source]) -> None:
     plan = context.plan
     by_source = {health.source: health for health in context.health}
     reasons: list[str] = []
+    skipped: list[str] = []
 
     health_failure = next((f for f in context.failures if f.tool_id == "T-007"), None)
     if health_failure is not None:
@@ -262,9 +276,18 @@ def _evaluate_gate(context: AgentRunContext, usable: set[Source]) -> None:
                 reasons.append(_unavailable_reason(source, by_source.get(source)))
         for source in plan.optional_sources:
             if source not in usable:
+                from app.config import get_settings
+
+                _settings = get_settings()
+                if _settings and not _settings.jira_enabled and source == "jira":
+                    continue
                 context.notes.append(
                     f"{source} is unavailable and optional for {plan.question_type}; "
                     f"continuing without {source} data"
+                )
+                skipped.append(
+                    f"{_unavailable_reason(source, by_source.get(source))}, "
+                    f"so this answer does not use {source} data"
                 )
 
     for failure in context.failures:
@@ -279,7 +302,7 @@ def _evaluate_gate(context: AgentRunContext, usable: set[Source]) -> None:
                 f"{failure.tool_id} failed ({failure.error_type}); continuing without it"
             )
 
-    context.gate = GateResult(proceed=not reasons, reasons=reasons)
+    context.gate = GateResult(proceed=not reasons, reasons=reasons, skipped=skipped)
 
 
 def run_s1_s2(
@@ -349,6 +372,64 @@ def unknown_response(context: AgentRunContext) -> MemberInsight:
     )
 
 
+def _commit_on_branch(evidence: EvidenceItem, branch: str) -> bool:
+    """True for commit evidence on exactly this branch (see the commit summary format)."""
+    return evidence.entity_type == "commit" and evidence.summary.endswith(f"on branch {branch}")
+
+
+def github_current_work(
+    retrieval: RetrievalResult,
+    evidence: list[EvidenceItem],
+    *,
+    is_truncated: bool,
+    as_of: datetime,
+) -> Insight | None:
+    """Infer likely current work from GitHub alone, for a member with no Jira work item.
+
+    The open pull request with the latest activity wins; with none, the branch of the
+    latest commit. Always labelled an inference: GitHub shows activity, not intent.
+    """
+    open_prs = [pr for pr in retrieval.pull_requests if pr.state == "open"]
+    if open_prs:
+        pr = max(open_prs, key=lambda p: p.last_commit_at or p.source_updated_at)
+        cited = [
+            ev
+            for ev in evidence
+            if (ev.entity_type == "pull_request" and ev.entity_key == str(pr.number))
+            or (pr.branch_name and _commit_on_branch(ev, pr.branch_name))
+        ]
+        draft = " (draft)" if pr.is_draft else ""
+        claim = (
+            f"Likely working on pull request #{pr.number}{draft} "
+            f"in {pr.repo_full_name}: {pr.title}."
+        )
+    elif retrieval.commits:
+        commit = max(retrieval.commits, key=lambda c: c.committed_at)
+        if commit.branch_name:
+            cited = [ev for ev in evidence if _commit_on_branch(ev, commit.branch_name)]
+            claim = (
+                f"Likely working on branch {commit.branch_name} in {commit.repo_full_name}, "
+                "from recent commits with no open pull request."
+            )
+        else:
+            cited = [ev for ev in evidence if ev.entity_key == commit.sha[:8]]
+            claim = (
+                f"Likely working in {commit.repo_full_name}, "
+                f"latest commit {commit.sha[:8]} with no open pull request."
+            )
+    else:
+        return None
+
+    return Insight(
+        claim=claim,
+        classification="inference",
+        confidence=evaluate_confidence(
+            cited, claim_type="current_work", is_truncated=is_truncated, as_of=as_of
+        ),
+        evidence=cited,
+    )
+
+
 async def run_agent(
     session: Session,
     *,
@@ -360,6 +441,7 @@ async def run_agent(
     now: datetime | None = None,
     client: httpx.AsyncClient | None = None,
     skip_llm: bool = False,
+    repository_name: str | None = None,
 ) -> MemberInsight:
     """Execute end-to-end agent pipeline stages S1 through S6 (DEC-018, FR-014, FR-024).
 
@@ -380,6 +462,18 @@ async def run_agent(
         tools=tools,
         now=now,
     )
+
+    if repository_name:
+        repo_lower = repository_name.lower()
+        context.retrieval.pull_requests = [
+            pr for pr in context.retrieval.pull_requests if pr.repo_full_name.lower() == repo_lower
+        ]
+        context.retrieval.commits = [
+            c for c in context.retrieval.commits if c.repo_full_name.lower() == repo_lower
+        ]
+        context.retrieval.reviews = [
+            r for r in context.retrieval.reviews if r.repo_full_name.lower() == repo_lower
+        ]
 
     # 1. Closed Gate handling (S2 gate)
     if not context.gate.proceed:
@@ -506,6 +600,13 @@ async def run_agent(
             confidence=conf,
             evidence=target_ev,
         )
+    else:
+        likely_current_work = github_current_work(
+            context.retrieval,
+            canonical_evidence,
+            is_truncated=evidence_set.truncated,
+            as_of=context.started_at,
+        )
 
     # Resolve blocker insights
     blocker_insights: list[Insight] = []
@@ -595,7 +696,7 @@ async def run_agent(
         assigned=context.retrieval.work_items,
         blockers=blocker_insights,
         risks=risk_insights,
-        unknowns=[context.gate.reason] if context.gate.reason else [],
+        unknowns=([context.gate.reason] if context.gate.reason else []) + context.gate.skipped,
         last_synced={h.source: h.last_success_at for h in context.health},
         source_health=list(context.health),
         summary=validated.summary,

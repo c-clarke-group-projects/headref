@@ -17,8 +17,8 @@ def test_there_are_exactly_three_question_types() -> None:
 @pytest.mark.parametrize(
     ("question", "required", "optional", "days", "open_due", "tools"),
     [
-        ("current_work", ("jira", "github"), (), 14, False, ALL_TOOLS),
-        ("blockers", ("jira", "github"), (), 14, False, ALL_TOOLS),
+        ("current_work", ("github",), ("jira",), 14, False, ALL_TOOLS),
+        ("blockers", ("github",), ("jira",), 14, False, ALL_TOOLS),
         ("risks", ("jira",), ("github",), 30, True, ("T-002", "T-003", "T-004", "T-006")),
     ],
 )
@@ -30,7 +30,7 @@ def test_each_question_type_has_the_documented_plan(
     open_due: bool,
     tools: tuple[str, ...],
 ) -> None:
-    """Sources, window and tools match DEC-007 and the P3-004 task."""
+    """Sources, window and tools match DEC-007, DEC-020 and the P3-004 task."""
     plan = build_plan(question)
 
     assert plan.question_type == question
