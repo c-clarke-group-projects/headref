@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.agent.blockers import detect_blockers
@@ -17,7 +18,9 @@ from app.agent.conflicts import detect_conflicts
 from app.agent.evidence_builder import build_evidence
 from app.agent.orchestrator import ReadTools, run_s1_s2
 from app.agent.risks import detect_risks
-from app.models.canonical import Team
+from app.models.canonical import AppUser, Repository, Team
+from app.models.identity import IdentityLink
+from app.models.work import Commit, PullRequest, Review
 from app.schemas.errors import ToolFailure
 from app.schemas.insight import (
     AttentionItem,
@@ -29,6 +32,7 @@ from app.schemas.tools import (
     GetSourceHealthInput,
     GetTeamMembersInput,
     SourceHealthOut,
+    TeamMemberOut,
 )
 from app.tools.get_team_members import get_team_members
 
@@ -40,6 +44,7 @@ def generate_team_overview(
     now: datetime | None = None,
     tools: ReadTools | None = None,
     team_members_fn: Callable[..., Any] | None = None,
+    repository_name: str | None = None,
 ) -> TeamOverview:
     """Produce the TeamOverview contract for a given team (FR-025).
 
@@ -88,6 +93,72 @@ def generate_team_overview(
         team_members = sorted(members_res.members, key=lambda m: m.display_name)
         unmatched_count = members_res.unmatched_count
 
+    # Filter to repository contributors if repository_name is provided
+    repo_user_ids: set[int] | None = None
+    if repository_name and session is not None:
+        repo = session.scalar(
+            select(Repository).where(func.lower(Repository.full_name) == repository_name.lower())
+        )
+        if repo:
+            commit_user_ids = session.scalars(
+                select(Commit.author_app_user_id).where(
+                    Commit.repository_id == repo.id,
+                    Commit.author_app_user_id.is_not(None),
+                )
+            ).all()
+            pr_user_ids = session.scalars(
+                select(PullRequest.author_app_user_id).where(
+                    PullRequest.repository_id == repo.id,
+                    PullRequest.author_app_user_id.is_not(None),
+                )
+            ).all()
+            review_user_ids = session.scalars(
+                select(Review.reviewer_app_user_id)
+                .join(PullRequest, Review.pull_request_id == PullRequest.id)
+                .where(
+                    PullRequest.repository_id == repo.id,
+                    Review.reviewer_app_user_id.is_not(None),
+                )
+            ).all()
+
+            owner_handle = repo.full_name.split("/")[0] if "/" in repo.full_name else ""
+            owner_user_ids = []
+            if owner_handle:
+                owner_user_ids = session.scalars(
+                    select(IdentityLink.app_user_id).where(
+                        IdentityLink.integration == "github",
+                        func.lower(IdentityLink.external_handle) == owner_handle.lower(),
+                    )
+                ).all()
+
+            repo_user_ids = (
+                set(commit_user_ids)
+                | set(pr_user_ids)
+                | set(review_user_ids)
+                | set(owner_user_ids)
+            )
+        else:
+            repo_user_ids = set()
+
+    if repo_user_ids is not None:
+        team_members = [m for m in team_members if m.user_id in repo_user_ids]
+        missing_ids = repo_user_ids - {m.user_id for m in team_members}
+        if missing_ids:
+            extra_users = session.scalars(
+                select(AppUser).where(AppUser.id.in_(missing_ids), AppUser.is_active.is_(True))
+            ).all()
+            for u in extra_users:
+                team_members.append(
+                    TeamMemberOut(
+                        user_id=u.id,
+                        display_name=u.display_name,
+                        role_label=u.role_label,
+                        is_active=u.is_active,
+                        linked_accounts=[],
+                    )
+                )
+            team_members.sort(key=lambda m: m.display_name)
+
     # 3. Member states
     member_overviews: list[TeamMemberOverview] = []
 
@@ -118,6 +189,19 @@ def generate_team_overview(
             tools=read_tools,
             now=moment,
         )
+
+        # Scope retrieved activity strictly to the chosen repository
+        if repository_name:
+            repo_lower = repository_name.lower()
+            context.retrieval.pull_requests = [
+                pr for pr in context.retrieval.pull_requests if pr.repo_full_name.lower() == repo_lower
+            ]
+            context.retrieval.commits = [
+                c for c in context.retrieval.commits if c.repo_full_name.lower() == repo_lower
+            ]
+            context.retrieval.reviews = [
+                r for r in context.retrieval.reviews if r.repo_full_name.lower() == repo_lower
+            ]
 
         if not context.gate.proceed:
             reason = context.gate.reason or "Required data is unavailable"
@@ -276,9 +360,13 @@ def generate_team_overview(
     else:
         overall_status = "On Track"
 
+    display_team_name = team_name
+    if repository_name:
+        display_team_name = f"{team_name} ({repository_name})"
+
     return TeamOverview(
         team_id=team_id,
-        team_name=team_name,
+        team_name=display_team_name,
         overall_status=overall_status,
         source_health=source_health,
         last_synced=last_synced,

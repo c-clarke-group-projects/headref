@@ -19,7 +19,7 @@ from fastapi import HTTPException
 
 from app.agent.orchestrator import ReadTools
 from app.agent.team_overview import generate_team_overview
-from app.models.canonical import Team
+from app.models.canonical import Repository, Team
 from app.schemas.tools import (
     CommitOut,
     GetAssignedWorkItemsOutput,
@@ -324,3 +324,49 @@ def test_generate_team_overview_no_activity_unknown() -> None:
     assert member.state == "unknown"
     assert "no jira or github records" in (member.state_reason or "").lower()
     assert member.attention_count == 0
+
+
+def test_generate_team_overview_filters_by_repository_name() -> None:
+    session = MagicMock()
+    session.get.return_value = Team(id=10, organization_id=1, name="Core Team")
+
+    mock_repo = Repository(id=42, organization_id=1, full_name="acme/special-repo")
+    session.scalar.return_value = mock_repo
+
+    # User 1 has commits in repo 42, User 2 has no commits in repo 42
+    session.scalars.side_effect = [
+        [1],  # commit_user_ids
+        [],   # pr_user_ids
+        [],   # review_user_ids
+        [],   # owner_user_ids
+    ]
+
+    tools = ReadTools(
+        source_health=lambda s, d: GetSourceHealthOutput(
+            sources=[_health("jira", "fresh"), _health("github", "fresh")]
+        ),
+        assigned_work_items=lambda s, d: GetAssignedWorkItemsOutput(items=[]),
+        pull_requests=lambda s, d: GetPullRequestsOutput(pull_requests=[]),
+        commits=lambda s, d: GetCommitsOutput(commits=[], truncated=False),
+        reviews=lambda s, d: GetReviewsOutput(reviews=[]),
+        work_item_links=lambda s, d: GetWorkItemLinksOutput(links=[]),
+    )
+
+    def fake_members(s: Any, d: Any) -> GetTeamMembersOutput:
+        return GetTeamMembersOutput(
+            members=[_team_member(1, "Alice"), _team_member(2, "Bob")],
+            unmatched_count=0,
+        )
+
+    overview = generate_team_overview(
+        session,
+        10,
+        now=NOW,
+        tools=tools,
+        team_members_fn=fake_members,
+        repository_name="acme/special-repo",
+    )
+
+    assert "acme/special-repo" in overview.team_name
+    assert len(overview.members) == 1
+    assert overview.members[0].display_name == "Alice"

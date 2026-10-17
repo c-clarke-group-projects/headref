@@ -25,12 +25,13 @@ from app.agent.team_overview import generate_team_overview
 from app.config import get_settings
 from app.db import get_sync_session
 from app.integrations.github import GitHubClient
+from app.integrations.jira import JiraClient
 from app.models.canonical import AppUser, Organization, Repository, Team
 from app.models.identity import IdentityLink, UnmatchedEntity
 from app.models.operations import SyncRun
 from app.scheduler import resolve_team_scopes, run_scheduled_tick
 from app.schemas.errors import ToolFailure
-from app.sync import sync_github
+from app.sync import sync_github, sync_jira
 from app.schemas.insight import MemberInsight, TeamOverview
 from app.schemas.sync import SyncStatus, SyncStatusResponse, SyncTriggerResponse
 from app.schemas.tools import (
@@ -85,6 +86,7 @@ def get_team_overview(
     team_id: int,
     actor: ActorDep,
     db: DbDep,
+    repo: str | None = Query(None, description="Filter by repository name"),
 ) -> TeamOverview:
     """Retrieve team overview status and member breakdowns (FR-025, Gap G6)."""
     if actor.team_id != team_id or actor.team_id is None:
@@ -98,7 +100,7 @@ def get_team_overview(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to view overview for this team",
         )
-    return generate_team_overview(session=db, team_id=team_id)
+    return generate_team_overview(session=db, team_id=team_id, repository_name=repo)
 
 
 # Keeping a reference stops the event loop garbage collecting a running background
@@ -257,8 +259,31 @@ def _render_team_page(
             detail="Not allowed to view overview for this team",
         )
 
-    overview = generate_team_overview(session=db, team_id=target_team_id)
-    return templates.TemplateResponse(
+    # All synced repositories in database
+    db_repos = db.scalars(select(Repository)).all() if db else []
+    all_repo_names = [r.full_name for r in db_repos]
+
+    # Resolve repo filter: check query parameter, then cookie
+    repo_param = request.query_params.get("repo")
+    cookie_repo = request.cookies.get("headref_active_repo")
+
+    if repo_param is not None:
+        selected_repo = repo_param if repo_param != "all" else None
+    elif cookie_repo and cookie_repo in all_repo_names:
+        selected_repo = cookie_repo
+    elif all_repo_names:
+        # Default to the first repository if repositories exist
+        selected_repo = all_repo_names[0]
+    else:
+        selected_repo = None
+
+    overview = generate_team_overview(
+        session=db,
+        team_id=target_team_id,
+        repository_name=selected_repo,
+    )
+
+    response = templates.TemplateResponse(
         request=request,
         name="team.html",
         context={
@@ -270,8 +295,15 @@ def _render_team_page(
             "unmatched_count": overview.unmatched_count,
             "nav_current": "team",
             "now": datetime.now(UTC),
+            "selected_repo": selected_repo,
+            "all_repo_names": all_repo_names,
         },
     )
+    if selected_repo:
+        response.set_cookie("headref_active_repo", selected_repo, max_age=86400 * 30, samesite="lax")
+    elif repo_param == "all":
+        response.delete_cookie("headref_active_repo")
+    return response
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -379,6 +411,7 @@ async def get_member_page(
             "team_id": member.team_id,
             "nav_current": "member",
             "now": datetime.now(UTC),
+            "selected_repo": request.query_params.get("repo"),
         },
     )
 
@@ -881,6 +914,16 @@ def get_repos_page(
                 "is_personal": (owner_login.lower() == actor_handle) or (owner_login.lower() not in org_logins),
             })
 
+    # Show the synced repos at the top of the list in repos page
+    repos.sort(key=lambda r: (not r.get("is_synced", False), (r.get("name") or "").lower()))
+
+    jira_configured = bool(
+        settings
+        and settings.jira_base_url
+        and settings.jira_email
+        and settings.jira_api_token
+    )
+
     unmatched_count = 0
     team_name = f"Team {actor.team_id}" if actor.team_id else "Headref"
     if db:
@@ -909,6 +952,7 @@ def get_repos_page(
             "orgs": orgs,
             "repos": repos,
             "synced_repos": [r.full_name for r in db_repos],
+            "jira_configured": jira_configured,
             "fetch_error": fetch_error,
             "error": request.query_params.get("error"),
             "now": datetime.now(UTC),
@@ -974,3 +1018,259 @@ async def select_repository(
             status_code=status.HTTP_200_OK,
         )
     return RedirectResponse(url=dest_url, status_code=status.HTTP_303_SEE_OTHER)
+
+
+# ---------------------------------------------------------------------------
+# Jira Integration Routes
+# ---------------------------------------------------------------------------
+
+
+@router.get("/jira", response_class=HTMLResponse)
+def get_jira_page(
+    request: Request,
+    actor: ActorDep,
+    db: DbDep,
+) -> HTMLResponse:
+    """Jira connection and settings page."""
+    settings = get_settings()
+    jira_configured = bool(
+        settings
+        and settings.jira_base_url
+        and settings.jira_email
+        and settings.jira_api_token
+    )
+    last_jira_sync = (
+        db.scalars(
+            select(SyncRun)
+            .where(SyncRun.source == "jira")
+            .order_by(SyncRun.started_at.desc())
+        ).first()
+        if db
+        else None
+    )
+    team_name = f"Team {actor.team_id}" if actor.team_id else "Headref"
+    if db and actor.team_id:
+        team_obj = db.get(Team, actor.team_id)
+        if team_obj:
+            team_name = team_obj.name
+
+    return templates.TemplateResponse(
+        request=request,
+        name="jira.html",
+        context={
+            "request": request,
+            "actor": actor,
+            "team_name": team_name,
+            "unmatched_count": 0,
+            "nav_current": "jira",
+            "jira_configured": jira_configured,
+            "jira_base_url": settings.jira_base_url if settings else "",
+            "jira_email": settings.jira_email if settings else "",
+            "jira_project_keys": settings.jira_project_keys if settings else "ALL",
+            "last_jira_sync": last_jira_sync,
+            "success": request.query_params.get("success"),
+            "error": request.query_params.get("error"),
+            "now": datetime.now(UTC),
+        },
+    )
+
+
+@router.post("/jira/connect")
+async def connect_jira(
+    request: Request,
+    actor: ActorDep,
+    db: DbDep,
+) -> Response:
+    """Connect to Atlassian Jira, test credentials, update settings and sync issues."""
+    content_type = request.headers.get("content-type", "")
+    if "application/json" in content_type:
+        data = await request.json()
+        base_url = str(data.get("jira_base_url", "")).strip()
+        email = str(data.get("jira_email", "")).strip()
+        api_token = str(data.get("jira_api_token", "")).strip()
+        project_keys = str(data.get("jira_project_keys", "ALL")).strip() or "ALL"
+    else:
+        body = (await request.body()).decode("utf-8")
+        parsed = parse_qs(body)
+        base_url = parsed.get("jira_base_url", [""])[0].strip()
+        email = parsed.get("jira_email", [""])[0].strip()
+        api_token = parsed.get("jira_api_token", [""])[0].strip()
+        project_keys = parsed.get("jira_project_keys", ["ALL"])[0].strip() or "ALL"
+
+    if not base_url or not email or not api_token:
+        err = "Jira base URL, email, and API token are required."
+        return RedirectResponse(
+            url=f"/jira?error={urlencode({'e': err})[2:]}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+
+    if not base_url.startswith(("http://", "https://")):
+        base_url = f"https://{base_url}"
+
+    # Verify connectivity with Jira API
+    try:
+        test_client = JiraClient(
+            base_url=base_url,
+            email=email,
+            api_token=api_token,
+        )
+        test_client.list_projects()
+    except Exception as exc:
+        logger.warning("Jira connection verification failed: %s", exc)
+        err = f"Could not verify Jira credentials: {str(exc)}"
+        return RedirectResponse(
+            url=f"/jira?error={urlencode({'e': err})[2:]}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+
+    # Persist in environment and .env file
+    import os
+    from pathlib import Path
+    os.environ["JIRA_BASE_URL"] = base_url
+    os.environ["JIRA_EMAIL"] = email
+    os.environ["JIRA_API_TOKEN"] = api_token
+    os.environ["JIRA_PROJECT_KEYS"] = project_keys
+
+    env_path = Path(".env")
+    if env_path.exists():
+        lines = env_path.read_text(encoding="utf-8").splitlines()
+        updated = []
+        seen = set()
+        for line in lines:
+            if line.startswith("JIRA_BASE_URL="):
+                updated.append(f"JIRA_BASE_URL={base_url}")
+                seen.add("JIRA_BASE_URL")
+            elif line.startswith("JIRA_EMAIL="):
+                updated.append(f"JIRA_EMAIL={email}")
+                seen.add("JIRA_EMAIL")
+            elif line.startswith("JIRA_API_TOKEN="):
+                updated.append(f"JIRA_API_TOKEN={api_token}")
+                seen.add("JIRA_API_TOKEN")
+            elif line.startswith("JIRA_PROJECT_KEYS="):
+                updated.append(f"JIRA_PROJECT_KEYS={project_keys}")
+                seen.add("JIRA_PROJECT_KEYS")
+            else:
+                updated.append(line)
+        if "JIRA_BASE_URL" not in seen:
+            updated.append(f"JIRA_BASE_URL={base_url}")
+        if "JIRA_EMAIL" not in seen:
+            updated.append(f"JIRA_EMAIL={email}")
+        if "JIRA_API_TOKEN" not in seen:
+            updated.append(f"JIRA_API_TOKEN={api_token}")
+        if "JIRA_PROJECT_KEYS" not in seen:
+            updated.append(f"JIRA_PROJECT_KEYS={project_keys}")
+        env_path.write_text("\n".join(updated) + "\n", encoding="utf-8")
+
+    import app.config
+    try:
+        app.config.settings = app.config.load_settings()
+    except Exception as cfg_exc:
+        logger.warning("Could not reload settings: %s", cfg_exc)
+
+    try:
+        sync_jira(db, team_id=actor.team_id or 1, jira_client=test_client)
+    except Exception as sync_exc:
+        logger.warning("Initial Jira sync failed: %s", sync_exc)
+
+    return RedirectResponse(
+        url="/jira?success=connected",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+@router.post("/jira/sync")
+def sync_jira_now(
+    request: Request,
+    actor: ActorDep,
+    db: DbDep,
+) -> Response:
+    """Trigger on-demand Jira sync."""
+    try:
+        sync_jira(db, team_id=actor.team_id or 1)
+        return RedirectResponse(
+            url="/jira?success=synced",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    except Exception as exc:
+        logger.error("Jira sync error: %s", exc)
+        return RedirectResponse(
+            url=f"/jira?error={urlencode({'e': str(exc)})[2:]}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+
+
+@router.post("/jira/disconnect")
+def disconnect_jira(
+    request: Request,
+    actor: ActorDep,
+) -> Response:
+    """Disconnect Jira credentials."""
+    import os
+    from pathlib import Path
+    os.environ["JIRA_BASE_URL"] = ""
+    os.environ["JIRA_EMAIL"] = ""
+    os.environ["JIRA_API_TOKEN"] = ""
+
+    env_path = Path(".env")
+    if env_path.exists():
+        lines = env_path.read_text(encoding="utf-8").splitlines()
+        updated = []
+        for line in lines:
+            if line.startswith("JIRA_BASE_URL="):
+                updated.append("JIRA_BASE_URL=")
+            elif line.startswith("JIRA_EMAIL="):
+                updated.append("JIRA_EMAIL=")
+            elif line.startswith("JIRA_API_TOKEN="):
+                updated.append("JIRA_API_TOKEN=")
+            else:
+                updated.append(line)
+        env_path.write_text("\n".join(updated) + "\n", encoding="utf-8")
+
+    import app.config
+    try:
+        app.config.settings = app.config.load_settings()
+    except Exception:
+        pass
+
+    return RedirectResponse(
+        url="/jira?success=disconnected",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+@router.post("/jira/demo")
+def load_jira_demo(
+    request: Request,
+    actor: ActorDep,
+    db: DbDep,
+) -> Response:
+    """Load sample Jira dataset for testing issues, blockers, and conflicts."""
+    from pathlib import Path
+    from seed.seed_demo import FIXTURES_DIR, FixtureTransport
+
+    transport = FixtureTransport(fixtures_dir=FIXTURES_DIR)
+    jira_client = JiraClient(
+        base_url="https://example.atlassian.net",
+        email="demo@example.com",
+        api_token="demo-offline-token",
+        transport=transport,
+    )
+
+    try:
+        sync_jira(
+            session=db,
+            team_id=actor.team_id or 1,
+            scope="ALL",
+            jira_client=jira_client,
+        )
+        return RedirectResponse(
+            url="/jira?success=demo_loaded",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    except Exception as exc:
+        logger.error("Failed to load demo Jira data: %s", exc)
+        return RedirectResponse(
+            url=f"/jira?error={urlencode({'e': str(exc)})[2:]}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+

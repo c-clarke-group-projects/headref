@@ -19,7 +19,7 @@
 {% block hero %}
 <section class="hero">
   <div>
-    <a class="hero__back" href="/teams/{{ team_id }}">{{ i.icon("arrow-left") }}Back to team</a>
+    <a class="hero__back" href="/{% if selected_repo %}?repo={{ selected_repo }}{% endif %}">{{ i.icon("arrow-left") }}Back to team</a>
     <div class="hero__person">
       <span class="avatar avatar--xl {{ member.user_id|avatar_tint }}" aria-hidden="true">{{ member.display_name|initials }}</span>
       <div>
@@ -29,11 +29,10 @@
     </div>
     <div class="hero__pills">
       {% for acc in member.linked_accounts %}
-        <span class="pill-dark">{{ i.source_icon(acc.integration, 14) }}{{ acc.integration|source_label }} {{ acc.external_handle }}{% if is_own %} ({{ acc.match_method }}){% endif %}</span>
+        <span class="pill-dark">{{ i.source_icon(acc.integration, 14) }}{{ acc.integration|source_label }} {{ acc.external_handle }}</span>
       {% endfor %}
       {% if is_own %}<span class="pill-dark pill-dark--mint">This is your profile</span>{% endif %}
     </div>
-    {% if is_own %}<p class="hero__note">If an account here is not yours, ask your team lead to correct seed/identity_map.yml.</p>{% endif %}
   </div>
   {% with source_health = insight.source_health, show_note = false %}
     {% include "partials/freshness.html" %}
@@ -41,7 +40,7 @@
 </section>
 {% endblock %}
 
-{% block banners %}{{ n.banners(insight.source_health, unmatched_count) }}{% endblock %}
+{% block banners %}{{ n.unavailable_banners(insight.source_health) }}{{ n.refresh_banner() }}{% endblock %}
 
 {% block content %}
 {% set tabs = [("current_work", "Current work"), ("blockers", "Blockers"), ("risks", "Risks")] %}

@@ -19,7 +19,7 @@
 {% set all_unknown = overview.members and (overview.members|selectattr("state", "equalto", "unknown")|list|length == overview.members|length) %}
 <section class="hero">
   <div>
-    <p class="hero__meta"><span class="hero__dot" aria-hidden="true"></span>{{ overview.team_name }}, {{ overview.members|length }} member{{ "s" if overview.members|length != 1 }}</p>
+    <p class="hero__meta"><span class="hero__dot" aria-hidden="true"></span>{% if selected_repo %}<strong>{{ selected_repo }}</strong> &middot; {% endif %}{{ overview.team_name }}, {{ overview.members|length }} member{{ "s" if overview.members|length != 1 }}</p>
     <h1 class="hero__title">
       {% if all_unknown %}
         States are unknown until the sources sync.
@@ -47,20 +47,13 @@
   </div>
 </div>
 {% endif %}
-{{ n.banners(overview.source_health, overview.unmatched_count) }}
+{{ n.unavailable_banners(overview.source_health) }}
+{{ n.refresh_banner() }}
 {% endblock %}
 
 {% block content %}
-<section class="section grid-3">
-  {% if overview.unmatched_count > 0 %}
-    <div class="card--yellow unmatched-card">
-      {{ i.icon("unmatched", 24) }}
-      <p class="unmatched-card__title">{{ overview.unmatched_count }} unmatched account{{ "s" if overview.unmatched_count != 1 }}</p>
-      <p style="font-size: 15px; line-height: 1.5">Seen in Jira or GitHub but not mapped to a team member. {{ "Their" if overview.unmatched_count != 1 else "Its" }} activity is excluded from every answer.</p>
-      <a class="btn btn--primary" href="/admin/unmatched">View unmatched accounts{{ i.icon("arrow-right") }}</a>
-    </div>
-  {% endif %}
-  <div class="card card--pad-md {{ 'span-2' if overview.unmatched_count > 0 else 'span-all' }}">
+<section class="section">
+  <div class="card card--pad-md span-all">
     <div class="card__head"><h2 class="card__title">How to read a statement</h2><span class="caption">Confidence is computed by code, never a number</span></div>
     <div class="legend">
       <div class="legend__item">{{ b.claim_class("fact") }}<p>Directly backed by a source record.</p></div>
@@ -76,12 +69,18 @@
 
 <section class="section--loose">
   <div class="card__head">
-    <h2 class="page-title" style="font-size: 56px">Members</h2>
+    <h2 class="page-title" style="font-size: 56px">{% if selected_repo %}{{ selected_repo.split('/')[-1] }} Members{% else %}Members{% endif %}</h2>
     <p class="order-note">Member order is alphabetical. Headref does not rank or compare people.</p>
   </div>
 
   {% if not overview.members %}
-    <p class="empty-note" style="margin-top: var(--s-5)">This team has no active members. Members are added through seed/identity_map.yml.</p>
+    <p class="empty-note" style="margin-top: var(--s-5)">
+      {% if selected_repo %}
+        No active contributors or team members recorded for <strong>{{ selected_repo }}</strong>.
+      {% else %}
+        No active members found. Sync a repository to automatically discover contributors and updates.
+      {% endif %}
+    </p>
   {% else %}
   <div class="grid-2" style="margin-top: var(--s-5)">
     {% for m in overview.members %}
@@ -89,7 +88,7 @@
         <div class="member-card__head">
           <span class="avatar {{ m.user_id|avatar_tint }}" aria-hidden="true">{{ m.display_name|initials }}</span>
           <div class="member-card__who">
-            <a class="member-card__name" href="/members/{{ m.user_id }}">{{ m.display_name }}</a>
+            <a class="member-card__name" href="/members/{{ m.user_id }}{% if selected_repo %}?repo={{ selected_repo }}{% endif %}">{{ m.display_name }}</a>
             {% if m.role_label %}<p class="member-card__role">{{ m.role_label }}</p>{% endif %}
           </div>
           {{ b.member_state(m.state) }}

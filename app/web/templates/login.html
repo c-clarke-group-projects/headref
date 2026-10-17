@@ -53,27 +53,8 @@
       </div>
 
       <p class="caption" style="margin-top: 24px">
-        Your GitHub account is matched against <code>seed/identity_map.yml</code> to resolve your verified team member identity in Headref.
+        Connect with your GitHub account to access your repositories, team members, and real-time updates.
       </p>
-
-
-      <details style="margin-top: 32px; border-top: 1px solid var(--mist); padding-top: 16px;">
-        <summary class="caption" style="cursor: pointer; color: var(--slate); user-select: none;">Offline demo sign in (stub fallback)</summary>
-        <form method="post" action="/login" style="margin-top: 16px">
-          <input type="hidden" name="next" value="{{ next or '/' }}">
-          <div class="field" style="margin-top: 0">
-            <label for="user_id">Select Person</label>
-            <select id="user_id" name="user_id" required>
-              {% if users %}
-                {% for u in users %}<option value="{{ u.user_id }}">{{ u.display_name }}</option>{% endfor %}
-              {% else %}
-                <option value="" disabled selected>No users found (seed database first)</option>
-              {% endif %}
-            </select>
-          </div>
-          <button type="submit" class="btn btn--quiet btn--block" style="margin-top: 16px">Demo Sign in{{ i.icon("arrow-right") }}</button>
-        </form>
-      </details>
     </section>
   </main>
 </body>

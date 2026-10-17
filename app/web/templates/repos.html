@@ -45,6 +45,30 @@
 
 {% block content %}
 <section class="section" style="margin-top: var(--s-4);">
+  <!-- Jira Connection Status Banner -->
+  <div class="card card--pad-md" style="margin-bottom: var(--s-4); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--s-3); background: var(--card); border: 1.5px solid {% if jira_configured %}var(--ok){% else %}var(--ash){% endif %};">
+    <div style="display: flex; align-items: center; gap: var(--s-3);">
+      <span style="font-size: 22px;">{{ i.source_icon("jira", 22) }}</span>
+      <div>
+        <h3 style="font-size: var(--fs-body); font-weight: 600; margin: 0 0 2px 0;">
+          Atlassian Jira Integration: {% if jira_configured %}<span style="color: var(--ok)">Connected</span>{% else %}<span style="color: var(--slate)">Not Connected</span>{% endif %}
+        </h3>
+        <p class="caption" style="margin: 0;">
+          {% if jira_configured %}
+            Ingesting tickets and sprint blockers. Cross-system conflict detection active.
+          {% else %}
+            Connect Jira to track sprint blockers, assigned issues, and cross-system conflicts alongside GitHub.
+          {% endif %}
+        </p>
+      </div>
+    </div>
+    <div>
+      <a href="/jira" class="btn {% if jira_configured %}btn--quiet{% else %}btn--primary{% endif %}" style="padding: 8px 18px; font-size: var(--fs-small); border-radius: var(--r-pill); text-decoration: none;">
+        {% if jira_configured %}Manage Jira &rarr;{% else %}Connect Jira &rarr;{% endif %}
+      </a>
+    </div>
+  </div>
+
   <!-- Filter & Search Card -->
   <div class="card card--pad-md" style="margin-bottom: var(--s-5);">
     <div style="display: flex; flex-direction: column; gap: var(--s-4);">

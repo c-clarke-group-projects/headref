@@ -72,9 +72,10 @@ Status: DONE
 6. Added Repositories link to the top navigation pillbar in `app/web/templates/base.html`, and added sync confirmation notice to `app/web/templates/team.html`.
 7. Added unit and integration tests in `tests/test_github_oauth.py` covering scope validation, user auto-provisioning, `/repos` page rendering with mocked GitHub API responses, and `/repos/select` sync execution.
 8. Resolved `AttributeError: type object 'UnmatchedEntity' has no attribute 'status'` in `GET /repos` by replacing invalid status check with canonical `UnmatchedEntity.resolved_app_user_id.is_(None)`. Verified live page rendering with browser subagent.
+9. Implemented repository-scoped team overview in `generate_team_overview` and `_render_team_page`: clicking "View Team" on a synced repository now strictly displays contributors and activity belonging to that specific repository, rather than all members across all synced repositories. Added repository switcher pill navigation to `team.html` and verified per-repo isolation in the live browser.
 
 ### Changed
-`app/web/routes.py`, `app/web/templates/base.html`, `app/web/templates/repos.html`, `app/web/templates/team.html`, `tests/test_github_oauth.py`, `WORKLOG.md`.
+`app/agent/team_overview.py`, `app/web/routes.py`, `app/web/templates/base.html`, `app/web/templates/repos.html`, `app/web/templates/team.html`, `tests/test_team_overview.py`, `tests/test_github_oauth.py`, `WORKLOG.md`.
 
 ### Discovered
 Storing the user's OAuth access token in an HttpOnly session cookie enables seamless per-session GitHub API queries (listing organizations and repos) and user-scoped repository ingestion without requiring database schema alterations. Unresolved accounts on `UnmatchedEntity` are tracked by `resolved_app_user_id IS NULL`.
