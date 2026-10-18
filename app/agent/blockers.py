@@ -166,7 +166,7 @@ def detect_blockers(
                         ),
                         entity_key=pr_key,
                         pull_request_number=pr.number,
-                        evidence_keys=pr_evidence_keys,
+                        evidence_keys=[pr_key],
                     )
                 )
 
@@ -185,7 +185,7 @@ def detect_blockers(
                         ),
                         entity_key=pr_key,
                         pull_request_number=pr.number,
-                        evidence_keys=pr_evidence_keys,
+                        evidence_keys=[pr_key],
                     )
                 )
 
@@ -204,7 +204,7 @@ def detect_blockers(
                         ),
                         entity_key=pr_key,
                         pull_request_number=pr.number,
-                        evidence_keys=pr_evidence_keys,
+                        evidence_keys=[pr_key],
                     )
                 )
 
@@ -220,7 +220,7 @@ def detect_blockers(
                     ),
                     entity_key=pr_key,
                     pull_request_number=pr.number,
-                    evidence_keys=pr_evidence_keys,
+                    evidence_keys=[pr_key],
                 )
             )
 
