@@ -791,6 +791,7 @@ async def run_agent(
         latency_ms=narrative_res.latency_ms,
         actor_user_id=actor_user_id,
         model=get_settings().model_id,
+        prompt_version=get_settings().prompt_version,
         error_type=narrative_error_type,
     )
 

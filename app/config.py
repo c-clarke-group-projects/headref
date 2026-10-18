@@ -7,7 +7,7 @@ Secrets are read from environment variables and never defaulted.
 
 from typing import Any
 
-from pydantic import AliasChoices, Field, ValidationError
+from pydantic import AliasChoices, Field, ValidationError, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -58,6 +58,18 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("GITHUB_OAUTH_CLIENT_SECRET", "github_oauth_client_secret"),
         description="GitHub OAuth application client secret.",
     )
+
+    @field_validator("model_id", "ollama_url", "prompt_version", mode="before")
+    @classmethod
+    def _blank_means_default(cls, value: object, info: ValidationInfo) -> object:
+        """.env.example ships "MODEL_ID=" and similar blank lines; blank means default.
+
+        Limited to these fields: GITHUB_TOKEN and the Jira secrets are blank on purpose
+        when a source is not used, and treating them as missing would stop the app.
+        """
+        if isinstance(value, str) and not value.strip():
+            return cls.model_fields[info.field_name].default
+        return value
 
     @property
     def github_oauth_enabled(self) -> bool:
@@ -216,7 +228,9 @@ class Settings(BaseSettings):
         description="Maximum tokens predicted by narrative model.",
     )
     prompt_version: str = Field(
-        default="narrative_v1",
+        # v2 replaces the worked example's real-looking AUTH-245 and #182 with
+        # placeholders; the 1B model copied them into every summary under v1.
+        default="narrative_v2",
         validation_alias=AliasChoices("PROMPT_VERSION", "prompt_version"),
         description="Identifier of prompt template version.",
     )

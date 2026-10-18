@@ -95,8 +95,31 @@ Status: IN_PROGRESS
 Developer 1 will write migration `0002` (accounts, workspaces, workspace membership) on
 this branch. No other migration until it is merged.
 
+### Narrative speed, measured 2026-10-19
+headref's own `generate_narrative` and `validate_narrative`, HRS-shaped findings, local
+Ollama on this laptop, 3 runs each after 1 warm-up:
+
+| Model | Prompt | Median | Valid | Read |
+|---|---|---|---|---|
+| llama3.2 (3B) | v1 | 9.8 s | 3/3 | correct |
+| llama3.2 (3B) | v2 | 7.0 s | 3/3 | correct |
+| llama3.2:1b | v1 | 3.3 s | 0/3 | copied the example's AUTH-245 and #182 |
+| llama3.2:1b | v2 | 4.8 s | 3/3 | passes checks, wrong meaning ("working on Keshan: 6 assigned Jira items") |
+
+Kept the 3B model. v2 replaces the worked example's real-looking IDs with placeholders and
+is now the default. The 1B model is not used: its errors are in meaning, which the
+validator cannot detect. Warm-up is 14 to 37 seconds on the first call after a load.
+Summaries remain on demand (member opened), never for every member after a sync.
+
+Before the validator fix in this branch, 3 of 3 valid 3B summaries were discarded because
+the BL-7 finding uses "failing", a forbidden term.
+
+The evaluation suite does not exist yet (Phase 6), so the v2 prompt change is measured by
+this benchmark only. It must be rerun under `TESTING_AND_EVALUATION.md` 11.5 when the suite
+exists.
+
 ### Next Step
-Narrative speed (smaller model, measured), then W1.
+W1.
 
 ### AI Assistance
 Plan, DEC drafts and test data created with an AI assistant. The DEC records are drafts
