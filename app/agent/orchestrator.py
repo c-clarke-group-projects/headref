@@ -34,6 +34,7 @@ from app.agent.narrative import deterministic_fallback, generate_narrative
 from app.agent.planner import QuestionType, RetrievalPlan, Source, build_plan
 from app.agent.risks import detect_risks
 from app.agent.validation import validate_narrative
+from app.config import get_settings
 from app.schemas.errors import ToolFailure
 from app.schemas.insight import EvidenceItem, Insight, MemberInsight
 from app.schemas.tools import (
@@ -146,8 +147,6 @@ def _check_health(session: Session, context: AgentRunContext, tools: ReadTools) 
 
     If T-007 itself fails, nothing is usable: fail closed, never assume healthy.
     """
-    from app.config import get_settings
-
     settings = get_settings()
     jira_is_active = bool(settings and settings.jira_enabled)
 
@@ -276,8 +275,6 @@ def _evaluate_gate(context: AgentRunContext, usable: set[Source]) -> None:
                 reasons.append(_unavailable_reason(source, by_source.get(source)))
         for source in plan.optional_sources:
             if source not in usable:
-                from app.config import get_settings
-
                 _settings = get_settings()
                 if _settings and not _settings.jira_enabled and source == "jira":
                     continue
@@ -700,7 +697,14 @@ async def run_agent(
         last_synced={h.source: h.last_success_at for h in context.health},
         source_health=list(context.health),
         summary=validated.summary,
+        fallback_used=narrative_res.fallback_used or validated.fallback_used,
     )
+
+    # Why the narrative was not used, if it was not: the model call failed, or the
+    # validator rejected what it wrote.
+    narrative_error_type = narrative_res.error_type
+    if narrative_error_type is None and validated.dropped_claims:
+        narrative_error_type = validated.dropped_claims[0].get("reason")
 
     save_cached_insight(
         session=session,
@@ -725,6 +729,8 @@ async def run_agent(
         output_tokens=narrative_res.eval_count,
         latency_ms=narrative_res.latency_ms,
         actor_user_id=actor_user_id,
+        model=get_settings().model_id,
+        error_type=narrative_error_type,
     )
 
     return final_insight

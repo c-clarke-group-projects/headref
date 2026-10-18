@@ -7,6 +7,7 @@ every call, so the tests can say exactly which tools ran, in which order, with w
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import httpx
 import pytest
 
 from app.agent.orchestrator import (
@@ -565,6 +566,57 @@ async def test_run_agent_full_pipeline_success() -> None:
             skip_llm=True,
         )
         assert insight_cached.summary == insight.summary
+    finally:
+        session.close()
+
+
+@pytest.mark.anyio
+async def test_a_model_timeout_is_reported_as_a_fallback() -> None:
+    """A timed out model call returns the labelled fallback and records why (EV-12 B)."""
+    from unittest.mock import AsyncMock
+
+    from sqlalchemy import create_engine, select
+    from sqlalchemy.orm import Session as OrmSession
+    from sqlalchemy.orm import sessionmaker
+
+    from app.config import get_settings
+    from app.db import Base
+    from app.models.agent import AgentRun
+    from app.models.canonical import AppUser, Organization
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    session: OrmSession = sessionmaker(bind=engine)()
+    try:
+        org = Organization(name="Test Org")
+        session.add(org)
+        session.flush()
+        user = AppUser(organization_id=org.id, display_name="Keshan")
+        session.add(user)
+        session.flush()
+
+        pr = _pull_request(7)
+        pr.author_user_id = user.id
+        tools, _, _ = make_tools(
+            health=[_health("jira"), _health("github")], pull_requests=[pr]
+        )
+        client = AsyncMock(spec=httpx.AsyncClient)
+        client.post.side_effect = httpx.ReadTimeout("model too slow")
+
+        insight = await run_agent(
+            session=session,
+            subject_user_id=user.id,
+            team_id=1,
+            question_type="current_work",
+            tools=tools,
+            now=NOW,
+            client=client,
+        )
+
+        assert insight.fallback_used is True
+        run = session.scalars(select(AgentRun)).one()
+        assert run.error_type == "TIMEOUT"
+        assert run.model == get_settings().model_id
     finally:
         session.close()
 

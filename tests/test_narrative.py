@@ -112,7 +112,47 @@ async def test_narrative_fallback_on_double_failure() -> None:
 
     assert mock_client.post.call_count == 2
     assert result.fallback_used is True
+    assert result.error_type == "SCHEMA_INVALID"
     assert "Deterministic fallback text for member." in result.summary
+
+
+@pytest.mark.anyio
+async def test_narrative_timeout_retries_once_then_falls_back() -> None:
+    """A model timeout is retried once, then the deterministic summary is used (EV-12 B)."""
+    mock_client = AsyncMock(spec=httpx.AsyncClient)
+    mock_client.post.side_effect = httpx.ReadTimeout("model too slow")
+
+    result = await generate_narrative(
+        findings_text="Findings text",
+        fallback_text="Fallback summary.",
+        client=mock_client,
+    )
+
+    assert mock_client.post.call_count == 2
+    assert result.fallback_used is True
+    assert result.error_type == "TIMEOUT"
+    assert result.summary == "Fallback summary."
+
+
+@pytest.mark.anyio
+async def test_narrative_upstream_error_falls_back() -> None:
+    """A 500 from Ollama falls back with UPSTREAM_ERROR instead of raising."""
+    resp_error = MagicMock()
+    resp_error.raise_for_status.side_effect = httpx.HTTPStatusError(
+        "500", request=httpx.Request("POST", "http://ollama"), response=httpx.Response(500)
+    )
+    mock_client = AsyncMock(spec=httpx.AsyncClient)
+    mock_client.post.return_value = resp_error
+
+    result = await generate_narrative(
+        findings_text="Findings text",
+        fallback_text="Fallback summary.",
+        client=mock_client,
+    )
+
+    assert mock_client.post.call_count == 2
+    assert result.fallback_used is True
+    assert result.error_type == "UPSTREAM_ERROR"
 
 
 @pytest.mark.anyio
@@ -130,4 +170,5 @@ async def test_narrative_connection_refused_no_retry() -> None:
     # Must only call once: do not retry on connection refusal per implementation notes
     assert mock_client.post.call_count == 1
     assert result.fallback_used is True
+    assert result.error_type == "UPSTREAM_ERROR"
     assert result.summary == "Fallback summary."
