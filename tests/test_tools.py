@@ -391,6 +391,40 @@ def test_t004_get_commits_truncation_detection(db_session: Session) -> None:
     assert len(res_notrunc.commits) == 5
 
 
+def test_t004_get_commits_empty_window_falls_back_to_latest(db_session: Session) -> None:
+    """With nothing in the window, T-004 returns the 5 most recent commits of any age."""
+    org, team, user = _seed_base_org_and_team(db_session)
+    now = datetime.now(UTC)
+
+    repo = Repository(organization_id=org.id, full_name="keshan-dev/headref")
+    db_session.add(repo)
+    db_session.flush()
+
+    for idx in range(7):
+        db_session.add(
+            Commit(
+                repository_id=repo.id,
+                sha=f"old_{idx}",
+                message_excerpt=f"Old commit {idx}",
+                author_app_user_id=user.id,
+                committed_at=now - timedelta(days=90 + idx),
+                source_url=f"https://github.com/keshan-dev/headref/commit/old_{idx}",
+            )
+        )
+    db_session.flush()
+
+    res = get_commits(
+        db_session,
+        GetCommitsInput(
+            subject_user_id=user.id,
+            window_start=now - timedelta(days=14),
+            window_end=now,
+        ),
+    )
+    assert isinstance(res, GetCommitsOutput)
+    assert [c.sha for c in res.commits] == [f"old_{idx}" for idx in range(5)]
+
+
 # ---------------------------------------------------------------------------
 # T-005: get_reviews
 # ---------------------------------------------------------------------------

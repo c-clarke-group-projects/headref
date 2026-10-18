@@ -46,7 +46,19 @@ def get_assigned_work_items(
             stmt = stmt.where(WorkItem.status.in_(input_data.statuses))
 
         stmt = stmt.order_by(WorkItem.source_updated_at.desc())
-        work_items = session.scalars(stmt).all()
+        work_items = list(session.scalars(stmt).all())
+
+        # Fallback: the window returned nothing, so show the latest active assigned items.
+        if not work_items:
+            fallback_stmt = select(WorkItem).where(
+                WorkItem.assignee_app_user_id == input_data.subject_user_id,
+            )
+            if not input_data.include_done:
+                fallback_stmt = fallback_stmt.where(WorkItem.status != "done")
+            if input_data.statuses:
+                fallback_stmt = fallback_stmt.where(WorkItem.status.in_(input_data.statuses))
+            fallback_stmt = fallback_stmt.order_by(WorkItem.source_updated_at.desc()).limit(5)
+            work_items = list(session.scalars(fallback_stmt).all())
 
         items: list[WorkItemOut] = []
         for wi in work_items:
