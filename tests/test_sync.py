@@ -312,3 +312,17 @@ def test_cli_main_entrypoint(monkeypatch: pytest.MonkeyPatch, db_session: Sessio
 
     exit_code = main(["--source", "github", "--team", "1"])
     assert exit_code == 0
+
+
+@pytest.mark.parametrize(
+    ("keys", "expected"),
+    [
+        (["HRS", "AUTH"], 'project in ("AUTH", "HRS") ORDER BY key'),
+        (["HRS", 'X" OR project is not EMPTY OR "', "lower"], 'project in ("HRS") ORDER BY key'),
+        ([], ""),
+    ],
+)
+def test_project_jql_is_bounded_and_quoted(keys, expected):
+    from app.sync import project_jql
+
+    assert project_jql(keys) == expected

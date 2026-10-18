@@ -38,7 +38,7 @@ def load_fixture(filename: str) -> Any:
 def test_search_issues_from_fixture(jira_client: JiraClient) -> None:
     """search_issues fetches and returns issues with all required fields."""
     fixture_data = load_fixture("issues.json")
-    respx.get(f"{BASE_URL}/rest/api/3/search").mock(
+    respx.get(f"{BASE_URL}/rest/api/3/search/jql").mock(
         return_value=httpx.Response(200, json=fixture_data)
     )
 
@@ -120,67 +120,66 @@ def test_list_projects_from_fixture(jira_client: JiraClient) -> None:
 
 
 @respx.mock
-def test_pagination_auto_paginate(jira_client: JiraClient) -> None:
-    """search_issues with auto_paginate traverses multiple pages until complete."""
-    route = respx.get(f"{BASE_URL}/rest/api/3/search")
+def test_pagination_follows_next_page_token(jira_client: JiraClient) -> None:
+    """search/jql pages with nextPageToken until isLast (the startAt API was removed)."""
+    route = respx.get(f"{BASE_URL}/rest/api/3/search/jql")
     route.side_effect = [
         httpx.Response(
             200,
             json={
-                "startAt": 0,
-                "maxResults": 2,
-                "total": 3,
                 "issues": [{"key": "ISSUE-1"}, {"key": "ISSUE-2"}],
+                "nextPageToken": "page-2",
+                "isLast": False,
             },
         ),
-        httpx.Response(
-            200,
-            json={
-                "startAt": 2,
-                "maxResults": 2,
-                "total": 3,
-                "issues": [{"key": "ISSUE-3"}],
-            },
-        ),
+        httpx.Response(200, json={"issues": [{"key": "ISSUE-3"}], "isLast": True}),
     ]
 
     issues = jira_client.search_issues(jql="project = TEST", max_results=2, auto_paginate=True)
-    assert len(issues) == 3
+
     assert [i["key"] for i in issues] == ["ISSUE-1", "ISSUE-2", "ISSUE-3"]
     assert route.call_count == 2
+    assert "nextPageToken" not in route.calls[0].request.url.params
+    assert route.calls[1].request.url.params["nextPageToken"] == "page-2"
+
+
+def test_an_unbounded_search_is_refused_before_any_call(jira_client: JiraClient) -> None:
+    """Jira Cloud answers 400 to empty JQL; say so here instead of calling it."""
+    with pytest.raises(ValueError, match="bounded"):
+        jira_client.search_issues(jql="  ")
 
 
 @respx.mock
 def test_jira_401_unauthorized(jira_client: JiraClient) -> None:
     """401 response raises AuthError without retrying."""
-    respx.get(f"{BASE_URL}/rest/api/3/search").mock(
+    respx.get(f"{BASE_URL}/rest/api/3/search/jql").mock(
         return_value=httpx.Response(401, json={"errorMessages": ["Invalid credentials"]})
     )
 
     with pytest.raises(AuthError):
-        jira_client.search_issues()
+        jira_client.search_issues(jql="project = TEST")
 
 
 @respx.mock
 def test_jira_403_rate_limited(jira_client: JiraClient) -> None:
     """403 with rate-limiting header raises RateLimitError."""
-    respx.get(f"{BASE_URL}/rest/api/3/search").mock(
+    respx.get(f"{BASE_URL}/rest/api/3/search/jql").mock(
         return_value=httpx.Response(403, headers={"retry-after": "30"})
     )
 
     with pytest.raises(RateLimitError):
-        jira_client.search_issues()
+        jira_client.search_issues(jql="project = TEST")
 
 
 @respx.mock
 def test_jira_429_rate_limited(jira_client: JiraClient) -> None:
     """429 response raises RateLimitError after retries."""
-    respx.get(f"{BASE_URL}/rest/api/3/search").mock(
+    respx.get(f"{BASE_URL}/rest/api/3/search/jql").mock(
         return_value=httpx.Response(429, headers={"retry-after": "1"})
     )
 
     with pytest.raises(RateLimitError):
-        jira_client.search_issues()
+        jira_client.search_issues(jql="project = TEST")
 
 
 @respx.mock

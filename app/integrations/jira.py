@@ -53,46 +53,35 @@ class JiraClient:
 
     def search_issues(
         self,
-        jql: str = "",
-        start_at: int = 0,
+        jql: str,
         max_results: int = 50,
         fields: list[str] | None = None,
         auto_paginate: bool = False,
     ) -> list[dict[str, Any]]:
-        """Search issues using JQL via read-only GET /rest/api/3/search."""
-        url = f"{self._base_url}/rest/api/3/search"
-        field_str = ",".join(fields) if fields else "*navigable"
+        """Search issues with JQL via read-only GET /rest/api/3/search/jql.
 
+        Jira Cloud removed GET /rest/api/3/search (HTTP 410, verified 2026-10-19) and
+        rejects unbounded JQL on the new endpoint, so jql must restrict the search, for
+        example by project. Pages are followed with nextPageToken, not startAt.
+        """
+        if not jql.strip():
+            raise ValueError("Jira search needs a bounded JQL query, for example by project")
+        url = f"{self._base_url}/rest/api/3/search/jql"
         params: dict[str, Any] = {
             "jql": jql,
-            "startAt": start_at,
             "maxResults": max_results,
-            "fields": field_str,
+            "fields": ",".join(fields) if fields else "*navigable",
         }
 
-        if not auto_paginate:
-            response = self._client.get(url, headers=self._headers, params=params)
-            data = response.json()
-            return data.get("issues", [])
-
-        # Auto-pagination over all matching issues
         all_issues: list[dict[str, Any]] = []
-        current_start = start_at
-
         while True:
-            params["startAt"] = current_start
             response = self._client.get(url, headers=self._headers, params=params)
             data = response.json()
-            issues = data.get("issues", [])
-            total = data.get("total", len(issues))
-
-            all_issues.extend(issues)
-            current_start += len(issues)
-
-            if not issues or current_start >= total:
-                break
-
-        return all_issues
+            all_issues.extend(data.get("issues", []))
+            next_token = data.get("nextPageToken")
+            if not auto_paginate or data.get("isLast", True) or not next_token:
+                return all_issues
+            params["nextPageToken"] = next_token
 
     def get_issue(
         self,
