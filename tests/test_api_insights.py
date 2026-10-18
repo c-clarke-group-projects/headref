@@ -23,6 +23,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.schemas.insight import MemberInsight, TeamMemberOverview, TeamOverview
 from app.web import auth
+from tests.conftest import log_in
 
 
 @dataclass
@@ -58,9 +59,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
 
 
 def _log_in(client: TestClient, user_id: int) -> None:
-    """Log in through the stub and verify success."""
-    response = client.post("/api/auth/login", json={"user_id": user_id})
-    assert response.status_code == 200
+    log_in(client, user_id)
 
 
 # ---------------------------------------------------------------------------

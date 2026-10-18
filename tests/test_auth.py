@@ -24,6 +24,7 @@ from app.web.auth import (
     require_member_access,
     sign_session,
 )
+from tests.conftest import log_in
 
 
 @dataclass
@@ -100,9 +101,7 @@ def client(member_app: FastAPI) -> TestClient:
 
 
 def _log_in(client: TestClient, user_id: int) -> None:
-    """Log in through the stub and check it worked."""
-    response = client.post("/api/auth/login", json={"user_id": user_id})
-    assert response.status_code == 200
+    log_in(client, user_id)
 
 
 # ---------------------------------------------------------------------------
@@ -149,34 +148,75 @@ def test_session_rejects_garbage(token: str | None) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Login stub
+# Signing in
 # ---------------------------------------------------------------------------
 
 
-def test_login_sets_a_session_and_me_reports_it(client: TestClient) -> None:
-    """Logging in sets an HttpOnly cookie, and /me then identifies the user."""
-    response = client.post("/api/auth/login", json={"user_id": 1})
+@pytest.mark.parametrize(
+    ("path", "body"),
+    [
+        ("/api/auth/login", {"json": {"user_id": 1}}),
+        ("/login", {"data": {"user_id": "1", "next": "/"}}),
+    ],
+)
+def test_the_login_stubs_are_gone(path: str, body: dict[str, Any]) -> None:
+    """A user id alone must never sign anyone in. GitHub OAuth is the only way in."""
 
-    assert response.status_code == 200
-    assert response.json() == {"user_id": 1, "display_name": "Alice", "team_id": 10}
-    assert "httponly" in response.headers["set-cookie"].lower()
+    def no_db() -> Iterator[None]:
+        yield None
+
+    real_app.dependency_overrides[auth.get_db] = no_db
+    try:
+        with TestClient(real_app) as client:
+            response = client.post(path, follow_redirects=False, **body)
+
+            assert response.status_code in (404, 405)
+            assert auth.SESSION_COOKIE not in response.cookies
+            assert client.get("/api/auth/me").status_code == 401
+    finally:
+        real_app.dependency_overrides.clear()
+
+
+def test_a_signed_session_identifies_the_user(client: TestClient) -> None:
+    """The cookie GitHub OAuth sets is what /me reads."""
+    _log_in(client, 1)
 
     me = client.get("/api/auth/me")
     assert me.status_code == 200
-    assert me.json()["user_id"] == 1
+    assert me.json() == {"user_id": 1, "display_name": "Alice", "team_id": 10}
 
 
-def test_login_rejects_an_unknown_user(client: TestClient) -> None:
-    """A user id that does not exist gets 401 and no session."""
-    response = client.post("/api/auth/login", json={"user_id": 999})
-
-    assert response.status_code == 401
+def test_a_session_for_an_unknown_user_is_401(client: TestClient) -> None:
+    _log_in(client, 999)
     assert client.get("/api/auth/me").status_code == 401
 
 
-def test_login_rejects_an_inactive_user(client: TestClient) -> None:
-    """A deactivated user cannot log in."""
-    assert client.post("/api/auth/login", json={"user_id": 5}).status_code == 401
+def test_a_session_for_an_inactive_user_is_401(client: TestClient) -> None:
+    _log_in(client, 5)
+    assert client.get("/api/auth/me").status_code == 401
+
+
+def test_session_secret_signs_the_cookie(monkeypatch: pytest.MonkeyPatch) -> None:
+    """With SESSION_SECRET set, a cookie survives a restart (a new signing key load)."""
+    monkeypatch.setenv("SESSION_SECRET", "s" * 40)
+    import app.config
+
+    monkeypatch.setattr(app.config, "settings", None)
+    monkeypatch.setattr(auth, "_signing_key", None)
+    token = sign_session(7)
+
+    monkeypatch.setattr(auth, "_signing_key", None)  # as after a restart
+    assert read_session(token) == 7
+
+
+def test_a_short_session_secret_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SESSION_SECRET", "too-short")
+    import app.config
+
+    monkeypatch.setattr(app.config, "settings", None)
+    monkeypatch.setattr(auth, "_signing_key", None)
+    with pytest.raises(RuntimeError, match="at least 32"):
+        sign_session(1)
 
 
 def test_me_without_a_session_is_401(client: TestClient) -> None:

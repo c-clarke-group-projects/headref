@@ -23,6 +23,7 @@ from sqlalchemy import select
 from app.main import app
 from app.models.operations import SyncRun
 from app.web import auth
+from tests.conftest import log_in
 
 
 @dataclass
@@ -59,8 +60,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
 
 
 def _log_in(client: TestClient, user_id: int) -> None:
-    res = client.post("/api/auth/login", json={"user_id": user_id})
-    assert res.status_code == 200
+    log_in(client, user_id)
 
 
 def test_sync_trigger_returns_202_under_500ms(client: TestClient):

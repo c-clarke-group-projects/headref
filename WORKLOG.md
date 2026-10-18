@@ -124,6 +124,35 @@ W1.
 ### AI Assistance
 Plan, DEC drafts and test data created with an AI assistant. The DEC records are drafts
 for both developers to change, not decisions.
+## 2026-10-19 | Keshan | Remove the login stubs (P7-001)
+Status: IN_REVIEW
+
+### Completed
+1. Removed `POST /api/auth/login` and the HTML `POST /login`. Both signed in whatever
+   `user_id` they were sent, with no GitHub involved: an authentication bypass on `main`
+   once GitHub OAuth became the real sign-in. Verified on the running app: 404 and 405.
+2. `GET /login` no longer loads every active user for an unauthenticated visitor; the
+   template had stopped using the list.
+3. `SESSION_SECRET` (optional, 32 characters or more) signs the session cookie. Unset keeps
+   the old per-process random key and logs a warning: sessions end on restart and do not
+   work across workers.
+4. Tests sign in with a `log_in` helper in `tests/conftest.py` that sets the signed cookie
+   the OAuth callback sets. New tests: both stubs refused, a session for an unknown or
+   inactive user is 401, `SESSION_SECRET` survives a key reload, a short secret is
+   refused, `next` is cleaned at the GitHub OAuth start.
+
+### Changed
+`app/web/auth.py`, `app/web/routes.py`, `app/web/templates/login.html`, `app/config.py`,
+`.env.example`, `tests/conftest.py` and 8 test modules.
+
+### Discovered
+The open redirect tests went through the stub form. `next` now enters only through
+`/auth/github/login`, which already applied `safe_next`; the test moved there.
+
+### AI Assistance
+Implemented with an AI assistant. 394 passed, 1 skipped, 1 deselected
+(`test_parse_valid_identity_map_file`, which fails only because of a local uncommitted
+edit to `seed/identity_map.yml`). Set `SESSION_SECRET` before any deployment.
 
 ---
 
