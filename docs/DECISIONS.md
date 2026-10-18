@@ -34,6 +34,11 @@ supersedes or amends it, not a workaround.
 | DEC-018 | The model writes the narrative, code produces the findings | Accepted |
 | DEC-019 | Lane rebalance: data and findings vs agent and interface | Accepted |
 | DEC-020 | Members are analysed from repository history without Jira | Proposed |
+| DEC-021 | Multi-workspace tenancy | Proposed |
+| DEC-022 | GitHub App for data access | Proposed |
+| DEC-023 | Atlassian OAuth and encrypted per-workspace credentials | Proposed |
+| DEC-024 | Identity confirmation in the UI | Proposed |
+| DEC-025 | Workspace feed and likely next task | Proposed |
 
 ---
 
@@ -1230,3 +1235,206 @@ not checked, rather than refusing to answer.
 ### Related documents
 
 DEC-007, DEC-010, DEC-018, FR-014, FR-020, FR-023.
+
+---
+
+## DEC-021: Multi-workspace tenancy
+
+Date: 2026-10-19
+Status: Proposed
+Owner: Developer 1, needs Developer 2 agreement
+
+### Context
+
+The MVP serves 1 team from 1 configuration. The users who will run it are team leads and
+project managers who look after several projects at once, each with its own repositories
+and Jira projects, and who must not see each other's data. `PROJECT_REQUIREMENTS.md` 2.8
+lists "SSO, RBAC, multi-tenancy" as Stage 2.
+
+### Options considered
+
+1. Keep 1 team per deployment. Each project needs its own deployment.
+2. Workspaces inside 1 deployment: the workspace is the isolation boundary.
+3. Full SaaS with organisations, billing and public sign-up.
+
+### Decision
+
+Option 2.
+
+- An **account** is a person who signs in with GitHub. A **person** is someone whose work
+  is described. They are separate tables; `app_user` becomes `person`.
+- A **workspace** owns its repositories, Jira projects, people, identity links, sync runs,
+  insights, findings and feed events. Every source row belongs to exactly 1 workspace.
+- `workspace_member` gives an account a role in a workspace: `owner`, `manager` or
+  `viewer`. Invites are by GitHub login.
+- Every route under `/w/{workspace_id}` resolves membership through 1 dependency. A
+  request for a workspace the account cannot open returns 404.
+- Uniqueness moves from global to per workspace: `(workspace_id, full_name)` for
+  repositories, `(workspace_id, key)` for Jira projects, `(workspace_id, integration,
+  external_id)` for identity links.
+- Source health and sync state become per workspace, which also removes the per-source
+  problem noted in DEC-020.
+
+### Reason
+
+Leads manage several projects. Separate deployments per project multiply setup and cannot
+give a portfolio view. Full SaaS adds billing and legal work (DR-1, DR-2) that no customer
+needs yet.
+
+### Consequences
+
+- A migration touches every table. Announced in `WORKLOG.md` before it is written (rule 11).
+- Every read tool takes `workspace_id`.
+- A test enumerates routes and fails if one skips the workspace dependency.
+- The `team` table is removed; a workspace is the team.
+
+### Related documents
+
+DEC-008, DEC-010, DEC-015, DEC-019, FR-001, FR-028, `impl/implementation_plan_workspaces.md`.
+
+---
+
+## DEC-022: GitHub App for data access
+
+Date: 2026-10-19
+Status: Proposed
+Owner: Developer 1
+
+### Context
+
+Sync uses the signed-in user's OAuth token, held in a cookie and in process memory. The
+scheduled sync stops when nobody is signed in or the process restarts, the token can see
+every repository the user can, and the `repo` scope is not read-only.
+
+### Options considered
+
+1. Keep the user's OAuth token, stored encrypted so background sync survives.
+2. A headref GitHub App installed per workspace.
+
+### Decision
+
+Option 2. The app requests Metadata, Contents, Pull requests and Checks, all read only, on
+the repositories the installer selects. headref mints a short-lived installation token per
+sync and never stores it. Sign-in stays GitHub OAuth with `read:user` only.
+
+### Reason
+
+Background sync works without a session, access is read-only and limited to chosen
+repositories (DEC-001), and rate limits are per installation. Listed as a Stage 2 item in
+`PROJECT_REQUIREMENTS.md` 2.8.
+
+### Consequences
+
+- New secrets in `.env`: `GITHUB_APP_ID`, `GITHUB_APP_SLUG`, `GITHUB_APP_PRIVATE_KEY`.
+- New dependency `PyJWT` (with `cryptography`) to sign the app JWT.
+- Installing on an organisation needs an organisation owner.
+- The in-memory token tracking added on 2026-10-18 is removed.
+
+### Related documents
+
+DEC-001, DEC-002, DEC-016, NFR-007.
+
+---
+
+## DEC-023: Atlassian OAuth and encrypted per-workspace credentials
+
+Date: 2026-10-19
+Status: Proposed
+Owner: Developer 1
+
+### Context
+
+Jira credentials come from `.env` for the whole deployment (rule 3). With workspaces, each
+workspace connects its own Atlassian site, and the credential is created at runtime by the
+user, so it cannot live in the environment.
+
+### Options considered
+
+1. 1 Jira site in `.env` for every workspace.
+2. An API token pasted per workspace, stored encrypted.
+3. Atlassian OAuth 2.0 (3LO) per user, refresh token stored encrypted.
+
+### Decision
+
+Option 3. Scopes `read:jira-work`, `read:jira-user`, `offline_access`. Requests go to
+`https://api.atlassian.com/ex/jira/{cloudId}`. The refresh token is encrypted at rest with
+`CREDENTIAL_ENCRYPTION_KEY` from the environment, decrypted only inside
+`app/integrations/`, and replaced atomically on every refresh, because Atlassian rotates it.
+
+This amends rule 3 for this 1 case: the encryption key and the app secrets still come from
+the environment only, and no credential appears in code, logs, error details, templates or
+URLs.
+
+### Reason
+
+Users never handle a raw token, access is read-only, and a workspace can be disconnected by
+revoking it.
+
+### Consequences
+
+- New secrets in `.env`: `ATLASSIAN_CLIENT_ID`, `ATLASSIAN_CLIENT_SECRET`,
+  `CREDENTIAL_ENCRYPTION_KEY`. New dependency `cryptography`.
+- A failed refresh surfaces as `AUTH_FAILED` with a Reconnect action, never as empty data.
+- The Jira client moves to `/rest/api/3/search/jql` with `nextPageToken` pagination in the
+  same change.
+
+### Related documents
+
+DEC-001, DEC-010, rule 3, NFR-007.
+
+---
+
+## DEC-024: Identity confirmation in the UI
+
+Date: 2026-10-19
+Status: Proposed
+Owner: Developer 1 for the logic, Developer 2 for the screen
+
+### Context
+
+DEC-008 bootstraps identity by editing `seed/identity_map.yml`. That does not scale to
+several workspaces and cannot be done by a manager.
+
+### Decision
+
+- Accounts found in a workspace's repositories and Jira projects become **suggested**
+  people. A suggestion joining a GitHub and a Jira account is made only from an exact,
+  case-insensitive handle or verified email match, never from a display name.
+- A manager confirms, merges, splits, ignores or marks as a bot. Only confirmed people are
+  attributed work. Everything else stays in the unmatched queue, visible and counted.
+- The YAML file remains for seeding tests and the demo.
+
+### Reason
+
+Keeps G-5 and DEC-008 (never attribute from a display name, never guess) while making the
+step a click instead of a file edit.
+
+### Related documents
+
+DEC-008, FR-002, FR-003, G-5.
+
+---
+
+## DEC-025: Workspace feed and likely next task
+
+Date: 2026-10-19
+Status: Proposed
+Owner: Developer 1 for the diff and the rules, Developer 2 for the screen
+
+### Decision
+
+- After every sync, code computes findings per confirmed person and stores a snapshot. The
+  feed is the difference between consecutive snapshots plus source events (pull request
+  merged, issue moved, sync failed). No feed item is model output.
+- **Likely next task** is built by code from: assigned items not started, ordered by
+  priority then due date; reviews requested from the person; their draft pull requests. It
+  is always `inference`, cites its evidence, and says "not determined" when nothing
+  qualifies.
+- Feed items describe work, never people: no presence, hours, speed or comparison
+  (`PROJECT_REQUIREMENTS.md` 2.4).
+- Summaries stay on demand: the model writes a summary only when a person is opened, and it
+  is cached by evidence hash (DEC-017, DEC-018).
+
+### Related documents
+
+DEC-005, DEC-017, DEC-018, DEC-020.

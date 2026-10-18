@@ -60,6 +60,50 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-19 | Keshan | Workspaces: decisions proposed, real test data (W0)
+Status: IN_PROGRESS
+
+### Completed
+1. Branch `feat/workspaces` from `main` at `c8ac02c`. Plan in
+   `impl/implementation_plan_workspaces.md`: managers sign in with GitHub, create isolated
+   workspaces, connect repositories (GitHub App) and Jira projects (Atlassian OAuth), sync,
+   and see findings, a feed and a per-member panel with a likely next task.
+2. DEC-021 to DEC-025 added to `docs/DECISIONS.md` as **Proposed**.
+3. Real test data, created 2026-10-18: Jira project `HRS` on `keshanuni.atlassian.net`
+   (HRS-1 to HRS-9, 1 "is blocked by" link) and private repository
+   `keshan-dev/headref-sandbox` (pull requests #1 to #7, #1 and #3 merged, #5 with a
+   failing check, #6 with no ticket key, #7 draft). Each case targets 1 rule; the table is
+   in the plan, section 9.
+
+### Discovered
+- `repository.full_name`, `project.key` and `identity_link (integration, external_id)` are
+  unique globally, so 2 workspaces cannot share a repository, project or person today.
+- `app_user` is both the signed-in actor and the described member.
+- Jira team-managed board: a column added after Done puts Blocked in the Done status
+  category. headref maps by status name first, so its reading is correct.
+- The Jira client still calls `GET /rest/api/3/search`, believed retired on Jira Cloud.
+  Not yet confirmed against the real site.
+
+### Decisions Needed
+1. DEC-021 to DEC-025 need Developer 2 agreement. Multi-tenancy is Stage 2 in
+   `PROJECT_REQUIREMENTS.md` 2.8, so this is a scope change (rule 15). The pull request
+   for this branch does not merge before that.
+2. New dependencies `PyJWT` and `cryptography` (free, but a dependency change).
+3. DEC-020 is still Proposed; DEC-025 depends on it.
+
+### Announcement (rule 11)
+Developer 1 will write migration `0002` (accounts, workspaces, workspace membership) on
+this branch. No other migration until it is merged.
+
+### Next Step
+Narrative speed (smaller model, measured), then W1.
+
+### AI Assistance
+Plan, DEC drafts and test data created with an AI assistant. The DEC records are drafts
+for both developers to change, not decisions.
+
+---
+
 ## 2026-10-18 | Keshan | Phase 5 completion: suite repair, Jira credentials, fallback honesty, activity
 Status: IN_REVIEW
 
