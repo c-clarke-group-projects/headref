@@ -119,7 +119,6 @@ async def generate_narrative(
 
     start_time = time.perf_counter()
     error_type = "UPSTREAM_ERROR"
-    attempts = 2
 
     should_close_client = False
     http_client = client
