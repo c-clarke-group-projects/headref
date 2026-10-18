@@ -142,6 +142,7 @@ def detect_blockers(
             continue
 
         pr_key = f"PR-{pr.number}"
+        pr_evidence_keys = [str(pr.number), f"#{pr.number}", pr_key]
 
         # BL-4 (review): changes_requested and no subsequent commit
         if pr.review_state == "changes_requested":
@@ -165,7 +166,7 @@ def detect_blockers(
                         ),
                         entity_key=pr_key,
                         pull_request_number=pr.number,
-                        evidence_keys=[pr_key],
+                        evidence_keys=pr_evidence_keys,
                     )
                 )
 
@@ -184,7 +185,7 @@ def detect_blockers(
                         ),
                         entity_key=pr_key,
                         pull_request_number=pr.number,
-                        evidence_keys=[pr_key],
+                        evidence_keys=pr_evidence_keys,
                     )
                 )
 
@@ -203,7 +204,7 @@ def detect_blockers(
                         ),
                         entity_key=pr_key,
                         pull_request_number=pr.number,
-                        evidence_keys=[pr_key],
+                        evidence_keys=pr_evidence_keys,
                     )
                 )
 
@@ -219,7 +220,7 @@ def detect_blockers(
                     ),
                     entity_key=pr_key,
                     pull_request_number=pr.number,
-                    evidence_keys=[pr_key],
+                    evidence_keys=pr_evidence_keys,
                 )
             )
 

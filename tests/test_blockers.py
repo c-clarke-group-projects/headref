@@ -182,6 +182,16 @@ def test_bl5_open_unreviewed_negative() -> None:
     assert not any(b.signal_id == "BL-5" for b in blockers)
 
 
+def test_pr_blocker_evidence_keys_match_the_evidence_builder_key() -> None:
+    # The evidence builder keys a pull request by str(number). A blocker citing only
+    # "PR-182" resolved no evidence, so its confidence came back UNKNOWN.
+    now = datetime(2026, 9, 21, 12, 0, tzinfo=UTC)
+    pr = _base_pr(number=182, review_state="none", created_at_source=now - timedelta(days=4))
+    blockers = detect_blockers([], [pr], as_of=now)
+    bl5 = next(b for b in blockers if b.signal_id == "BL-5")
+    assert "182" in bl5.evidence_keys
+
+
 # ---------------------------------------------------------------------------
 # BL-6: Draft pull request older than DRAFT_PR_STALE_DAYS (5 days)
 # ---------------------------------------------------------------------------
