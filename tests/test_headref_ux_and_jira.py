@@ -7,8 +7,10 @@ Validates:
 4. Jira endpoints: GET /jira, POST /jira/connect, POST /jira/sync, POST /jira/demo, POST /jira/disconnect.
 """
 
+import os
 from collections.abc import Generator
 from datetime import UTC, datetime
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -168,71 +170,111 @@ def test_repos_page_orders_synced_repos_at_top(
 def test_jira_page_renders_cleanly(
     client: TestClient, setup_user_and_repos: tuple[AppUser, list[Repository]]
 ) -> None:
-    """GET /jira renders the Jira connection management page."""
+    """GET /jira shows the configuration state and how to configure, with no form."""
     user, _ = setup_user_and_repos
     client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
 
     response = client.get("/jira")
     assert response.status_code == 200
     html = response.text
-    assert "Connect Jira Workspace" in html
-    assert "Atlassian Jira Cloud" in html
-    assert "Load Sample Jira Data (AUTH Project)" in html
+    assert "How to configure Jira" in html
+    assert "Load sample Jira data" in html
+    assert 'name="jira_api_token"' not in html
+    assert "/jira/connect" not in html
+    assert os.environ["JIRA_API_TOKEN"] not in html
 
 
-def test_jira_connect_validation_error(
-    client: TestClient, setup_user_and_repos: tuple[AppUser, list[Repository]]
+def test_jira_page_not_configured_says_so(
+    client: TestClient,
+    setup_user_and_repos: tuple[AppUser, list[Repository]],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """POST /jira/connect with missing inputs returns error."""
     user, _ = setup_user_and_repos
     client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
+    cfg = Settings(
+        database_url="sqlite:///:memory:",
+        jira_base_url="",
+        jira_email="",
+        jira_api_token="",
+        _env_file=None,
+    )
+    monkeypatch.setattr(routes, "get_settings", lambda: cfg)
+
+    html = client.get("/jira").text
+    assert "Not configured" in html
+    assert "cannot be entered on this page" in html
+    assert 'action="/jira/sync"' not in html
+
+
+@pytest.mark.parametrize("path", ["/jira/connect", "/jira/disconnect"])
+def test_jira_credentials_cannot_be_changed_over_http(
+    client: TestClient,
+    setup_user_and_repos: tuple[AppUser, list[Repository]],
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    path: str,
+) -> None:
+    """Credentials come from the environment only (CLAUDE.md rule 3)."""
+    user, _ = setup_user_and_repos
+    client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
+    monkeypatch.chdir(tmp_path)
+    env_file = tmp_path / ".env"
+    env_file.write_text("JIRA_API_TOKEN=original\n", encoding="utf-8")
+    token_before = os.environ["JIRA_API_TOKEN"]
 
     response = client.post(
-        "/jira/connect",
-        data={"jira_base_url": "", "jira_email": "", "jira_api_token": ""},
+        path,
+        data={
+            "jira_base_url": "https://attacker.example",
+            "jira_email": "x@attacker.example",
+            "jira_api_token": "attacker-token",
+        },
         follow_redirects=False,
     )
+
+    assert response.status_code in (status.HTTP_404_NOT_FOUND, status.HTTP_405_METHOD_NOT_ALLOWED)
+    assert os.environ["JIRA_API_TOKEN"] == token_before
+    assert env_file.read_text(encoding="utf-8") == "JIRA_API_TOKEN=original\n"
+
+
+def test_jira_sync_not_configured_starts_nothing(
+    client: TestClient,
+    setup_user_and_repos: tuple[AppUser, list[Repository]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user, _ = setup_user_and_repos
+    client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
+    cfg = Settings(
+        database_url="sqlite:///:memory:",
+        jira_base_url="",
+        jira_email="",
+        jira_api_token="",
+        _env_file=None,
+    )
+    monkeypatch.setattr(routes, "get_settings", lambda: cfg)
+
+    with patch("app.web.routes.sync_jira") as mock_sync_jira:
+        response = client.post("/jira/sync", follow_redirects=False)
+
     assert response.status_code == status.HTTP_303_SEE_OTHER
-    assert "error=" in response.headers["location"]
+    assert response.headers["location"] == "/jira?error=not_configured"
+    mock_sync_jira.assert_not_called()
 
 
-def test_jira_connect_success_and_sync(
+def test_jira_sync_failure_never_puts_exception_text_in_the_url(
     client: TestClient, setup_user_and_repos: tuple[AppUser, list[Repository]]
 ) -> None:
-    """POST /jira/connect with valid credentials validates and redirects with success."""
     user, _ = setup_user_and_repos
     client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
 
-    with patch("app.web.routes.JiraClient") as mock_jira_cls, \
-         patch("app.web.routes.sync_jira") as mock_sync_jira:
-        mock_client = MagicMock()
-        mock_client.list_projects.return_value = [{"key": "AUTH", "name": "Auth Project"}]
-        mock_jira_cls.return_value = mock_client
+    with patch(
+        "app.web.routes.sync_jira", side_effect=RuntimeError("token=abc123 rejected upstream")
+    ):
+        response = client.post("/jira/sync", follow_redirects=False)
 
-        response = client.post(
-            "/jira/connect",
-            data={
-                "jira_base_url": "https://my-team.atlassian.net",
-                "jira_email": "dev@my-team.com",
-                "jira_api_token": "secret-token",
-                "jira_project_keys": "AUTH",
-            },
-            follow_redirects=False,
-        )
-
-        assert response.status_code == status.HTTP_303_SEE_OTHER
-        assert "success=connected" in response.headers["location"]
-        mock_client.list_projects.assert_called_once()
-        mock_sync_jira.assert_called_once()
-
-
-def test_jira_disconnect(
-    client: TestClient, setup_user_and_repos: tuple[AppUser, list[Repository]]
-) -> None:
-    """POST /jira/disconnect clears Jira configuration."""
-    user, _ = setup_user_and_repos
-    client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
-
-    response = client.post("/jira/disconnect", follow_redirects=False)
     assert response.status_code == status.HTTP_303_SEE_OTHER
-    assert "success=disconnected" in response.headers["location"]
+    assert response.headers["location"] == "/jira?error=sync_failed"
+
+    page = client.get(response.headers["location"]).text
+    assert "The Jira sync failed" in page
+    assert "abc123" not in page

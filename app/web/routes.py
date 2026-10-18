@@ -1076,25 +1076,27 @@ async def select_repository(
 # ---------------------------------------------------------------------------
 
 
+# Fixed copy for the Jira page. The route passes a code, never exception text, so no
+# upstream detail or credential fragment reaches the URL or the page.
+JIRA_ERROR_MESSAGES = {
+    "not_configured": "Jira is not configured. Set the Jira variables in .env and restart.",
+    "sync_failed": "The Jira sync failed. The last successful data is still shown.",
+    "demo_failed": "The sample Jira data could not be loaded.",
+}
+
+
 @router.get("/jira", response_class=HTMLResponse)
 def get_jira_page(
     request: Request,
     actor: ActorDep,
     db: DbDep,
 ) -> HTMLResponse:
-    """Jira connection and settings page."""
+    """Jira status page. Credentials come from the environment only (rule 3)."""
     settings = get_settings()
-    jira_configured = bool(
-        settings
-        and settings.jira_base_url
-        and settings.jira_email
-        and settings.jira_api_token
-    )
+    jira_configured = bool(settings and settings.jira_enabled)
     last_jira_sync = (
         db.scalars(
-            select(SyncRun)
-            .where(SyncRun.source == "jira")
-            .order_by(SyncRun.started_at.desc())
+            select(SyncRun).where(SyncRun.source == "jira").order_by(SyncRun.started_at.desc())
         ).first()
         if db
         else None
@@ -1120,112 +1122,9 @@ def get_jira_page(
             "jira_project_keys": settings.jira_project_keys if settings else "ALL",
             "last_jira_sync": last_jira_sync,
             "success": request.query_params.get("success"),
-            "error": request.query_params.get("error"),
+            "error_message": JIRA_ERROR_MESSAGES.get(request.query_params.get("error", "")),
             "now": datetime.now(UTC),
         },
-    )
-
-
-@router.post("/jira/connect")
-async def connect_jira(
-    request: Request,
-    actor: ActorDep,
-    db: DbDep,
-) -> Response:
-    """Connect to Atlassian Jira, test credentials, update settings and sync issues."""
-    content_type = request.headers.get("content-type", "")
-    if "application/json" in content_type:
-        data = await request.json()
-        base_url = str(data.get("jira_base_url", "")).strip()
-        email = str(data.get("jira_email", "")).strip()
-        api_token = str(data.get("jira_api_token", "")).strip()
-        project_keys = str(data.get("jira_project_keys", "ALL")).strip() or "ALL"
-    else:
-        body = (await request.body()).decode("utf-8")
-        parsed = parse_qs(body)
-        base_url = parsed.get("jira_base_url", [""])[0].strip()
-        email = parsed.get("jira_email", [""])[0].strip()
-        api_token = parsed.get("jira_api_token", [""])[0].strip()
-        project_keys = parsed.get("jira_project_keys", ["ALL"])[0].strip() or "ALL"
-
-    if not base_url or not email or not api_token:
-        err = "Jira base URL, email, and API token are required."
-        return RedirectResponse(
-            url=f"/jira?error={urlencode({'e': err})[2:]}",
-            status_code=status.HTTP_303_SEE_OTHER,
-        )
-
-    if not base_url.startswith(("http://", "https://")):
-        base_url = f"https://{base_url}"
-
-    # Verify connectivity with Jira API
-    try:
-        test_client = JiraClient(
-            base_url=base_url,
-            email=email,
-            api_token=api_token,
-        )
-        test_client.list_projects()
-    except Exception as exc:
-        logger.warning("Jira connection verification failed: %s", exc)
-        err = f"Could not verify Jira credentials: {str(exc)}"
-        return RedirectResponse(
-            url=f"/jira?error={urlencode({'e': err})[2:]}",
-            status_code=status.HTTP_303_SEE_OTHER,
-        )
-
-    # Persist in environment and .env file
-    import os
-    from pathlib import Path
-    os.environ["JIRA_BASE_URL"] = base_url
-    os.environ["JIRA_EMAIL"] = email
-    os.environ["JIRA_API_TOKEN"] = api_token
-    os.environ["JIRA_PROJECT_KEYS"] = project_keys
-
-    env_path = Path(".env")
-    if env_path.exists():
-        lines = env_path.read_text(encoding="utf-8").splitlines()
-        updated = []
-        seen = set()
-        for line in lines:
-            if line.startswith("JIRA_BASE_URL="):
-                updated.append(f"JIRA_BASE_URL={base_url}")
-                seen.add("JIRA_BASE_URL")
-            elif line.startswith("JIRA_EMAIL="):
-                updated.append(f"JIRA_EMAIL={email}")
-                seen.add("JIRA_EMAIL")
-            elif line.startswith("JIRA_API_TOKEN="):
-                updated.append(f"JIRA_API_TOKEN={api_token}")
-                seen.add("JIRA_API_TOKEN")
-            elif line.startswith("JIRA_PROJECT_KEYS="):
-                updated.append(f"JIRA_PROJECT_KEYS={project_keys}")
-                seen.add("JIRA_PROJECT_KEYS")
-            else:
-                updated.append(line)
-        if "JIRA_BASE_URL" not in seen:
-            updated.append(f"JIRA_BASE_URL={base_url}")
-        if "JIRA_EMAIL" not in seen:
-            updated.append(f"JIRA_EMAIL={email}")
-        if "JIRA_API_TOKEN" not in seen:
-            updated.append(f"JIRA_API_TOKEN={api_token}")
-        if "JIRA_PROJECT_KEYS" not in seen:
-            updated.append(f"JIRA_PROJECT_KEYS={project_keys}")
-        env_path.write_text("\n".join(updated) + "\n", encoding="utf-8")
-
-    import app.config
-    try:
-        app.config.settings = app.config.load_settings()
-    except Exception as cfg_exc:
-        logger.warning("Could not reload settings: %s", cfg_exc)
-
-    try:
-        sync_jira(db, team_id=actor.team_id or 1, jira_client=test_client)
-    except Exception as sync_exc:
-        logger.warning("Initial Jira sync failed: %s", sync_exc)
-
-    return RedirectResponse(
-        url="/jira?success=connected",
-        status_code=status.HTTP_303_SEE_OTHER,
     )
 
 
@@ -1235,58 +1134,18 @@ def sync_jira_now(
     actor: ActorDep,
     db: DbDep,
 ) -> Response:
-    """Trigger on-demand Jira sync."""
+    """Trigger an on-demand Jira sync with the credentials from the environment."""
+    settings = get_settings()
+    if not (settings and settings.jira_enabled):
+        return RedirectResponse(
+            url="/jira?error=not_configured", status_code=status.HTTP_303_SEE_OTHER
+        )
     try:
         sync_jira(db, team_id=actor.team_id or 1)
-        return RedirectResponse(
-            url="/jira?success=synced",
-            status_code=status.HTTP_303_SEE_OTHER,
-        )
-    except Exception as exc:
-        logger.error("Jira sync error: %s", exc)
-        return RedirectResponse(
-            url=f"/jira?error={urlencode({'e': str(exc)})[2:]}",
-            status_code=status.HTTP_303_SEE_OTHER,
-        )
-
-
-@router.post("/jira/disconnect")
-def disconnect_jira(
-    request: Request,
-    actor: ActorDep,
-) -> Response:
-    """Disconnect Jira credentials."""
-    import os
-    from pathlib import Path
-    os.environ["JIRA_BASE_URL"] = ""
-    os.environ["JIRA_EMAIL"] = ""
-    os.environ["JIRA_API_TOKEN"] = ""
-
-    env_path = Path(".env")
-    if env_path.exists():
-        lines = env_path.read_text(encoding="utf-8").splitlines()
-        updated = []
-        for line in lines:
-            if line.startswith("JIRA_BASE_URL="):
-                updated.append("JIRA_BASE_URL=")
-            elif line.startswith("JIRA_EMAIL="):
-                updated.append("JIRA_EMAIL=")
-            elif line.startswith("JIRA_API_TOKEN="):
-                updated.append("JIRA_API_TOKEN=")
-            else:
-                updated.append(line)
-        env_path.write_text("\n".join(updated) + "\n", encoding="utf-8")
-
-    import app.config
-    try:
-        app.config.settings = app.config.load_settings()
     except Exception:
-        pass
-
-    return RedirectResponse(
-        url="/jira?success=disconnected",
-        status_code=status.HTTP_303_SEE_OTHER,
-    )
+        logger.exception("Jira sync failed for team %s", actor.team_id)
+        return RedirectResponse(url="/jira?error=sync_failed", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url="/jira?success=synced", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/jira/demo")
@@ -1296,14 +1155,13 @@ def load_jira_demo(
     db: DbDep,
 ) -> Response:
     """Load sample Jira dataset for testing issues, blockers, and conflicts."""
-    from pathlib import Path
     from seed.seed_demo import FIXTURES_DIR, FixtureTransport
 
     transport = FixtureTransport(fixtures_dir=FIXTURES_DIR)
     jira_client = JiraClient(
         base_url="https://example.atlassian.net",
         email="demo@example.com",
-        api_token="demo-offline-token",
+        api_token="demo-offline-token",  # noqa: S106  fixture transport, never sent anywhere
         transport=transport,
     )
 
@@ -1318,10 +1176,7 @@ def load_jira_demo(
             url="/jira?success=demo_loaded",
             status_code=status.HTTP_303_SEE_OTHER,
         )
-    except Exception as exc:
-        logger.error("Failed to load demo Jira data: %s", exc)
-        return RedirectResponse(
-            url=f"/jira?error={urlencode({'e': str(exc)})[2:]}",
-            status_code=status.HTTP_303_SEE_OTHER,
-        )
+    except Exception:
+        logger.exception("Failed to load demo Jira data")
+        return RedirectResponse(url="/jira?error=demo_failed", status_code=status.HTTP_303_SEE_OTHER)
 

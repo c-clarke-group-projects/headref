@@ -435,6 +435,9 @@ a:hover { background: var(--mint); color: #000; }
 .ev-item__meta { margin-top: 14px; display: grid; grid-template-columns: 76px minmax(0, 1fr); row-gap: 5px; font-size: var(--fs-caption); }
 .ev-item__meta dt { color: var(--slate); }
 .ev-item__meta dd { overflow-wrap: anywhere; }
+.kv { margin: var(--s-4) 0; display: grid; grid-template-columns: 120px minmax(0, 1fr); row-gap: var(--s-2); font-size: var(--fs-small); }
+.kv dt { color: var(--slate); }
+.kv dd { overflow-wrap: anywhere; }
 .ev-item__link { margin-top: 14px; display: inline-flex; gap: 6px; align-items: center; min-height: 32px; font-size: var(--fs-small); font-weight: 500; }
 body.drawer-open { overflow: hidden; }
 
