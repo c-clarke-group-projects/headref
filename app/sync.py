@@ -118,6 +118,39 @@ def _only_configured_scope(scopes: list[str], source: str) -> str:
     return scopes[0]
 
 
+CHECKS_STATES = frozenset({"passing", "failing", "unknown"})
+
+
+def record_checks_state(
+    client: Any,
+    owner: str,
+    repo_name: str,
+    prs: list[PullRequest],
+    raw_prs: list[dict[str, Any]],
+) -> None:
+    """Set checks_state on open pull requests from their head commit's CI results.
+
+    BL-7 reads this, so it must reflect GitHub. A pull request whose checks cannot be
+    read is set to unknown and logged; it is never recorded as passing.
+    """
+    head_sha = {raw.get("number"): (raw.get("head") or {}).get("sha") for raw in raw_prs}
+    for pr in prs:
+        if pr.state != "open":
+            continue
+        sha = head_sha.get(pr.number)
+        if not sha:
+            pr.checks_state = "unknown"
+            continue
+        try:
+            state = client.get_checks_state(owner, repo_name, sha)
+        except IntegrationError as exc:
+            logger.warning(
+                "checks not read for %s/%s#%s: %s", owner, repo_name, pr.number, exc.error_type
+            )
+            state = "unknown"
+        pr.checks_state = state if state in CHECKS_STATES else "unknown"
+
+
 def sync_github(
     session: Session,
     team_id: int = 1,
@@ -193,6 +226,8 @@ def sync_github(
             total_rev_written += rev_counts.written
             total_rev_skipped += rev_counts.skipped
             all_persisted_reviews.extend(revs)
+
+        record_checks_state(client, owner, repo_name, prs, raw_prs)
 
         # Identity resolution
         attribute_pull_requests(

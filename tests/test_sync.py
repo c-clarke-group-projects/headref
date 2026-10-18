@@ -312,3 +312,35 @@ def test_cli_main_entrypoint(monkeypatch: pytest.MonkeyPatch, db_session: Sessio
 
     exit_code = main(["--source", "github", "--team", "1"])
     assert exit_code == 0
+
+
+def test_open_pull_requests_record_their_checks_state() -> None:
+    """BL-7 needs checks_state from GitHub; a read failure is unknown, never passing."""
+    from app.integrations.errors import UpstreamError
+    from app.sync import record_checks_state
+
+    class PR:
+        def __init__(self, number: int, state: str) -> None:
+            self.number, self.state, self.checks_state = number, state, None
+
+    prs = [PR(1, "open"), PR(2, "open"), PR(3, "merged"), PR(4, "open")]
+    raw = [
+        {"number": 1, "head": {"sha": "s1"}},
+        {"number": 2, "head": {"sha": "s2"}},
+        {"number": 3, "head": {"sha": "s3"}},
+        {"number": 4, "head": {}},
+    ]
+    client = MagicMock()
+
+    def checks(owner: str, repo: str, sha: str) -> str:
+        if sha == "s2":
+            raise UpstreamError("GitHub 502", status_code=502)
+        return "failing"
+
+    client.get_checks_state.side_effect = checks
+
+    record_checks_state(client, "o", "r", prs, raw)
+
+    assert [p.checks_state for p in prs] == ["failing", "unknown", None, "unknown"]
+    called = [c.args[2] for c in client.get_checks_state.call_args_list]
+    assert called == ["s1", "s2"]

@@ -51,6 +51,35 @@ def get_active_github_token() -> str | None:
     return None
 
 
+# Check run conclusions that mean the head commit failed CI (BL-7).
+_FAILING_CONCLUSIONS = frozenset(
+    {"failure", "timed_out", "cancelled", "action_required", "startup_failure"}
+)
+
+
+def summarize_checks(
+    check_runs: list[dict[str, Any]], combined_status: dict[str, Any] | None
+) -> str:
+    """Reduce check runs and the combined commit status to passing, failing or unknown.
+
+    Failing wins over everything. Nothing reported, or anything still running, is
+    unknown: "passing" would claim a result nobody has seen yet.
+    """
+    statuses = (combined_status or {}).get("statuses") or []
+    combined_state = (combined_status or {}).get("state")
+    if any(run.get("conclusion") in _FAILING_CONCLUSIONS for run in check_runs):
+        return "failing"
+    if statuses and combined_state in ("failure", "error"):
+        return "failing"
+    if not check_runs and not statuses:
+        return "unknown"
+    if any(run.get("status") != "completed" for run in check_runs):
+        return "unknown"
+    if statuses and combined_state != "success":
+        return "unknown"
+    return "passing"
+
+
 class GitHubClient:
     """Read-only GitHub REST API client."""
 
@@ -179,6 +208,14 @@ class GitHubClient:
         if sha:
             params["sha"] = sha
         return self._paginate(url, params=params)
+
+    def get_checks_state(self, owner: str, repo: str, ref: str) -> str:
+        """passing, failing or unknown for a commit, from check runs and statuses."""
+        runs = self._http.get(
+            f"/repos/{owner}/{repo}/commits/{ref}/check-runs", params={"per_page": 100}
+        ).json()
+        status = self._http.get(f"/repos/{owner}/{repo}/commits/{ref}/status").json()
+        return summarize_checks(runs.get("check_runs") or [], status)
 
     def list_branches(
         self,

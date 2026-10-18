@@ -60,6 +60,43 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-19 | Keshan | Workspaces W3: GitHub App connection, CI checks
+Status: IN_PROGRESS
+
+### Completed
+1. The headref GitHub App is registered (read only: metadata, contents, pull requests,
+   checks, commit statuses; no webhook). Verified `GET /app` with the real credentials:
+   slug and permissions match.
+2. `app/integrations/github_app.py`: 9 minute RS256 app JWT, installation tokens reused in
+   memory until 5 minutes before expiry, never stored or logged.
+3. Connect GitHub flow: signed 15 minute state bound to workspace and account; the setup
+   callback attaches an installation only when the state matches its cookie, the account
+   still owns the workspace, and the installation belongs to the signed-in GitHub user or an
+   organisation they actively administer. Repository picker re-reads the installation and
+   accepts only its ids. Disconnect is scoped to the workspace.
+4. Migration `0003_github_connections`: `github_installation`, `workspace_repository`. No
+   token column. Verified up, down, up on PostgreSQL 15; applied locally.
+5. **CI checks were never ingested**, so `checks_state` was always unknown and BL-7 could not
+   fire on real data. Sync now records passing, failing or unknown for open pull requests
+   from check runs and the combined status. A read failure is unknown, never passing.
+   Verified on `headref-sandbox`: PR #4 passing, PR #5 failing.
+6. Dependencies `pyjwt` and `cryptography` added (agreed); dev image rebuilt.
+
+### Changed
+`app/integrations/github_app.py`, `app/integrations/github.py`, `app/sync.py`,
+`app/web/connections.py`, `app/web/auth.py` (`sign_value`), `app/models/connections.py`,
+`app/config.py`, `pyproject.toml`, 3 templates, 4 test modules.
+
+### Discovered
+Workspace repositories are selected but not yet synced: sync still reads the global
+scopes. Per-workspace sync is W5, after the source tables carry `workspace_id`.
+
+### Next Step
+Install the App on `keshan-dev` and connect `headref-sandbox` through the workspace page.
+Then W4, the Atlassian connection.
+
+---
+
 ## 2026-10-19 | Keshan | Workspaces W2: portfolio home and workspace shell
 Status: IN_PROGRESS
 

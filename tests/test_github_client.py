@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
 import respx
 
@@ -231,3 +232,54 @@ def test_missing_github_token_raises_runtime_error(monkeypatch: pytest.MonkeyPat
         GitHubClient(token=None)
 
     assert "GITHUB_TOKEN must be configured" in str(exc_info.value)
+
+
+# ---------------------------------------------------------------------------
+# CI checks for BL-7 (W3)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("runs", "status", "expected"),
+    [
+        ([], {"state": "pending", "statuses": []}, "unknown"),
+        ([{"status": "completed", "conclusion": "success"}], None, "passing"),
+        ([{"status": "completed", "conclusion": "failure"}], None, "failing"),
+        ([{"status": "completed", "conclusion": "timed_out"}], None, "failing"),
+        ([{"status": "in_progress", "conclusion": None}], None, "unknown"),
+        (
+            [{"status": "completed", "conclusion": "success"}],
+            {"state": "failure", "statuses": [{"state": "failure"}]},
+            "failing",
+        ),
+        ([], {"state": "success", "statuses": [{"state": "success"}]}, "passing"),
+        ([], {"state": "pending", "statuses": [{"state": "pending"}]}, "unknown"),
+        (
+            [{"status": "completed", "conclusion": "skipped"}],
+            {"state": "pending", "statuses": []},
+            "passing",
+        ),
+    ],
+)
+def test_summarize_checks(runs, status, expected):
+    from app.integrations.github import summarize_checks
+
+    assert summarize_checks(runs, status) == expected
+
+
+@respx.mock
+def test_get_checks_state_reads_check_runs_and_statuses():
+    respx.get("https://api.github.com/repos/o/r/commits/abc/check-runs").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "total_count": 1,
+                "check_runs": [{"status": "completed", "conclusion": "failure"}],
+            },
+        )
+    )
+    respx.get("https://api.github.com/repos/o/r/commits/abc/status").mock(
+        return_value=httpx.Response(200, json={"state": "pending", "statuses": []})
+    )
+
+    assert GitHubClient(token="t").get_checks_state("o", "r", "abc") == "failing"
