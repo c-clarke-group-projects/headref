@@ -742,6 +742,7 @@ async def run_agent(
         attention_needed=narrative_res.attention_needed,
         allowed_entities=allowed_entities,
         fallback_text=det_fallback.text,
+        findings_text=findings_prompt_text,
     )
 
     # 7. Stage S6: Assembly, Persistence, and Cache

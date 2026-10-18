@@ -101,6 +101,39 @@ def test_validator_forbidden_language_rejected() -> None:
     assert any(c.get("reason") == "FORBIDDEN_LANGUAGE" for c in result.dropped_claims)
 
 
+def test_validator_allows_a_term_the_findings_already_use() -> None:
+    """Repeating "failing checks" from a BL-7 finding is not a judgement of a person."""
+    findings = "Blockers: Pull request #5 has failing CI checks."
+    summary = "Work continues on HRS-9, but pull request #5 has failing CI checks to fix."
+
+    result = validate_narrative(
+        summary=summary,
+        needs_attention="Pull request #5 checks are failing.",
+        attention_needed=True,
+        allowed_entities={"HRS-9", "#5"},
+        fallback_text="Fallback summary text.",
+        findings_text=findings,
+    )
+
+    assert result.fallback_used is False
+    assert result.summary == summary
+
+
+def test_validator_rejects_a_term_the_model_added() -> None:
+    """The same word is still rejected when the findings never used it."""
+    result = validate_narrative(
+        summary="The engineer is failing to keep up with HRS-9 and pull request #5.",
+        needs_attention="Pull request #5 needs review.",
+        attention_needed=True,
+        allowed_entities={"HRS-9", "#5"},
+        fallback_text="Fallback summary text.",
+        findings_text="Blockers: Pull request #5 has no review after 4 days.",
+    )
+
+    assert result.fallback_used is True
+    assert any(c.get("term") == "failing" for c in result.dropped_claims)
+
+
 def test_validator_shape_invalid_rejected() -> None:
     """Empty or too-short narrative fails shape check and falls back."""
     result = validate_narrative(
