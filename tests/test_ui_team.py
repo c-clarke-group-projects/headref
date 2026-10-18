@@ -25,6 +25,7 @@ from app.main import app
 from app.schemas.insight import AttentionItem, EvidenceItem, TeamMemberOverview, TeamOverview
 from app.schemas.tools import SourceHealthOut
 from app.web import auth, routes
+from tests.conftest import log_in
 
 
 @dataclass
@@ -53,7 +54,6 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     # routes.py binds load_user at import time, so patching only app.web.auth leaves
     # the form login path calling the real loader against a None session.
     monkeypatch.setattr(auth, "load_user", lambda db, user_id: USERS.get(user_id))
-    monkeypatch.setattr(routes, "load_user", lambda db, user_id: USERS.get(user_id))
 
     def fake_db() -> Iterator[None]:
         yield None
@@ -65,8 +65,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
 
 
 def _log_in(client: TestClient, user_id: int) -> None:
-    res = client.post("/api/auth/login", json={"user_id": user_id})
-    assert res.status_code == 200
+    log_in(client, user_id)
 
 
 def _sample_overview(team_id: int = 10, unmatched: int = 2) -> TeamOverview:
@@ -257,11 +256,8 @@ def test_login_page_renders_cleanly(client: TestClient, monkeypatch: pytest.Monk
     assert "Demo sign in" not in html
 
 
-def test_login_page_form_submit_invalid_user_renders_401(client: TestClient):
-    response = client.post(
-        "/login",
-        data={"user_id": "999", "next": "/admin/unmatched"},
-        headers={"content-type": "application/x-www-form-urlencoded"},
-    )
-    assert response.status_code == 401
-    assert "Unknown or inactive user" in response.text
+def test_login_page_has_no_user_id_form(client: TestClient):
+    """The stub form that signed in any user id is gone; only GitHub signs in."""
+    html = client.get("/login").text
+    assert 'name="user_id"' not in html
+    assert client.post("/login", data={"user_id": "1"}).status_code == 405

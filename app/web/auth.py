@@ -1,9 +1,10 @@
-"""Login stub and the authorization seam (P3-001, FR-028, NFR-009).
+"""Session cookie and the authorization seam (P3-001, FR-028, NFR-009).
 
-The login is a stub. It trusts the user id it is given and sets a signed session
-cookie. It is not authentication, and real login replaces it in Stage 2.
+Signing in happens only through GitHub OAuth (``/auth/github/login`` in routes.py),
+which sets the signed session cookie defined here. The P3-001 login stub, which
+trusted any user id it was given, is removed.
 
-The authorization seam is real. ``can_view_member`` is the only place the rule
+The authorization seam: ``can_view_member`` is the only place the rule
 "a person may view members of their own team" is written. Every route that returns
 member data MUST take the ``MemberGuard`` dependency, which calls it, answers 403
 and logs on denial. A test fails if a member route does not.
@@ -25,10 +26,38 @@ logger = logging.getLogger(__name__)
 SESSION_COOKIE = "headref_session"
 SESSION_MAX_AGE_SECONDS = 8 * 60 * 60
 
-# Signing key for the session cookie. It is random per process and never stored or
-# logged, so no secret is added to configuration (README rule 7). Restarting the app
-# logs everyone out, which is acceptable for a stub.
-_SIGNING_KEY = secrets.token_bytes(32)
+# Minimum length of SESSION_SECRET. 32 characters keeps the HMAC key at 256 bits or
+# more for a random hex or base64 value.
+MIN_SESSION_SECRET_LENGTH = 32
+
+_signing_key: bytes | None = None
+
+
+def _get_signing_key() -> bytes:
+    """Return the session signing key, from SESSION_SECRET when it is set.
+
+    Without SESSION_SECRET the key is random per process: sessions end on restart and
+    do not work across several workers. Fine for local work, wrong for a deployment.
+    The key is never logged.
+    """
+    global _signing_key
+    if _signing_key is None:
+        from app.config import get_settings
+
+        secret = get_settings().session_secret
+        if secret:
+            if len(secret) < MIN_SESSION_SECRET_LENGTH:
+                raise RuntimeError(
+                    f"SESSION_SECRET must be at least {MIN_SESSION_SECRET_LENGTH} characters"
+                )
+            _signing_key = secret.encode()
+        else:
+            logger.warning(
+                "SESSION_SECRET is not set; using a random per-process session key. "
+                "Sessions end when the app restarts."
+            )
+            _signing_key = secrets.token_bytes(32)
+    return _signing_key
 
 
 class Member(Protocol):
@@ -47,7 +76,7 @@ class Member(Protocol):
 
 def _signature(payload: str) -> str:
     """Return the HMAC signature of a payload."""
-    return hmac.new(_SIGNING_KEY, payload.encode(), hashlib.sha256).hexdigest()
+    return hmac.new(_get_signing_key(), payload.encode(), hashlib.sha256).hexdigest()
 
 
 def sign_session(user_id: int) -> str:
@@ -146,14 +175,8 @@ MemberGuard = Annotated[Member, Depends(require_member_access)]
 
 
 # ---------------------------------------------------------------------------
-# Login stub routes
+# Session routes. There is no login route here: GitHub OAuth signs people in.
 # ---------------------------------------------------------------------------
-
-
-class LoginRequest(BaseModel):
-    """Body of the login stub."""
-
-    user_id: int
 
 
 class ActorInfo(BaseModel):
@@ -170,23 +193,6 @@ def _actor_info(user: Member) -> ActorInfo:
 
 
 auth_router = APIRouter(prefix="/api/auth", tags=["auth"])
-
-
-@auth_router.post("/login")
-def login(body: LoginRequest, response: Response, db: DbDep) -> ActorInfo:
-    """Stub login: trust the given user id and set a signed session cookie."""
-    user = load_user(db, body.user_id)
-    if user is None or not user.is_active:
-        raise HTTPException(status_code=401, detail="Unknown or inactive user")
-    response.set_cookie(
-        SESSION_COOKIE,
-        sign_session(user.id),
-        max_age=SESSION_MAX_AGE_SECONDS,
-        httponly=True,
-        samesite="lax",
-    )
-    logger.info("login: user_id=%s", user.id)
-    return _actor_info(user)
 
 
 @auth_router.post("/logout", status_code=204)

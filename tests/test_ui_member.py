@@ -30,7 +30,8 @@ from app.schemas.insight import (
     MemberInsight,
 )
 from app.schemas.tools import PullRequestOut, SourceHealthOut, WorkItemOut
-from app.web import auth, routes
+from app.web import auth
+from tests.conftest import log_in
 
 
 @dataclass
@@ -58,7 +59,6 @@ NOW = datetime(2026, 9, 21, 12, 0, tzinfo=UTC)
 @pytest.fixture
 def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setattr(auth, "load_user", lambda db, user_id: USERS.get(user_id))
-    monkeypatch.setattr(routes, "load_user", lambda db, user_id: USERS.get(user_id))
 
     def fake_db() -> Iterator[None]:
         yield None
@@ -70,8 +70,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
 
 
 def _log_in(client: TestClient, user_id: int) -> None:
-    res = client.post("/api/auth/login", json={"user_id": user_id})
-    assert res.status_code == 200
+    log_in(client, user_id)
 
 
 def _sample_insight(question: str = "current_work", fallback: bool = False) -> MemberInsight:

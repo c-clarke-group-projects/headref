@@ -47,7 +47,6 @@ from app.web.auth import (
     ActorDep,
     DbDep,
     MemberGuard,
-    load_user,
     sign_session,
 )
 from app.web.ui_format import signal_rows, templates
@@ -611,17 +610,9 @@ REPO_NAME_REGEX = re.compile(r"^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$")
 
 
 @router.get("/login", response_class=HTMLResponse)
-def get_login_page(
-    request: Request,
-    db: DbDep,
-) -> HTMLResponse:
-    """Render login page with GitHub authentication and fallback demo option."""
+def get_login_page(request: Request) -> HTMLResponse:
+    """Render the sign-in page. GitHub OAuth is the only way to sign in."""
     settings = get_settings()
-    users = []
-    if db:
-        users = db.scalars(
-            select(AppUser).where(AppUser.is_active.is_(True)).order_by(AppUser.display_name)
-        ).all()
     next_url = safe_next(request.query_params.get("next"))
     error = request.query_params.get("error")
     return templates.TemplateResponse(
@@ -629,7 +620,6 @@ def get_login_page(
         name="login.html",
         context={
             "request": request,
-            "users": users,
             "next": next_url,
             "error": error,
             "oauth_enabled": settings.github_oauth_enabled,
@@ -855,54 +845,6 @@ async def github_callback(
     )
     redirect.delete_cookie(OAUTH_STATE_COOKIE)
     redirect.delete_cookie(OAUTH_NEXT_COOKIE)
-    return redirect
-
-
-@router.post("/login")
-async def post_login(
-    request: Request,
-    response: Response,
-    db: DbDep,
-) -> Response:
-    """Submit login stub form and set signed session cookie."""
-    content_type = request.headers.get("content-type", "")
-    if "application/json" in content_type:
-        data = await request.json()
-        user_id = int(data.get("user_id", 0))
-        next_url = safe_next(str(data.get("next", "/")))
-    else:
-        body = (await request.body()).decode("utf-8")
-        parsed = parse_qs(body)
-        user_id = int(parsed.get("user_id", ["0"])[0])
-        next_url = safe_next(parsed.get("next", ["/"])[0])
-
-    user = load_user(db, user_id)
-    if user is None or not user.is_active:
-        users = []
-        if db:
-            users = db.scalars(
-                select(AppUser).where(AppUser.is_active.is_(True)).order_by(AppUser.display_name)
-            ).all()
-        return templates.TemplateResponse(
-            request=request,
-            name="login.html",
-            context={
-                "request": request,
-                "users": users,
-                "next": next_url,
-                "error": "Unknown or inactive user",
-            },
-            status_code=status.HTTP_401_UNAUTHORIZED,
-        )
-
-    redirect = RedirectResponse(url=next_url, status_code=status.HTTP_303_SEE_OTHER)
-    redirect.set_cookie(
-        SESSION_COOKIE,
-        sign_session(user.id),
-        max_age=SESSION_MAX_AGE_SECONDS,
-        httponly=True,
-        samesite="lax",
-    )
     return redirect
 
 

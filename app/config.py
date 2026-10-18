@@ -58,6 +58,14 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("GITHUB_OAUTH_CLIENT_SECRET", "github_oauth_client_secret"),
         description="GitHub OAuth application client secret.",
     )
+    session_secret: str = Field(
+        default="",
+        validation_alias=AliasChoices("SESSION_SECRET", "session_secret"),
+        description=(
+            "Key that signs the session cookie, at least 32 characters. Unset means a "
+            "random key per process: sessions end on restart."
+        ),
+    )
 
     @property
     def github_oauth_enabled(self) -> bool:
