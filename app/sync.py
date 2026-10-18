@@ -120,6 +120,25 @@ def _only_configured_scope(scopes: list[str], source: str) -> str:
 
 CHECKS_STATES = frozenset({"passing", "failing", "unknown"})
 
+# Jira project keys: an uppercase letter, then letters, digits or underscores.
+_JIRA_KEY = re.compile(r"[A-Z][A-Z0-9_]{0,63}")
+
+
+def project_jql(keys: list[str]) -> str:
+    """A bounded JQL query over the given project keys, or "" if there are none.
+
+    Keys are checked against Jira's key format and quoted, so a key from the API
+    cannot change the query. Invalid keys are logged and left out.
+    """
+    valid = sorted({k for k in keys if _JIRA_KEY.fullmatch(k or "")})
+    skipped = sorted(set(keys) - set(valid))
+    if skipped:
+        logger.warning("Jira project keys left out of the search: %s", skipped)
+    if not valid:
+        return ""
+    quoted = ", ".join(f'"{k}"' for k in valid)
+    return f"project in ({quoted}) ORDER BY key"
+
 
 def record_checks_state(
     client: Any,
@@ -327,8 +346,11 @@ def sync_jira(
         projects, proj_counts = ingest_projects(session, org_id, raw_projects)
         session.commit()
 
-        # Search issues
-        raw_issues = client.search_issues(jql="", auto_paginate=True)
+        # Search issues. The JQL must be bounded (Jira Cloud rejects an empty query).
+        scope_keys = [k.strip() for k in scope.split(",") if k.strip()]
+        keys = [p.key for p in projects] if scope.upper() == "ALL" else scope_keys
+        jql = project_jql(keys)
+        raw_issues = client.search_issues(jql=jql, auto_paginate=True) if jql else []
 
         # Ingest issues for each project
         total_wi_fetched = len(raw_issues)

@@ -344,3 +344,17 @@ def test_open_pull_requests_record_their_checks_state() -> None:
     assert [p.checks_state for p in prs] == ["failing", "unknown", None, "unknown"]
     called = [c.args[2] for c in client.get_checks_state.call_args_list]
     assert called == ["s1", "s2"]
+
+
+@pytest.mark.parametrize(
+    ("keys", "expected"),
+    [
+        (["HRS", "AUTH"], 'project in ("AUTH", "HRS") ORDER BY key'),
+        (["HRS", 'X" OR project is not EMPTY OR "', "lower"], 'project in ("HRS") ORDER BY key'),
+        ([], ""),
+    ],
+)
+def test_project_jql_is_bounded_and_quoted(keys, expected):
+    from app.sync import project_jql
+
+    assert project_jql(keys) == expected

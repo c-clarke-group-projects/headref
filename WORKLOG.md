@@ -60,6 +60,26 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-19 | Keshan | Jira search moved to /rest/api/3/search/jql
+Status: IN_REVIEW
+
+### Completed
+1. Verified on `keshanuni.atlassian.net`: `GET /rest/api/3/search` returns 410 ("The
+   requested API has been removed"), and `/rest/api/3/search/jql` rejects empty JQL with 400
+   ("Unbounded JQL queries are not allowed here"). Every real Jira sync was failing.
+2. `JiraClient.search_issues` uses `/rest/api/3/search/jql`, follows `nextPageToken` until
+   `isLast`, and refuses an empty query before calling.
+3. `sync_jira` searches `project in ("KEY", ...) ORDER BY key`, built by `project_jql` from
+   the configured scope (or every synced project for `ALL`). Keys are checked against Jira's
+   key format and quoted, so a key cannot change the query.
+4. Verified on the real site: `project in ("HRS")` with a page size of 4 returned all 9 HRS
+   issues with their statuses, over 3 pages.
+
+### Changed
+`app/integrations/jira.py`, `app/sync.py`, `tests/test_jira_client.py`, `tests/test_sync.py`.
+
+---
+
 ## 2026-10-19 | Keshan | Workspaces W3: GitHub App connection, CI checks
 Status: IN_PROGRESS
 
