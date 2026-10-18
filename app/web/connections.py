@@ -90,15 +90,7 @@ def start_github_install(access: OwnerAccess) -> Response:
     settings = get_settings()
     if not settings.github_app_enabled:
         return _to_workspace(access.workspace.id, "not_configured")
-    payload = ".".join(
-        [
-            str(access.workspace.id),
-            str(access.account.id),
-            str(int(time.time())),
-            secrets.token_urlsafe(16),
-        ]
-    )
-    state = sign_value(payload)
+    state = make_connection_state(access.workspace.id, access.account.id)
     url = f"https://github.com/apps/{settings.github_app_slug}/installations/new?" + urlencode(
         {"state": state}
     )
@@ -113,8 +105,17 @@ def start_github_install(access: OwnerAccess) -> Response:
     return response
 
 
-def _workspace_from_state(state: str | None, cookie: str | None, account_id: int) -> int | None:
-    """The workspace id in a valid state, or None. Valid means all checks pass."""
+def make_connection_state(workspace_id: int, account_id: int) -> str:
+    """A signed, single-flow state naming the workspace and account. Shared with Jira."""
+    payload = ".".join(
+        [str(workspace_id), str(account_id), str(int(time.time())), secrets.token_urlsafe(16)]
+    )
+    return sign_value(payload)
+
+
+def workspace_from_state(state: str | None, cookie: str | None, account_id: int) -> int | None:
+    """The workspace id in a valid state, or None. Valid means all checks pass:
+    matches the cookie, signed by this server, made for this account, under 15 minutes."""
     if not state or not cookie or not secrets.compare_digest(state, cookie):
         return None
     payload = read_signed_value(state)
@@ -129,6 +130,24 @@ def _workspace_from_state(state: str | None, cookie: str | None, account_id: int
     if time.time() - int(issued) > INSTALL_STATE_MAX_AGE_SECONDS:
         return None
     return workspace_id
+
+
+def owns_workspace(db: Any, workspace_id: int, account_id: int) -> bool:
+    """True if the account owns the workspace and it is not archived. For callbacks,
+    whose path cannot carry {workspace_id}; every other route uses workspace_access."""
+    return (
+        db.scalar(
+            select(WorkspaceMember.id)
+            .join(Workspace, Workspace.id == WorkspaceMember.workspace_id)
+            .where(
+                WorkspaceMember.workspace_id == workspace_id,
+                WorkspaceMember.account_id == account_id,
+                WorkspaceMember.role == "owner",
+                Workspace.archived_at.is_(None),
+            )
+        )
+        is not None
+    )
 
 
 @connections_pages.get("/connections/github/setup")
@@ -154,7 +173,7 @@ def github_setup_callback(request: Request, account: AccountDep, db: DbDep) -> R
             return RedirectResponse(url="/workspaces", status_code=status.HTTP_303_SEE_OTHER)
         return _to_picker(row[0], "saved")
 
-    workspace_id = _workspace_from_state(
+    workspace_id = workspace_from_state(
         params.get("state"), request.cookies.get(INSTALL_STATE_COOKIE), account.id
     )
     if workspace_id is None or not installation_raw.isdecimal():
@@ -164,17 +183,7 @@ def github_setup_callback(request: Request, account: AccountDep, db: DbDep) -> R
             status_code=status.HTTP_303_SEE_OTHER,
         )
 
-    is_owner = db.scalar(
-        select(WorkspaceMember.id)
-        .join(Workspace, Workspace.id == WorkspaceMember.workspace_id)
-        .where(
-            WorkspaceMember.workspace_id == workspace_id,
-            WorkspaceMember.account_id == account.id,
-            WorkspaceMember.role == "owner",
-            Workspace.archived_at.is_(None),
-        )
-    )
-    if is_owner is None:
+    if not owns_workspace(db, workspace_id, account.id):
         return RedirectResponse(
             url="/workspaces?" + urlencode({"github": "not_owner"}),
             status_code=status.HTTP_303_SEE_OTHER,

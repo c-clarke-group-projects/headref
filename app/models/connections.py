@@ -1,13 +1,24 @@
-"""Workspace connections to GitHub (W3, DEC-022).
+"""Workspace connections to GitHub (W3, DEC-022) and Jira (W4, DEC-023).
 
 github_installation records which installations of the headref GitHub App a workspace
 uses; workspace_repository records which of their repositories the workspace selected.
-No token is stored: installation tokens are minted per use (app/integrations/github_app).
+No GitHub token is stored: installation tokens are minted per use.
+
+jira_connection holds 1 Atlassian site per workspace with its OAuth tokens, encrypted with
+CREDENTIAL_ENCRYPTION_KEY; workspace_jira_project records the selected Jira projects.
 """
 
 from datetime import UTC, datetime
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    BigInteger,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -71,4 +82,63 @@ class WorkspaceRepository(Base):
 
     installation: Mapped["GitHubInstallation"] = relationship(
         "GitHubInstallation", back_populates="repositories"
+    )
+
+
+class JiraConnection(Base):
+    """1 Atlassian site connected to 1 workspace, with its encrypted OAuth tokens.
+
+    status: pending_site (authorized, site not chosen yet), active, auth_failed (refresh
+    rejected; the owner must reconnect).
+    """
+
+    __tablename__ = "jira_connection"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    workspace_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False, unique=True
+    )
+    cloud_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    site_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    site_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    access_token_enc: Mapped[str] = mapped_column(Text, nullable=False)
+    refresh_token_enc: Mapped[str] = mapped_column(Text, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    scopes: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    connected_by_account_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("account.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, nullable=False
+    )
+
+
+class WorkspaceJiraProject(Base):
+    """A Jira project a workspace selected from its connected site."""
+
+    __tablename__ = "workspace_jira_project"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "project_id", name="uq_workspace_jira_project"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    workspace_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    jira_connection_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("jira_connection.id", ondelete="CASCADE"), nullable=False
+    )
+    # Jira's numeric project id, stable across key changes.
+    project_id: Mapped[str] = mapped_column(String(32), nullable=False)
+    key: Mapped[str] = mapped_column(String(64), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    added_by_account_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("account.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, nullable=False
     )

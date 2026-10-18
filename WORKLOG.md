@@ -60,6 +60,37 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-19 | Keshan | Workspaces W4: Atlassian connection
+Status: IN_PROGRESS
+
+### Completed
+1. `app/integrations/atlassian.py`: consent URL with read-only scopes (`read:jira-work`,
+   `read:jira-user`, `offline_access`), code exchange, refresh, accessible sites, project
+   list. Token-endpoint calls are made once, never retried: Atlassian rotates the refresh
+   token, and a retried refresh would present a replaced token.
+2. `app/integrations/crypto.py`: Fernet encryption with `CREDENTIAL_ENCRYPTION_KEY`.
+   `jira_tokens.valid_access_token` refreshes under a row lock and writes both new tokens
+   in 1 commit. A rejected refresh marks the connection `auth_failed` and raises.
+3. Connect Jira flow, sharing the GitHub state and ownership helpers: signed 15 minute
+   state, owner check, encrypted token storage, 1 site per workspace (chosen from the
+   reachable sites when there are several), project picker checked against Atlassian,
+   disconnect deletes the tokens.
+4. Migration `0004_jira_connections`: `jira_connection`, `workspace_jira_project`. Verified
+   up, down, up on PostgreSQL 15; applied locally.
+5. `.env.example` gains the GitHub App (missed in W3) and Atlassian settings.
+6. Tests: encryption, consent scopes, single refresh attempt, site filtering, pagination,
+   refresh and rotation, auth_failed, every state tamper case, site choice, tampered
+   project ids, failure shown not empty, disconnect.
+
+### Problems
+Not verified against the real Atlassian app yet: it needs `ATLASSIAN_CLIENT_ID`,
+`ATLASSIAN_CLIENT_SECRET` and `CREDENTIAL_ENCRYPTION_KEY` in `.env`.
+
+### Next Step
+Real consent round trip on `keshanuni.atlassian.net`, then W5 (per-workspace sync).
+
+---
+
 ## 2026-10-19 | Keshan | Jira search moved to /rest/api/3/search/jql
 Status: IN_REVIEW
 

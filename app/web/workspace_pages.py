@@ -15,7 +15,12 @@ from pydantic import ValidationError
 from sqlalchemy import func, select
 
 from app.models.canonical import AppUser
-from app.models.connections import GitHubInstallation, WorkspaceRepository
+from app.models.connections import (
+    GitHubInstallation,
+    JiraConnection,
+    WorkspaceJiraProject,
+    WorkspaceRepository,
+)
 from app.models.workspace import Account
 from app.schemas.workspace import WorkspaceCreate
 from app.web.auth import DbDep
@@ -37,6 +42,13 @@ def _github_message(code: str) -> str | None:
     return GITHUB_MESSAGES.get(code)
 
 
+def _jira_message(code: str) -> str | None:
+    """Fixed copy for a ?jira= outcome code. Imported late, as above."""
+    from app.web.jira_connections import JIRA_MESSAGES
+
+    return JIRA_MESSAGES.get(code)
+
+
 def _base_context(request: Request, db: Any, account: Account, nav_current: str) -> dict:
     """What base.html needs. actor is the transitional app_user linked to the account."""
     actor = db.get(AppUser, account.app_user_id) if account.app_user_id else None
@@ -56,6 +68,7 @@ def portfolio_home(request: Request, account: AccountDep, db: DbDep) -> HTMLResp
     context = _base_context(request, db, account, "workspaces")
     context["workspaces"] = list_workspaces_for(db, account)
     context["github_message"] = _github_message(request.query_params.get("github", ""))
+    context["jira_message"] = _jira_message(request.query_params.get("jira", ""))
     return templates.TemplateResponse(request=request, name="workspaces.html", context=context)
 
 
@@ -120,6 +133,16 @@ def workspace_page(request: Request, access: ViewerAccess, db: DbDep) -> HTMLRes
             )
             or 0,
             "github_message": _github_message(request.query_params.get("github", "")),
+            "jira_message": _jira_message(request.query_params.get("jira", "")),
+            "jira": db.scalar(
+                select(JiraConnection).where(JiraConnection.workspace_id == access.workspace.id)
+            ),
+            "jira_project_count": db.scalar(
+                select(func.count(WorkspaceJiraProject.id)).where(
+                    WorkspaceJiraProject.workspace_id == access.workspace.id
+                )
+            )
+            or 0,
         }
     )
     return templates.TemplateResponse(request=request, name="workspace.html", context=context)

@@ -75,6 +75,24 @@ class Settings(BaseSettings):
         description="The App's PEM private key, base64 encoded on 1 line.",
         repr=False,
     )
+    # Atlassian OAuth 2.0 (3LO) for per-workspace Jira connections (DEC-023).
+    atlassian_client_id: str = Field(
+        default="",
+        validation_alias=AliasChoices("ATLASSIAN_CLIENT_ID", "atlassian_client_id"),
+        description="Client id of the headref Atlassian OAuth 2.0 app.",
+    )
+    atlassian_client_secret: str = Field(
+        default="",
+        validation_alias=AliasChoices("ATLASSIAN_CLIENT_SECRET", "atlassian_client_secret"),
+        description="Client secret of the headref Atlassian OAuth 2.0 app.",
+        repr=False,
+    )
+    credential_encryption_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("CREDENTIAL_ENCRYPTION_KEY", "credential_encryption_key"),
+        description="Fernet key that encrypts stored connection tokens.",
+        repr=False,
+    )
     session_secret: str = Field(
         default="",
         validation_alias=AliasChoices("SESSION_SECRET", "session_secret"),
@@ -95,6 +113,15 @@ class Settings(BaseSettings):
         if isinstance(value, str) and not value.strip():
             return cls.model_fields[info.field_name].default
         return value
+
+    @property
+    def atlassian_enabled(self) -> bool:
+        """True if the Atlassian app and the encryption key are all configured."""
+        return bool(
+            self.atlassian_client_id
+            and self.atlassian_client_secret
+            and self.credential_encryption_key
+        )
 
     @property
     def github_app_enabled(self) -> bool:

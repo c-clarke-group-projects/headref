@@ -6,7 +6,8 @@
     workspace (Workspace), role ("owner" | "manager" | "viewer"),
     can_manage (bool), is_owner (bool), my_workspaces (list[WorkspaceOut]),
     github_accounts (list of installation account logins), github_repo_count (int),
-    github_message (fixed copy or None)
+    github_message, jira_message (fixed copy or None),
+    jira (JiraConnection or None), jira_project_count (int)
   Nothing here is invented: a section that has no data yet says why.
 #}
 {% extends "base.html" %}
@@ -40,9 +41,9 @@
 {% endblock %}
 
 {% block banners %}
-{% if github_message %}
-<div class="banners"><div class="banner" role="status"><span class="banner__dot" aria-hidden="true"></span><span>{{ github_message }}</span></div></div>
-{% endif %}
+{% for message in [github_message, jira_message] if message %}
+<div class="banners"><div class="banner" role="status"><span class="banner__dot" aria-hidden="true"></span><span>{{ message }}</span></div></div>
+{% endfor %}
 {% endblock %}
 
 {% block content %}
@@ -71,15 +72,32 @@
       </div>
       <div class="ws-conn__row">
         <span class="ws-conn__name">{{ i.source_icon("jira", 18) }} Jira</span>
-        <span class="badge badge--sm badge--unknown">Not connected</span>
-        <span class="caption">No Jira projects in this workspace yet.</span>
-        {% if is_owner %}<button type="button" class="btn btn--quiet btn--sm" disabled aria-describedby="conn-soon">Connect Jira</button>{% endif %}
+        {% if jira and jira.status == "active" %}
+          <span class="badge badge--sm badge--on-track">Connected</span>
+          <span class="caption">{{ jira.site_name }}: {{ jira_project_count }} project{{ "s" if jira_project_count != 1 }} selected{% if jira_project_count == 0 %}. Choose at least 1 to sync{% endif %}.</span>
+          {% if is_owner %}<a class="btn btn--quiet btn--sm" href="/w/{{ workspace.id }}/connections/jira">Manage projects</a>{% endif %}
+        {% elif jira and jira.status == "pending_site" %}
+          <span class="badge badge--sm badge--unknown">Choose a site</span>
+          <span class="caption">Signed in to Atlassian; no Jira site chosen yet.</span>
+          {% if is_owner %}<a class="btn btn--quiet btn--sm" href="/w/{{ workspace.id }}/connections/jira">Choose site</a>{% endif %}
+        {% elif jira and jira.status == "auth_failed" %}
+          <span class="badge badge--sm badge--blocked">Reconnect needed</span>
+          <span class="caption">Atlassian no longer accepts this connection. Jira data is unavailable, not empty.</span>
+          {% if is_owner %}<a class="btn btn--quiet btn--sm" href="/w/{{ workspace.id }}/connections/jira">Reconnect</a>{% endif %}
+        {% else %}
+          <span class="badge badge--sm badge--unknown">Not connected</span>
+          <span class="caption">No Jira projects in this workspace yet.</span>
+          {% if is_owner %}
+            <form method="post" action="/w/{{ workspace.id }}/connections/jira/start">
+              <button type="submit" class="btn btn--quiet btn--sm">Connect Jira</button>
+            </form>
+          {% endif %}
+        {% endif %}
       </div>
     </div>
-    <p class="caption" id="conn-soon" style="margin-top: var(--s-4)">
-      {% if is_owner %}Connecting Jira projects to a workspace is not available yet.
-      {% else %}The workspace owner connects repositories and Jira projects.{% endif %}
-    </p>
+    {% if not is_owner %}
+    <p class="caption" style="margin-top: var(--s-4)">The workspace owner connects repositories and Jira projects.</p>
+    {% endif %}
     <div class="ws-sync">
       {% if can_manage %}<button type="button" class="btn btn--primary" disabled aria-describedby="sync-reason">Sync now</button>{% endif %}
       <span class="caption" id="sync-reason">Nothing to sync: connect a repository or a Jira project first.</span>

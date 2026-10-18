@@ -6,7 +6,12 @@ Exports Base and all models for centralized schema registration and Alembic disc
 from app.db import Base
 from app.models.agent import AgentRun, Insight
 from app.models.canonical import AppUser, Organization, Project, Repository, Team
-from app.models.connections import GitHubInstallation, WorkspaceRepository
+from app.models.connections import (
+    GitHubInstallation,
+    JiraConnection,
+    WorkspaceJiraProject,
+    WorkspaceRepository,
+)
 from app.models.identity import IdentityLink, UnmatchedEntity
 from app.models.operations import SyncCursor, SyncRun
 from app.models.work import (
@@ -43,4 +48,6 @@ __all__ = [
     "WorkspaceMember",
     "GitHubInstallation",
     "WorkspaceRepository",
+    "JiraConnection",
+    "WorkspaceJiraProject",
 ]

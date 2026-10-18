@@ -124,7 +124,7 @@ def test_another_accounts_workspace_page_is_404(client, db_session):
     assert "Secret project" not in response.text
 
 
-def test_the_owner_can_connect_github_and_sees_the_rest_disabled(client, db_session):
+def test_the_owner_can_connect_both_sources_and_sync_is_disabled(client, db_session):
     user, account = _account(db_session, 101, "lead-a")
     workspace = _workspace(db_session, account, "Payments")
     log_in(client, user.id)
@@ -132,11 +132,11 @@ def test_the_owner_can_connect_github_and_sees_the_rest_disabled(client, db_sess
     html = client.get(f"/w/{workspace.id}").text
 
     assert f'action="/w/{workspace.id}/connections/github/start"' in html
-    assert "Connect Jira" in html
+    assert f'action="/w/{workspace.id}/connections/jira/start"' in html
     assert "Sync now" in html
     assert "connect a repository or a Jira project first" in html
-    # Jira connection and Sync are not built yet: shown disabled, with the reason.
-    assert html.count("disabled") >= 2
+    # Sync is not built yet (W5): shown disabled, with the reason.
+    assert "disabled" in html
 
 
 def test_a_viewer_sees_no_connect_or_sync_buttons(client, db_session):
