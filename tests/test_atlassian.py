@@ -252,3 +252,11 @@ def test_an_auth_failed_connection_is_not_refreshed_again(db_session):
         jira_tokens.valid_access_token(db_session, connection.id, client, now=NOW)
 
     assert client.calls == []
+
+
+@respx.mock
+def test_a_token_response_without_tokens_is_a_typed_failure():
+    respx.post(atlassian.TOKEN_URL).mock(return_value=Response(200, json={"error": "x"}))
+
+    with pytest.raises(UpstreamError):
+        AtlassianClient().exchange_code("code-1", "http://localhost:8108/cb")

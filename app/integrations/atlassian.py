@@ -15,6 +15,7 @@ from urllib.parse import urlencode
 import httpx
 
 from app.config import HTTP_MAX_ATTEMPTS, HTTP_TIMEOUT_SECONDS, get_settings
+from app.integrations.errors import UpstreamError
 from app.integrations.http import HttpClient
 
 logger = logging.getLogger("headref.integrations.atlassian")
@@ -23,6 +24,8 @@ AUTHORIZE_URL = "https://auth.atlassian.com/authorize"
 TOKEN_URL = "https://auth.atlassian.com/oauth/token"  # noqa: S105  a URL, not a secret
 API_URL = "https://api.atlassian.com"
 SCOPES = "read:jira-work read:jira-user offline_access"
+# A site with more projects than this is cut off, and the cut is logged.
+MAX_PROJECT_PAGES = 40
 
 
 @dataclass(frozen=True)
@@ -61,6 +64,9 @@ def authorize_url(client_id: str, redirect_uri: str, state: str) -> str:
 
 
 def _token_set(data: dict[str, Any], now: datetime) -> TokenSet:
+    """Tokens from a token-endpoint response; a malformed one is a typed failure."""
+    if not data.get("access_token") or not data.get("refresh_token"):
+        raise UpstreamError("Atlassian token response is missing a token", status_code=None)
     return TokenSet(
         access_token=str(data["access_token"]),
         refresh_token=str(data["refresh_token"]),
@@ -147,7 +153,7 @@ class AtlassianClient:
         """Jira projects on a site, as {id, key, name}, following isLast pages."""
         projects: list[dict[str, str]] = []
         start_at = 0
-        while True:
+        for _ in range(MAX_PROJECT_PAGES):
             data = self._api_http.get(
                 f"/ex/jira/{cloud_id}/rest/api/3/project/search",
                 headers={"Authorization": f"Bearer {access_token}"},
@@ -161,3 +167,7 @@ class AtlassianClient:
             if data.get("isLast", True) or not values:
                 return projects
             start_at += len(values)
+        logger.warning(
+            "jira project list cut at %s pages: cloud_id=%s", MAX_PROJECT_PAGES, cloud_id
+        )
+        return projects

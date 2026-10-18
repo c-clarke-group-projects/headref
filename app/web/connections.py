@@ -152,7 +152,16 @@ def owns_workspace(db: Any, workspace_id: int, account_id: int) -> bool:
 
 @connections_pages.get("/connections/github/setup")
 def github_setup_callback(request: Request, account: AccountDep, db: DbDep) -> Response:
-    """Attach a new installation to the workspace named in the verified state."""
+    """Attach a new installation to the workspace named in the verified state.
+
+    The state cookie is deleted whatever the outcome, so a state is used at most once.
+    """
+    response = _github_setup(request, account, db)
+    response.delete_cookie(INSTALL_STATE_COOKIE)
+    return response
+
+
+def _github_setup(request: Request, account: Any, db: Any) -> Response:
     params = request.query_params
     setup_action = params.get("setup_action", "")
     installation_raw = params.get("installation_id", "")
@@ -234,9 +243,7 @@ def github_setup_callback(request: Request, account: AccountDep, db: DbDep) -> R
         workspace_id,
         installation.installation_id,
     )
-    response = _to_picker(workspace_id, "connected")
-    response.delete_cookie(INSTALL_STATE_COOKIE)
-    return response
+    return _to_picker(workspace_id, "connected")
 
 
 def _installations(db: Any, workspace_id: int) -> list[GitHubInstallation]:

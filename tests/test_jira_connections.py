@@ -293,3 +293,23 @@ def test_the_workspace_page_shows_the_jira_connection(client, db_session, fake):
 
     assert "keshanuni: 1 project selected" in html
     assert "Manage projects" in html
+
+
+@pytest.mark.parametrize("outcome", ["bad_state", "denied", "upstream"])
+def test_the_state_cookie_is_cleared_whatever_the_outcome(client, db_session, fake, outcome):
+    _, workspace = _owner(db_session, client)
+    state = _start(client, workspace.id)
+    extra = "&code=code-1"
+    if outcome == "bad_state":
+        state = "x" + state
+    elif outcome == "denied":
+        extra = "&error=access_denied"
+    else:
+        fake.fail = True
+
+    response = _callback(client, state, extra=extra)
+
+    assert f"jira={outcome}" in response.headers["location"]
+    cleared = response.headers.get("set-cookie", "")
+    assert jira_connections.JIRA_STATE_COOKIE in cleared
+    assert "Max-Age=0" in cleared or "expires=Thu, 01 Jan 1970" in cleared

@@ -103,7 +103,16 @@ def start_jira_connect(request: Request, access: OwnerAccess) -> Response:
 
 @jira_pages.get("/connections/jira/callback", name="jira_callback")
 def jira_callback(request: Request, account: AccountDep, db: DbDep) -> Response:
-    """Exchange the code, store the tokens encrypted, and choose the site if only 1."""
+    """Exchange the code, store the tokens encrypted, and choose the site if only 1.
+
+    The state cookie is deleted whatever the outcome, so a state is used at most once.
+    """
+    response = _jira_callback(request, account, db)
+    response.delete_cookie(JIRA_STATE_COOKIE)
+    return response
+
+
+def _jira_callback(request: Request, account: Any, db: Any) -> Response:
     params = request.query_params
     workspace_id = workspace_from_state(
         params.get("state"), request.cookies.get(JIRA_STATE_COOKIE), account.id
@@ -123,6 +132,8 @@ def jira_callback(request: Request, account: AccountDep, db: DbDep) -> Response:
     except IntegrationError as exc:
         logger.warning("jira callback upstream failure: %s", exc.error_type)
         return _to(workspace_id, "upstream")
+    except CredentialError:
+        return _to(workspace_id, "not_configured")
     if not sites:
         return _to(workspace_id, "no_sites")
 
@@ -150,9 +161,7 @@ def jira_callback(request: Request, account: AccountDep, db: DbDep) -> Response:
         code = "choose_site"
     db.commit()
     logger.info("jira connected: workspace_id=%s status=%s", workspace_id, connection.status)
-    response = _to(workspace_id, code, picker=True)
-    response.delete_cookie(JIRA_STATE_COOKIE)
-    return response
+    return _to(workspace_id, code, picker=True)
 
 
 @jira_pages.get("/w/{workspace_id}/connections/jira", response_class=HTMLResponse)
@@ -220,6 +229,8 @@ async def choose_jira_site(request: Request, access: OwnerAccess, db: DbDep) -> 
         }
     except IntegrationError:
         return _to(workspace_id, "upstream", picker=True)
+    except CredentialError:
+        return _to(workspace_id, "auth_failed", picker=True)
     site = sites.get(cloud_id)
     if site is None:
         return _to(workspace_id, "invalid_selection", picker=True)
@@ -251,6 +262,8 @@ async def save_jira_projects(request: Request, access: OwnerAccess, db: DbDep) -
         }
     except IntegrationError:
         return _to(workspace_id, "upstream", picker=True)
+    except CredentialError:
+        return _to(workspace_id, "auth_failed", picker=True)
     if not wanted <= set(available):
         return _to(workspace_id, "invalid_selection", picker=True)
     connection = _connection(db, workspace_id)
