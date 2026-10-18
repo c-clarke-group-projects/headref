@@ -24,11 +24,12 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.schemas.insight import (
+    ActivitySummary,
     EvidenceItem,
     Insight,
     MemberInsight,
 )
-from app.schemas.tools import SourceHealthOut, WorkItemOut
+from app.schemas.tools import PullRequestOut, SourceHealthOut, WorkItemOut
 from app.web import auth, routes
 
 
@@ -171,9 +172,8 @@ def test_member_page_renders_claims_and_confidence(client: TestClient):
     assert "High confidence" in html
     assert re.search(r"\d+\s*%", html) is None, "Numeric confidence must never appear"
 
-    # The activity card and its context note are not asserted here. MemberInsight has
-    # no activity field yet (gap G3), so the card never renders. The assertion belongs
-    # with the field, not before it.
+    # No activity on the insight, so no activity card and no counts.
+    assert "Recent activity" not in html
 
     # Assigned work table
     assert "AUTH-245" in html
@@ -211,3 +211,59 @@ def test_member_page_fallback_notice_rendered(client: TestClient):
 
     assert response.status_code == 200
     assert "AI reasoning is temporarily unavailable, showing recorded facts only." in response.text
+    assert "Written by the local model" not in response.text
+
+
+def _unlinked_pr() -> PullRequestOut:
+    return PullRequestOut(
+        pull_request_id=90,
+        number=190,
+        repo_full_name="keshan-dev/headref",
+        title="chore: tidy",
+        state="open",
+        is_draft=False,
+        branch_name="chore/tidy",
+        review_state="none",
+        checks_state="passing",
+        created_at=NOW - timedelta(days=2),
+        source_updated_at=NOW - timedelta(days=1),
+        retrieved_at=NOW,
+        source_url="https://github.com/keshan-dev/headref/pull/190",
+    )
+
+
+def test_member_page_activity_counts_carry_the_context_note(client: TestClient):
+    _log_in(client, 1)
+    insight = _sample_insight("current_work")
+    insight.activity = ActivitySummary(
+        window_days=14,
+        open_pull_requests=2,
+        commits=7,
+        reviews_given=3,
+        unlinked_pull_requests=[_unlinked_pr()],
+    )
+
+    with patch("app.web.routes.run_agent", new_callable=AsyncMock) as mock_agent:
+        mock_agent.return_value = insight
+        html = client.get("/members/2?question=current_work").text
+
+    assert "Recent activity" in html
+    assert "Last 14 days" in html
+    assert '<span class="activity__num">7</span>commits' in html
+    assert '<span class="activity__num">3</span>reviews given' in html
+    assert "These counts are context, not a measure of productivity." in html
+    assert "https://github.com/keshan-dev/headref/pull/190" in html
+    assert re.search(r"\d+\s*%", html) is None
+
+
+def test_member_page_discloses_truncation(client: TestClient):
+    _log_in(client, 1)
+    insight = _sample_insight("current_work")
+    insight.activity = ActivitySummary(window_days=14, commits=100)
+    insight.truncated = {"commits": 100}
+
+    with patch("app.web.routes.run_agent", new_callable=AsyncMock) as mock_agent:
+        mock_agent.return_value = insight
+        html = client.get("/members/2?question=current_work").text
+
+    assert "Showing the most recent 100 commits." in html

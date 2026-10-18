@@ -2,6 +2,7 @@
 
 from app.schemas.errors import ToolErrorType, ToolFailure
 from app.schemas.insight import (
+    ActivitySummary,
     AttentionItem,
     Claim,
     EvidenceItem,
@@ -37,6 +38,7 @@ from app.schemas.tools import (
 )
 
 __all__ = [
+    "ActivitySummary",
     "AttentionItem",
     "Claim",
     "CommitOut",

@@ -190,7 +190,7 @@
         <p class="activity__row"><span class="activity__num">{{ a.commits }}</span>commit{{ "s" if a.commits != 1 }}</p>
         <p class="activity__row"><span class="activity__num">{{ a.reviews_given }}</span>review{{ "s" if a.reviews_given != 1 }} given</p>
       </div>
-      {% if insight.truncated is defined and insight.truncated %}{{ n.truncated_notice(100, "commits") }}{% endif %}
+      {% if insight.truncated is defined and insight.truncated %}{% for things, cap in insight.truncated.items() %}{{ n.truncated_notice(cap, things) }}{% endfor %}{% endif %}
       <p class="activity__note">These counts are context, not a measure of productivity. Pair programming, design, debugging, mentoring and review discussion are not fully visible in commits.</p>
       {% for pr in a.unlinked_pull_requests %}
         <p style="margin-top: var(--s-3); font-size: var(--fs-small)">Pull request <a href="{{ pr.source_url|external_url }}" target="_blank" rel="noopener noreferrer">{{ pr.number }}</a> is not linked to any Jira work item.</p>

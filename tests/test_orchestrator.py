@@ -14,6 +14,8 @@ from app.agent.orchestrator import (
     AgentRunContext,
     ReadTools,
     RetrievalResult,
+    build_activity,
+    build_truncated,
     github_current_work,
     run_agent,
     run_s1_s2,
@@ -288,6 +290,43 @@ def test_a_truncated_commit_result_is_passed_on() -> None:
     context = _run("current_work", tools)
 
     assert context.retrieval.commits_truncated is True
+    assert build_truncated(context) == {"commits": 100}
+
+
+def test_an_untruncated_result_reports_no_truncation() -> None:
+    tools, _, _ = make_tools(commits=[_commit()])
+    assert build_truncated(_run("current_work", tools)) is None
+
+
+def test_activity_counts_only_this_members_rows_inside_the_window() -> None:
+    old_commit = _commit()
+    old_commit.committed_at = NOW - timedelta(days=90)  # an empty-window fallback row
+    review_given = _review()
+    review_given.reviewer_user_id = 5
+    review_received = _review()
+    review_received.reviewer_user_id = 9
+    unlinked = _pull_request(8)
+    tools, _, _ = make_tools(
+        pull_requests=[_pull_request(7), unlinked],
+        commits=[_commit(), old_commit],
+        reviews=[review_given, review_received],
+        links=[_link()],  # links pull request 7 only
+    )
+
+    activity = build_activity(_run("current_work", tools), 5)
+
+    assert activity is not None
+    assert activity.window_days == PLANS["current_work"].window_days
+    assert activity.open_pull_requests == 2
+    assert activity.commits == 1
+    assert activity.reviews_given == 1
+    assert [pr.pull_request_id for pr in activity.unlinked_pull_requests] == [8]
+
+
+def test_activity_is_withheld_when_a_tool_it_needs_failed() -> None:
+    """Short counts would read as less activity, so none are shown (rule 9)."""
+    tools, _, _ = make_tools(commits=[_commit()], failures={"T-005": _failure("T-005")})
+    assert build_activity(_run("current_work", tools), 5) is None
 
 
 def test_links_are_looked_up_from_the_retrieved_ids() -> None:

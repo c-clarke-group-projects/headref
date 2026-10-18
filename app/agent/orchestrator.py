@@ -36,7 +36,7 @@ from app.agent.risks import detect_risks
 from app.agent.validation import validate_narrative
 from app.config import get_settings
 from app.schemas.errors import ToolFailure
-from app.schemas.insight import EvidenceItem, Insight, MemberInsight
+from app.schemas.insight import ActivitySummary, EvidenceItem, Insight, MemberInsight
 from app.schemas.tools import (
     CommitOut,
     GetAssignedWorkItemsInput,
@@ -95,6 +95,7 @@ class RetrievalResult(BaseModel):
     pull_requests: list[PullRequestOut] = Field(default_factory=list)
     commits: list[CommitOut] = Field(default_factory=list)
     commits_truncated: bool = False
+    commits_limit: int | None = None
     reviews: list[ReviewOut] = Field(default_factory=list)
     links: list[WorkItemLinkOut] = Field(default_factory=list)
     tools_called: list[str] = Field(default_factory=list)
@@ -223,6 +224,7 @@ def _retrieve(
         if output is not None:
             retrieval.commits = list(output.commits)
             retrieval.commits_truncated = output.truncated
+            retrieval.commits_limit = commit_data.limit
 
     if allowed("T-005"):
         review_data = GetReviewsInput(
@@ -425,6 +427,62 @@ def github_current_work(
         ),
         evidence=cited,
     )
+
+
+# Tools the activity counts are built from. If any failed or did not run, the counts
+# would be silently short, so no counts are shown (rule 9). T-006 is only needed when
+# there are pull requests to check for links.
+ACTIVITY_TOOLS = ("T-003", "T-004", "T-005")
+LINKS_TOOL = "T-006"
+
+
+def _in_window(moment: datetime | None, context: AgentRunContext) -> bool:
+    if moment is None:
+        return False
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=UTC)
+    return context.window_start <= moment <= context.window_end
+
+
+def build_activity(context: AgentRunContext, subject_user_id: int) -> ActivitySummary | None:
+    """Count this member's own activity inside the window, by code.
+
+    Rows a tool returned from outside the window (its empty window fallback) are not
+    counted, so the card never states more activity for the window than happened.
+    """
+    retrieval = context.retrieval
+    failed = {f.tool_id for f in context.failures}
+    needed = [*ACTIVITY_TOOLS, LINKS_TOOL] if retrieval.pull_requests else list(ACTIVITY_TOOLS)
+    if any(t in failed or t not in retrieval.tools_called for t in needed):
+        return None
+
+    pull_requests = [
+        pr for pr in retrieval.pull_requests if _in_window(pr.source_updated_at, context)
+    ]
+    linked_pr_ids = {
+        link.target_id for link in retrieval.links if link.target_type == "pull_request"
+    }
+    return ActivitySummary(
+        window_days=context.plan.window_days,
+        open_pull_requests=sum(1 for pr in pull_requests if pr.state == "open"),
+        commits=sum(1 for c in retrieval.commits if _in_window(c.committed_at, context)),
+        reviews_given=sum(
+            1
+            for r in retrieval.reviews
+            if r.reviewer_user_id == subject_user_id and _in_window(r.submitted_at, context)
+        ),
+        unlinked_pull_requests=[
+            pr for pr in pull_requests if pr.pull_request_id not in linked_pr_ids
+        ],
+    )
+
+
+def build_truncated(context: AgentRunContext) -> dict[str, int] | None:
+    """Name what a read tool capped and the cap, so the page can say so (FR-023)."""
+    retrieval = context.retrieval
+    if retrieval.commits_truncated and retrieval.commits_limit:
+        return {"commits": retrieval.commits_limit}
+    return None
 
 
 async def run_agent(
@@ -698,6 +756,8 @@ async def run_agent(
         source_health=list(context.health),
         summary=validated.summary,
         fallback_used=narrative_res.fallback_used or validated.fallback_used,
+        activity=build_activity(context, subject_user_id),
+        truncated=build_truncated(context),
     )
 
     # Why the narrative was not used, if it was not: the model call failed, or the

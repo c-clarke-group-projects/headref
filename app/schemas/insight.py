@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.schemas.tools import SourceHealthOut, WorkItemOut
+from app.schemas.tools import PullRequestOut, SourceHealthOut, WorkItemOut
 
 
 class EvidenceItem(BaseModel):
@@ -116,6 +116,23 @@ class Insight(BaseModel):
         return data
 
 
+class ActivitySummary(BaseModel):
+    """This member's own activity counts inside the window (Gap G3).
+
+    Context for the reader, never a score: no totals across members, no averages and
+    no trend (CLAUDE.md rule 15, AI_BEHAVIOR.md 5.11).
+    """
+
+    window_days: int = Field(description="Length of the window the counts cover")
+    open_pull_requests: int = Field(default=0, description="Open pull requests in the window")
+    commits: int = Field(default=0, description="Commits in the window")
+    reviews_given: int = Field(default=0, description="Reviews this member gave in the window")
+    unlinked_pull_requests: list[PullRequestOut] = Field(
+        default_factory=list,
+        description="Pull requests in the window with no stored work item link",
+    )
+
+
 class MemberInsight(BaseModel):
     """Full API response contract for a team member's insight view."""
 
@@ -140,6 +157,14 @@ class MemberInsight(BaseModel):
     summary: str | None = Field(default=None, description="Optional high-level narrative summary")
     fallback_used: bool = Field(
         default=False, description="Whether deterministic fallback was used"
+    )
+    activity: ActivitySummary | None = Field(
+        default=None,
+        description="Activity counts, or None when a tool they need failed or was not run",
+    )
+    truncated: dict[str, int] | None = Field(
+        default=None,
+        description="What a read tool capped, mapped to the cap applied, e.g. {'commits': 100}",
     )
 
 
