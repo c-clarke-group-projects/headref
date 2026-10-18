@@ -11,7 +11,6 @@ from typing import Any
 
 import pytest
 from fastapi import FastAPI
-from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 from app.main import app as real_app
@@ -24,7 +23,7 @@ from app.web.auth import (
     require_member_access,
     sign_session,
 )
-from tests.conftest import log_in
+from tests.conftest import iter_api_routes, log_in
 
 
 @dataclass
@@ -59,19 +58,17 @@ def _depends_on(dependant: Any, target: Any) -> bool:
     return False
 
 
-def _is_member_route(route: APIRoute) -> bool:
+def _is_member_route(path: str) -> bool:
     """A member-data route is anything under /api/members/ or with {member_id}."""
-    return route.path.startswith("/api/members/") or "{member_id}" in route.path
+    return path.startswith("/api/members/") or "{member_id}" in path
 
 
 def unguarded_member_routes(application: FastAPI) -> list[str]:
     """Return the paths of member routes that do not use the access guard."""
     return [
-        route.path
-        for route in application.routes
-        if isinstance(route, APIRoute)
-        and _is_member_route(route)
-        and not _depends_on(route.dependant, require_member_access)
+        path
+        for path, dependant in iter_api_routes(application)
+        if _is_member_route(path) and not _depends_on(dependant, require_member_access)
     ]
 
 
@@ -320,4 +317,7 @@ def test_checker_accepts_a_guarded_route(member_app: FastAPI) -> None:
 
 def test_no_member_route_in_the_real_app_bypasses_the_guard() -> None:
     """Every member-data route in the real application uses the access guard."""
+    member_paths = [p for p, _ in iter_api_routes(real_app) if _is_member_route(p)]
+    # Guards against a vacuous pass: this check once saw 0 routes (FastAPI 0.143).
+    assert len(member_paths) >= 3, member_paths
     assert unguarded_member_routes(real_app) == []

@@ -1,6 +1,6 @@
 """Canonical models package.
 
-Exports Base and all 17 models for centralized schema registration and Alembic discovery.
+Exports Base and all models for centralized schema registration and Alembic discovery.
 """
 
 from app.db import Base
@@ -16,6 +16,7 @@ from app.models.work import (
     WorkItemDependency,
     WorkItemLink,
 )
+from app.models.workspace import Account, Workspace, WorkspaceMember
 
 __all__ = [
     "Base",
@@ -36,4 +37,7 @@ __all__ = [
     "AgentRun",
     "SyncRun",
     "SyncCursor",
+    "Account",
+    "Workspace",
+    "WorkspaceMember",
 ]

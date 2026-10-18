@@ -262,6 +262,16 @@ def test_github_callback_successful_login(
         or response.cookies["headref_oauth_state"] == ""
     )
 
+    # Sign-in creates the account, matched on the numeric GitHub id (DEC-021).
+    from sqlalchemy import select
+
+    from app.models.workspace import Account
+
+    account = db_session.scalar(select(Account).where(Account.github_user_id == 219891474))
+    assert account is not None
+    assert account.github_login == "keshan-dev"
+    assert account.app_user_id == user.id
+
 
 def test_repos_page_requires_auth(client: TestClient) -> None:
     """Unauthenticated access to /repos redirects to /login."""

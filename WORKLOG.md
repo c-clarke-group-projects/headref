@@ -60,6 +60,40 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-19 | Keshan | Workspaces W1: accounts, workspaces, isolation core
+Status: IN_PROGRESS
+
+### Completed
+1. Migration `0002_workspaces` (announced in the W0 entry): `account`, `workspace`,
+   `workspace_member` with roles `owner`, `manager`, `viewer`. Additive only. Verified on a
+   throwaway PostgreSQL 15: upgrade, downgrade, upgrade, 1 head. Applied to the local
+   development database.
+2. GitHub sign-in creates or updates the account, matched on the numeric GitHub id.
+   Transitional `account.app_user_id` keeps the existing team and member pages working
+   until W7 replaces them.
+3. `workspace_access(min_role)` in `app/web/workspaces.py` is the only membership check.
+   Not a member, or archived: 404, so existence does not leak. Role too low: 403.
+4. API: `GET /api/workspaces`, `POST /api/workspaces` (caller becomes owner),
+   `GET /api/workspaces/{workspace_id}`.
+5. `tests/test_workspaces.py`: create, list isolation, cross-account 404 equal to a missing
+   id, archived 404, roles, no session and no account 401, account matched on GitHub id, and
+   a check that every `{workspace_id}` route uses `workspace_access`.
+
+### Discovered
+- **The FR-028 route coverage test was passing without checking anything.** FastAPI 0.143
+  keeps an included router as 1 `_IncludedRouter` entry in `app.routes`, so
+  `isinstance(route, APIRoute)` found 0 member routes. `tests/conftest.py`
+  `iter_api_routes` walks both layouts, and the test now asserts it sees at least 3 member
+  routes. They are all guarded.
+- `alembic check` shows 1 pre-existing drift unrelated to this work: migration 0001 names an
+  index `ix_work_item_dependency_blocked_by`, the model names it
+  `ix_work_item_dependency_blocked_by_work_item_id`. Not changed here.
+
+### Next Step
+W2: portfolio home, create workspace page, switcher, account menu.
+
+---
+
 ## 2026-10-19 | Keshan | Workspaces: decisions proposed, real test data (W0)
 Status: IN_PROGRESS
 

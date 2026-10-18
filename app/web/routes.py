@@ -50,6 +50,7 @@ from app.web.auth import (
     sign_session,
 )
 from app.web.ui_format import signal_rows, templates
+from app.web.workspaces import upsert_account
 
 logger = logging.getLogger(__name__)
 
@@ -826,7 +827,15 @@ async def github_callback(
                 user.team_id = team.id
                 db.commit()
 
-    logger.info("GitHub OAuth login successful: user_id=%s gh_login=%s", user.id, gh_login)
+    account = upsert_account(db, gh_user, user.id)
+    db.commit()
+
+    logger.info(
+        "GitHub OAuth login successful: user_id=%s account_id=%s gh_login=%s",
+        user.id,
+        account.id,
+        gh_login,
+    )
     dest_url = "/repos" if next_url == "/" else next_url
     redirect = RedirectResponse(url=dest_url, status_code=status.HTTP_303_SEE_OTHER)
     redirect.set_cookie(

@@ -4,7 +4,10 @@ from app.models import Base
 
 
 def test_table_count_and_names() -> None:
-    """17 tables must be defined, and none named 'user' (DATA_AND_EVIDENCE.md 6.3)."""
+    """20 tables must be defined, and none named 'user' (DATA_AND_EVIDENCE.md 6.3).
+
+    account, workspace and workspace_member added by migration 0002 (DEC-021).
+    """
     table_names = set(Base.metadata.tables.keys())
 
     expected_tables = {
@@ -25,9 +28,12 @@ def test_table_count_and_names() -> None:
         "agent_run",
         "sync_run",
         "sync_cursor",
+        "account",
+        "workspace",
+        "workspace_member",
     }
 
-    assert len(table_names) == 17
+    assert len(table_names) == 20
     assert table_names == expected_tables
     assert "user" not in table_names
     assert "app_user" in table_names
