@@ -16,6 +16,9 @@ dependencies = [
     "tenacity>=9.0",
     "jinja2>=3.1",
     "pyyaml>=6.0",
+    # GitHub App JWTs (DEC-022) and encrypted per-workspace credentials (DEC-023).
+    "pyjwt>=2.8",
+    "cryptography>=42",
 ]
 
 # No LLM SDK. DEC-017: inference is local via Ollama, reached over plain HTTP

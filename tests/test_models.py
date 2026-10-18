@@ -4,9 +4,10 @@ from app.models import Base
 
 
 def test_table_count_and_names() -> None:
-    """20 tables must be defined, and none named 'user' (DATA_AND_EVIDENCE.md 6.3).
+    """22 tables must be defined, and none named 'user' (DATA_AND_EVIDENCE.md 6.3).
 
-    account, workspace and workspace_member added by migration 0002 (DEC-021).
+    account, workspace and workspace_member added by migration 0002 (DEC-021);
+    github_installation and workspace_repository by 0003 (DEC-022).
     """
     table_names = set(Base.metadata.tables.keys())
 
@@ -31,9 +32,11 @@ def test_table_count_and_names() -> None:
         "account",
         "workspace",
         "workspace_member",
+        "github_installation",
+        "workspace_repository",
     }
 
-    assert len(table_names) == 20
+    assert len(table_names) == 22
     assert table_names == expected_tables
     assert "user" not in table_names
     assert "app_user" in table_names

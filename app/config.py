@@ -58,6 +58,23 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("GITHUB_OAUTH_CLIENT_SECRET", "github_oauth_client_secret"),
         description="GitHub OAuth application client secret.",
     )
+    # GitHub App for reading workspace repositories (DEC-022). Sign-in stays OAuth.
+    github_app_id: str = Field(
+        default="",
+        validation_alias=AliasChoices("GITHUB_APP_ID", "github_app_id"),
+        description="Numeric id of the headref GitHub App.",
+    )
+    github_app_slug: str = Field(
+        default="",
+        validation_alias=AliasChoices("GITHUB_APP_SLUG", "github_app_slug"),
+        description="URL slug of the GitHub App, github.com/apps/<slug>.",
+    )
+    github_app_private_key_b64: str = Field(
+        default="",
+        validation_alias=AliasChoices("GITHUB_APP_PRIVATE_KEY_B64", "github_app_private_key_b64"),
+        description="The App's PEM private key, base64 encoded on 1 line.",
+        repr=False,
+    )
     session_secret: str = Field(
         default="",
         validation_alias=AliasChoices("SESSION_SECRET", "session_secret"),
@@ -78,6 +95,24 @@ class Settings(BaseSettings):
         if isinstance(value, str) and not value.strip():
             return cls.model_fields[info.field_name].default
         return value
+
+    @property
+    def github_app_enabled(self) -> bool:
+        """True if the GitHub App id, slug and private key are all configured."""
+        return bool(self.github_app_id and self.github_app_slug and self.github_app_private_key_b64)
+
+    def github_app_private_key(self) -> str:
+        """Decode the App private key. Raises ValueError if it is not valid base64 PEM."""
+        import base64
+        import binascii
+
+        try:
+            pem = base64.b64decode(self.github_app_private_key_b64, validate=True).decode()
+        except (binascii.Error, UnicodeDecodeError) as exc:
+            raise ValueError("GITHUB_APP_PRIVATE_KEY_B64 is not valid base64") from exc
+        if "PRIVATE KEY" not in pem:
+            raise ValueError("GITHUB_APP_PRIVATE_KEY_B64 does not decode to a PEM private key")
+        return pem
 
     @property
     def github_oauth_enabled(self) -> bool:

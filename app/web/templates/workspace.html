@@ -1,10 +1,12 @@
 {#
   Workspace page (W2 shell, DEC-021). Sections fill in later phases:
-    Connections and Sync (W3 to W5), Members (W6), Analysis and member panel (W7),
+    Connections (GitHub in W3, Jira in W4), Sync (W5), Members (W6), Analysis (W7),
     What changed (W8).
   Context: base context plus
     workspace (Workspace), role ("owner" | "manager" | "viewer"),
-    can_manage (bool), is_owner (bool), my_workspaces (list[WorkspaceOut])
+    can_manage (bool), is_owner (bool), my_workspaces (list[WorkspaceOut]),
+    github_accounts (list of installation account logins), github_repo_count (int),
+    github_message (fixed copy or None)
   Nothing here is invented: a section that has no data yet says why.
 #}
 {% extends "base.html" %}
@@ -37,6 +39,12 @@
 </section>
 {% endblock %}
 
+{% block banners %}
+{% if github_message %}
+<div class="banners"><div class="banner" role="status"><span class="banner__dot" aria-hidden="true"></span><span>{{ github_message }}</span></div></div>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <section class="section" aria-labelledby="connections-title">
   <div class="card card--pad-md">
@@ -47,9 +55,19 @@
     <div class="ws-conn">
       <div class="ws-conn__row">
         <span class="ws-conn__name">{{ i.source_icon("github", 18) }} GitHub</span>
-        <span class="badge badge--sm badge--unknown">Not connected</span>
-        <span class="caption">No repositories in this workspace yet.</span>
-        {% if is_owner %}<button type="button" class="btn btn--quiet btn--sm" disabled aria-describedby="conn-soon">Connect GitHub</button>{% endif %}
+        {% if github_accounts %}
+          <span class="badge badge--sm badge--on-track">Connected</span>
+          <span class="caption">{{ github_accounts|join(", ") }}: {{ github_repo_count }} repositor{{ "y" if github_repo_count == 1 else "ies" }} selected{% if github_repo_count == 0 %}. Choose at least 1 to sync{% endif %}.</span>
+          {% if is_owner %}<a class="btn btn--quiet btn--sm" href="/w/{{ workspace.id }}/connections/github">Manage repositories</a>{% endif %}
+        {% else %}
+          <span class="badge badge--sm badge--unknown">Not connected</span>
+          <span class="caption">No repositories in this workspace yet.</span>
+          {% if is_owner %}
+            <form method="post" action="/w/{{ workspace.id }}/connections/github/start">
+              <button type="submit" class="btn btn--quiet btn--sm">Connect GitHub</button>
+            </form>
+          {% endif %}
+        {% endif %}
       </div>
       <div class="ws-conn__row">
         <span class="ws-conn__name">{{ i.source_icon("jira", 18) }} Jira</span>
@@ -59,7 +77,7 @@
       </div>
     </div>
     <p class="caption" id="conn-soon" style="margin-top: var(--s-4)">
-      {% if is_owner %}Connecting repositories and Jira projects to a workspace is not available yet.
+      {% if is_owner %}Connecting Jira projects to a workspace is not available yet.
       {% else %}The workspace owner connects repositories and Jira projects.{% endif %}
     </p>
     <div class="ws-sync">

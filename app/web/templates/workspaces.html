@@ -27,6 +27,12 @@
 </section>
 {% endblock %}
 
+{% block banners %}
+{% if github_message %}
+<div class="banners"><div class="banner banner--unavailable" role="alert"><span class="banner__icon">{{ i.icon("warning", 18) }}</span><span>{{ github_message }}</span></div></div>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <section class="section">
   {% if not workspaces %}

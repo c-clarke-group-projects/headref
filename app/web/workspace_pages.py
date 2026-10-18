@@ -12,8 +12,10 @@ from urllib.parse import parse_qs
 from fastapi import APIRouter, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import ValidationError
+from sqlalchemy import func, select
 
 from app.models.canonical import AppUser
+from app.models.connections import GitHubInstallation, WorkspaceRepository
 from app.models.workspace import Account
 from app.schemas.workspace import WorkspaceCreate
 from app.web.auth import DbDep
@@ -26,6 +28,13 @@ from app.web.workspaces import (
 )
 
 workspace_pages = APIRouter(tags=["workspace pages"])
+
+
+def _github_message(code: str) -> str | None:
+    """Fixed copy for a ?github= outcome code. Imported late: connections imports us."""
+    from app.web.connections import GITHUB_MESSAGES
+
+    return GITHUB_MESSAGES.get(code)
 
 
 def _base_context(request: Request, db: Any, account: Account, nav_current: str) -> dict:
@@ -46,6 +55,7 @@ def portfolio_home(request: Request, account: AccountDep, db: DbDep) -> HTMLResp
     """1 card per workspace the account belongs to. Compares projects, never people."""
     context = _base_context(request, db, account, "workspaces")
     context["workspaces"] = list_workspaces_for(db, account)
+    context["github_message"] = _github_message(request.query_params.get("github", ""))
     return templates.TemplateResponse(request=request, name="workspaces.html", context=context)
 
 
@@ -96,6 +106,20 @@ def workspace_page(request: Request, access: ViewerAccess, db: DbDep) -> HTMLRes
             "can_manage": access.role in ("owner", "manager"),
             "is_owner": access.role == "owner",
             "my_workspaces": list_workspaces_for(db, access.account),
+            "github_accounts": list(
+                db.scalars(
+                    select(GitHubInstallation.account_login)
+                    .where(GitHubInstallation.workspace_id == access.workspace.id)
+                    .order_by(GitHubInstallation.account_login)
+                ).all()
+            ),
+            "github_repo_count": db.scalar(
+                select(func.count(WorkspaceRepository.id)).where(
+                    WorkspaceRepository.workspace_id == access.workspace.id
+                )
+            )
+            or 0,
+            "github_message": _github_message(request.query_params.get("github", "")),
         }
     )
     return templates.TemplateResponse(request=request, name="workspace.html", context=context)

@@ -79,6 +79,23 @@ def _signature(payload: str) -> str:
     return hmac.new(_get_signing_key(), payload.encode(), hashlib.sha256).hexdigest()
 
 
+def sign_value(payload: str) -> str:
+    """Return payload with an HMAC signature, for values that must round-trip unchanged."""
+    return f"{payload}~{_signature(payload)}"
+
+
+def read_signed_value(token: str | None) -> str | None:
+    """Return the payload of a sign_value token, or None if missing or forged."""
+    if not token:
+        return None
+    payload, separator, signature = token.rpartition("~")
+    if not separator or not payload:
+        return None
+    if not hmac.compare_digest(signature.encode(), _signature(payload).encode()):
+        return None
+    return payload
+
+
 def sign_session(user_id: int) -> str:
     """Return a cookie value carrying user_id that cannot be edited undetected."""
     payload = str(user_id)

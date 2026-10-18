@@ -485,6 +485,9 @@ body.drawer-open { overflow: hidden; }
 .ws-conn__name { display: inline-flex; align-items: center; gap: var(--s-2); font-weight: 500; }
 .ws-sync { margin-top: var(--s-5); display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
 .ws-form { max-width: 720px; }
+.repo-pick { margin-top: var(--s-4); list-style: none; display: flex; flex-direction: column; }
+.repo-pick__row { display: flex; align-items: center; gap: var(--s-3); min-height: 44px; padding: var(--s-2) 0; border-top: 1px solid var(--ash); cursor: pointer; overflow-wrap: anywhere; }
+.repo-pick__row input { width: 20px; height: 20px; flex: none; }
 
 /* 24. Responsive */
 @media (max-width: 1023px) {
