@@ -74,7 +74,6 @@ class Settings(BaseSettings):
         """True if GitHub PAT or OAuth credentials are configured."""
         return bool(self.github_token or self.github_oauth_enabled)
 
-
     # -------------------------------------------------------------------------
     # Operational Settings
     # -------------------------------------------------------------------------

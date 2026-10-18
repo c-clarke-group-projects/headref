@@ -126,7 +126,6 @@ def sync_github(
     gh_client: GitHubClient | None = None,
     auto_create_contributors: bool = False,
 ) -> SyncRun:
-
     """Run end-to-end GitHub ingestion, normalization, identity attribution and links."""
     scope = scope or _only_configured_scope(github_scopes(), "GitHub")
     logger.info("Starting GitHub sync for scope=%s, team_id=%d", scope, team_id)
@@ -209,7 +208,6 @@ def sync_github(
             auto_create=auto_create_contributors,
             team_id=team_id,
         )
-
 
         # Link building
         projects = session.scalars(select(Project)).all()

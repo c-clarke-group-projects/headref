@@ -156,4 +156,3 @@ def health() -> Health:
         version="0.1.0",
         checked_at=datetime.now(UTC),
     )
-

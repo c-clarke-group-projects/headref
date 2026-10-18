@@ -79,7 +79,9 @@ def recover_stuck_syncs(
     return has_active_run
 
 
-def resolve_team_scopes(team_id: int, session: Session | None = None) -> tuple[list[str], list[str]]:
+def resolve_team_scopes(
+    team_id: int, session: Session | None = None
+) -> tuple[list[str], list[str]]:
     """GitHub and Jira scopes for a team, as (github, jira)."""
     gh = []
     if session is not None:
@@ -88,7 +90,7 @@ def resolve_team_scopes(team_id: int, session: Session | None = None) -> tuple[l
             if db_repos:
                 gh = [r.full_name for r in db_repos]
         except Exception:
-            pass
+            logger.exception("Could not read onboarded repositories; using GITHUB_REPOS")
     if not gh:
         gh = github_scopes()
     return gh, jira_scopes()

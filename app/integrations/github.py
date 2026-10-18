@@ -139,7 +139,6 @@ class GitHubClient:
         """List organizations for the authenticated user."""
         return self._paginate("/user/orgs", params={"per_page": 100})
 
-
     def list_pull_requests(
         self,
         owner: str,

@@ -118,7 +118,6 @@ def test_github_login_redirects_to_github(client: TestClient, oauth_settings: Se
     assert cookies["headref_oauth_next"].strip('"') == "/teams/1"
 
 
-
 def test_github_login_fails_when_unconfigured(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -258,7 +257,10 @@ def test_github_callback_successful_login(
     assert routes.GITHUB_TOKEN_COOKIE in response.cookies
     assert response.cookies[routes.GITHUB_TOKEN_COOKIE] == "gho_valid_oauth_token"
     assert auth.read_session(response.cookies[auth.SESSION_COOKIE]) == user.id
-    assert "headref_oauth_state" not in response.cookies or response.cookies["headref_oauth_state"] == ""
+    assert (
+        "headref_oauth_state" not in response.cookies
+        or response.cookies["headref_oauth_state"] == ""
+    )
 
 
 def test_repos_page_requires_auth(client: TestClient) -> None:
@@ -269,9 +271,7 @@ def test_repos_page_requires_auth(client: TestClient) -> None:
 
 
 @respx.mock
-def test_repos_page_renders_with_mocked_github(
-    client: TestClient, db_session: Session
-) -> None:
+def test_repos_page_renders_with_mocked_github(client: TestClient, db_session: Session) -> None:
     """Authenticated user visiting /repos sees their organizations and repositories."""
     org = Organization(name="Demo Org")
     db_session.add(org)
@@ -346,11 +346,13 @@ def test_select_repo_triggers_sync_and_redirects(
     sync_called = []
 
     def mock_sync_github(session, team_id, scope, gh_client, auto_create_contributors):
-        sync_called.append({
-            "team_id": team_id,
-            "scope": scope,
-            "auto_create_contributors": auto_create_contributors,
-        })
+        sync_called.append(
+            {
+                "team_id": team_id,
+                "scope": scope,
+                "auto_create_contributors": auto_create_contributors,
+            }
+        )
 
     monkeypatch.setattr(routes, "sync_github", mock_sync_github)
 
@@ -371,9 +373,7 @@ def test_select_repo_triggers_sync_and_redirects(
     assert sync_called[0]["auto_create_contributors"] is True
 
 
-def test_select_repo_rejects_invalid_name(
-    client: TestClient, db_session: Session
-) -> None:
+def test_select_repo_rejects_invalid_name(client: TestClient, db_session: Session) -> None:
     """POST /repos/select rejects invalid repository format."""
     org = Organization(name="Demo Org")
     db_session.add(org)
@@ -400,4 +400,3 @@ def test_select_repo_rejects_invalid_name(
     )
     assert response.status_code == status.HTTP_303_SEE_OTHER
     assert "/repos?error=" in response.headers["location"]
-

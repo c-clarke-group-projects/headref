@@ -141,10 +141,7 @@ def generate_team_overview(
                 ).all()
 
             repo_user_ids = (
-                set(commit_user_ids)
-                | set(pr_user_ids)
-                | set(review_user_ids)
-                | set(owner_user_ids)
+                set(commit_user_ids) | set(pr_user_ids) | set(review_user_ids) | set(owner_user_ids)
             )
         else:
             repo_user_ids = set()
@@ -203,7 +200,9 @@ def generate_team_overview(
         if repository_name:
             repo_lower = repository_name.lower()
             context.retrieval.pull_requests = [
-                pr for pr in context.retrieval.pull_requests if pr.repo_full_name.lower() == repo_lower
+                pr
+                for pr in context.retrieval.pull_requests
+                if pr.repo_full_name.lower() == repo_lower
             ]
             context.retrieval.commits = [
                 c for c in context.retrieval.commits if c.repo_full_name.lower() == repo_lower

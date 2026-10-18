@@ -636,9 +636,7 @@ async def test_a_model_timeout_is_reported_as_a_fallback() -> None:
 
         pr = _pull_request(7)
         pr.author_user_id = user.id
-        tools, _, _ = make_tools(
-            health=[_health("jira"), _health("github")], pull_requests=[pr]
-        )
+        tools, _, _ = make_tools(health=[_health("jira"), _health("github")], pull_requests=[pr])
         client = AsyncMock(spec=httpx.AsyncClient)
         client.post.side_effect = httpx.ReadTimeout("model too slow")
 

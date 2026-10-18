@@ -4,12 +4,12 @@ Validates:
 1. Login page: No 'Select Person' stub dropdown, only GitHub OAuth.
 2. Repos page: Synced repositories appear first at top of list, Jira status card present.
 3. Team overview page: Multi-repo pillbar removed, unmatched accounts card/banner removed.
-4. Jira endpoints: GET /jira, POST /jira/connect, POST /jira/sync, POST /jira/demo, POST /jira/disconnect.
+4. Jira endpoints: GET /jira, POST /jira/sync, POST /jira/demo. Credentials cannot be
+   posted (connect and disconnect are removed).
 """
 
 import os
 from collections.abc import Generator
-from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -78,8 +78,15 @@ def setup_user_and_repos(db_session: Session) -> tuple[AppUser, list[Repository]
     db_session.add(user)
     db_session.flush()
 
-    r1 = Repository(organization_id=org.id, full_name="keshan-dev/headref", default_branch="main", is_active=True)
-    r2 = Repository(organization_id=org.id, full_name="agentdynarq/arka", default_branch="main", is_active=True)
+    r1 = Repository(
+        organization_id=org.id,
+        full_name="keshan-dev/headref",
+        default_branch="main",
+        is_active=True,
+    )
+    r2 = Repository(
+        organization_id=org.id, full_name="agentdynarq/arka", default_branch="main", is_active=True
+    )
     db_session.add_all([r1, r2])
     db_session.commit()
 
@@ -132,7 +139,9 @@ def test_team_page_no_repo_switcher_pillbar_and_no_unmatched_card(
 
 
 def test_repos_page_orders_synced_repos_at_top(
-    client: TestClient, setup_user_and_repos: tuple[AppUser, list[Repository]], monkeypatch: pytest.MonkeyPatch
+    client: TestClient,
+    setup_user_and_repos: tuple[AppUser, list[Repository]],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Repos page must order synced repositories at the top of the list."""
     user, db_repos = setup_user_and_repos
@@ -143,9 +152,24 @@ def test_repos_page_orders_synced_repos_at_top(
     mock_gh = MagicMock()
     mock_gh.list_organizations.return_value = []
     mock_gh.list_repositories.return_value = [
-        {"full_name": "unsynced/alpha", "name": "alpha", "owner": {"login": "unsynced"}, "private": False},
-        {"full_name": "keshan-dev/headref", "name": "headref", "owner": {"login": "keshan-dev"}, "private": False},
-        {"full_name": "unsynced/beta", "name": "beta", "owner": {"login": "unsynced"}, "private": False},
+        {
+            "full_name": "unsynced/alpha",
+            "name": "alpha",
+            "owner": {"login": "unsynced"},
+            "private": False,
+        },
+        {
+            "full_name": "keshan-dev/headref",
+            "name": "headref",
+            "owner": {"login": "keshan-dev"},
+            "private": False,
+        },
+        {
+            "full_name": "unsynced/beta",
+            "name": "beta",
+            "owner": {"login": "unsynced"},
+            "private": False,
+        },
     ]
 
     with patch("app.web.routes.GitHubClient") as mock_gh_cls:

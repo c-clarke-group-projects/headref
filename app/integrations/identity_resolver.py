@@ -13,7 +13,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models.canonical import AppUser, Organization, Team
+from app.models.canonical import AppUser, Team
 from app.models.identity import IdentityLink, UnmatchedEntity
 from app.models.work import Commit, PullRequest, Review, WorkItem
 
@@ -61,7 +61,7 @@ def resolve_actor(
         link = session.scalar(stmt_handle)
 
     if link is not None:
-        if (link.match_method in ("manual", "oauth") or link.verified_at is not None):
+        if link.match_method in ("manual", "oauth") or link.verified_at is not None:
             return link.app_user_id
 
         logger.info(
@@ -268,7 +268,6 @@ def attribute_reviews(
         if user_id is not None:
             attributed += 1
     return attributed
-
 
 
 def attribute_work_items(

@@ -31,7 +31,6 @@ from app.models.identity import IdentityLink, UnmatchedEntity
 from app.models.operations import SyncRun
 from app.scheduler import resolve_team_scopes, run_scheduled_tick
 from app.schemas.errors import ToolFailure
-from app.sync import sync_github, sync_jira
 from app.schemas.insight import MemberInsight, TeamOverview
 from app.schemas.sync import SyncStatus, SyncStatusResponse, SyncTriggerResponse
 from app.schemas.tools import (
@@ -40,6 +39,7 @@ from app.schemas.tools import (
     SourceHealthOut,
     TeamMemberOut,
 )
+from app.sync import sync_github, sync_jira
 from app.tools.get_source_health import get_source_health
 from app.web.auth import (
     SESSION_COOKIE,
@@ -211,7 +211,9 @@ async def trigger_team_sync(
         )
 
     settings = get_settings()
-    gh_token = request.cookies.get(GITHUB_TOKEN_COOKIE) or (settings.github_token if settings else None)
+    gh_token = request.cookies.get(GITHUB_TOKEN_COOKIE) or (
+        settings.github_token if settings else None
+    )
     task = asyncio.create_task(asyncio.to_thread(_do_background_sync, team_id, gh_token))
     _BACKGROUND_SYNCS.add(task)
     task.add_done_callback(_BACKGROUND_SYNCS.discard)
@@ -322,7 +324,9 @@ def _render_team_page(
         },
     )
     if selected_repo:
-        response.set_cookie("headref_active_repo", selected_repo, max_age=86400 * 30, samesite="lax")
+        response.set_cookie(
+            "headref_active_repo", selected_repo, max_age=86400 * 30, samesite="lax"
+        )
     elif repo_param == "all":
         response.delete_cookie("headref_active_repo")
     return response
@@ -450,7 +454,9 @@ async def get_member_page(
         },
     )
     if selected_repo:
-        response.set_cookie("headref_active_repo", selected_repo, max_age=86400 * 30, samesite="lax")
+        response.set_cookie(
+            "headref_active_repo", selected_repo, max_age=86400 * 30, samesite="lax"
+        )
     return response
 
 
@@ -600,9 +606,8 @@ def safe_next(value: str | None) -> str:
 
 OAUTH_STATE_COOKIE = "headref_oauth_state"
 OAUTH_NEXT_COOKIE = "headref_oauth_next"
-GITHUB_TOKEN_COOKIE = "headref_gh_token"
+GITHUB_TOKEN_COOKIE = "headref_gh_token"  # noqa: S105  a cookie name, not a secret
 REPO_NAME_REGEX = re.compile(r"^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$")
-
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -640,7 +645,10 @@ def github_login(
     """Redirect to GitHub OAuth authorize endpoint with CSRF state token."""
     settings = get_settings()
     if not settings.github_oauth_enabled:
-        err = "GitHub OAuth is not configured. Set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET in .env."
+        err = (
+            "GitHub OAuth is not configured. "
+            "Set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET in .env."
+        )
         return RedirectResponse(
             url=f"/login?error={urlencode({'e': err})[2:]}",
             status_code=status.HTTP_303_SEE_OTHER,
@@ -727,7 +735,9 @@ async def github_callback(
                     token_resp.status_code,
                     token_resp.text,
                 )
-                return _login_err(f"GitHub token exchange returned status {token_resp.status_code}.")
+                return _login_err(
+                    f"GitHub token exchange returned status {token_resp.status_code}."
+                )
 
             token_data = token_resp.json()
             access_token = token_data.get("access_token")
@@ -746,7 +756,6 @@ async def github_callback(
                     "Authorization": f"Bearer {access_token}",
                     "Accept": "application/vnd.github+json",
                     "User-Agent": "Headref-Intelligence-Agent",
-
                 },
             )
             if user_resp.status_code != 200:
@@ -849,7 +858,6 @@ async def github_callback(
     return redirect
 
 
-
 @router.post("/login")
 async def post_login(
     request: Request,
@@ -916,7 +924,9 @@ def get_repos_page(
 ) -> HTMLResponse:
     """Repository and organization selection page for Headref."""
     settings = get_settings()
-    token = request.cookies.get(GITHUB_TOKEN_COOKIE) or (settings.github_token if settings else None)
+    token = request.cookies.get(GITHUB_TOKEN_COOKIE) or (
+        settings.github_token if settings else None
+    )
 
     orgs: list[dict[str, Any]] = []
     repos: list[dict[str, Any]] = []
@@ -929,50 +939,66 @@ def get_repos_page(
                 repos = gh.list_repositories()
         except Exception as exc:
             logger.warning("Failed to fetch GitHub organizations or repos: %s", exc)
-            fetch_error = "Could not fetch fresh repositories from GitHub. You may still manually specify a repository."
+            fetch_error = (
+                "Could not fetch fresh repositories from GitHub. "
+                "You may still manually specify a repository."
+            )
     else:
-        fetch_error = "No GitHub access token available. Please sign in with GitHub to view your repositories."
+        fetch_error = (
+            "No GitHub access token available. "
+            "Please sign in with GitHub to view your repositories."
+        )
 
     db_repos = db.scalars(select(Repository)).all() if db else []
     synced_names = {r.full_name.lower(): r for r in db_repos}
 
-    org_logins = {o.get("login", "").lower() for o in orgs if isinstance(o, dict) and o.get("login")}
+    org_logins = {
+        o.get("login", "").lower() for o in orgs if isinstance(o, dict) and o.get("login")
+    }
     actor_handle = (actor.display_name or "").lower()
 
     for r in repos:
         fn = (r.get("full_name") or "").lower()
         r["is_synced"] = fn in synced_names
         owner_dict = r.get("owner") if isinstance(r.get("owner"), dict) else {}
-        owner_login = owner_dict.get("login") or (r.get("full_name", "").split("/")[0] if "/" in r.get("full_name", "") else "unknown")
+        owner_login = owner_dict.get("login") or (
+            r.get("full_name", "").split("/")[0] if "/" in r.get("full_name", "") else "unknown"
+        )
         r["owner"] = {"login": owner_login}
         r["owner_login"] = owner_login
         if not r.get("name"):
-            r["name"] = r.get("full_name", "").split("/")[-1] if "/" in r.get("full_name", "") else r.get("full_name", "")
-        r["is_personal"] = (owner_login.lower() == actor_handle) or (owner_login.lower() not in org_logins)
+            r["name"] = (
+                r.get("full_name", "").split("/")[-1]
+                if "/" in r.get("full_name", "")
+                else r.get("full_name", "")
+            )
+        r["is_personal"] = (owner_login.lower() == actor_handle) or (
+            owner_login.lower() not in org_logins
+        )
 
     known_fetched = {(r.get("full_name") or "").lower() for r in repos}
     for dbr in db_repos:
         if dbr.full_name.lower() not in known_fetched:
             owner_login = dbr.full_name.split("/")[0] if "/" in dbr.full_name else "unknown"
-            repos.append({
-                "full_name": dbr.full_name,
-                "name": dbr.full_name.split("/")[-1],
-                "owner": {"login": owner_login},
-                "owner_login": owner_login,
-                "description": "Configured repository in database",
-                "private": False,
-                "is_synced": True,
-                "is_personal": (owner_login.lower() == actor_handle) or (owner_login.lower() not in org_logins),
-            })
+            repos.append(
+                {
+                    "full_name": dbr.full_name,
+                    "name": dbr.full_name.split("/")[-1],
+                    "owner": {"login": owner_login},
+                    "owner_login": owner_login,
+                    "description": "Configured repository in database",
+                    "private": False,
+                    "is_synced": True,
+                    "is_personal": (owner_login.lower() == actor_handle)
+                    or (owner_login.lower() not in org_logins),
+                }
+            )
 
     # Show the synced repos at the top of the list in repos page
     repos.sort(key=lambda r: (not r.get("is_synced", False), (r.get("name") or "").lower()))
 
     jira_configured = bool(
-        settings
-        and settings.jira_base_url
-        and settings.jira_email
-        and settings.jira_api_token
+        settings and settings.jira_base_url and settings.jira_email and settings.jira_api_token
     )
 
     unmatched_count = 0
@@ -1026,7 +1052,9 @@ async def select_repository(
     else:
         body = (await request.body()).decode("utf-8")
         parsed = parse_qs(body)
-        repo_full_name = (parsed.get("repo_full_name", [""])[0] or parsed.get("repo", [""])[0]).strip()
+        repo_full_name = (
+            parsed.get("repo_full_name", [""])[0] or parsed.get("repo", [""])[0]
+        ).strip()
 
     if not repo_full_name or not REPO_NAME_REGEX.match(repo_full_name):
         err = "Invalid repository format. Please use 'owner/repo' (e.g. 'octocat/Hello-World')."
@@ -1038,7 +1066,9 @@ async def select_repository(
         )
 
     settings = get_settings()
-    token = request.cookies.get(GITHUB_TOKEN_COOKIE) or (settings.github_token if settings else None)
+    token = request.cookies.get(GITHUB_TOKEN_COOKIE) or (
+        settings.github_token if settings else None
+    )
 
     try:
         gh_client = GitHubClient(token=token) if token else None
@@ -1055,7 +1085,7 @@ async def select_repository(
         logger.error("Failed to sync repository %s: %s", repo_full_name, exc)
         err = f"Failed to sync {repo_full_name}: {str(exc)}"
         if is_json:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err) from exc
         return RedirectResponse(
             url=f"/repos?error={urlencode({'e': err})[2:]}",
             status_code=status.HTTP_303_SEE_OTHER,
@@ -1144,7 +1174,9 @@ def sync_jira_now(
         sync_jira(db, team_id=actor.team_id or 1)
     except Exception:
         logger.exception("Jira sync failed for team %s", actor.team_id)
-        return RedirectResponse(url="/jira?error=sync_failed", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(
+            url="/jira?error=sync_failed", status_code=status.HTTP_303_SEE_OTHER
+        )
     return RedirectResponse(url="/jira?success=synced", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -1178,5 +1210,6 @@ def load_jira_demo(
         )
     except Exception:
         logger.exception("Failed to load demo Jira data")
-        return RedirectResponse(url="/jira?error=demo_failed", status_code=status.HTTP_303_SEE_OTHER)
-
+        return RedirectResponse(
+            url="/jira?error=demo_failed", status_code=status.HTTP_303_SEE_OTHER
+        )
