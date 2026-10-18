@@ -42,7 +42,9 @@ target-version = "py311"
 # `pip install .` writes a copy of the tree into build/lib. Black excludes "build"
 # by default, ruff does not, so CI linted the generated copy and reported every
 # error twice. Exclude it here rather than deleting it in the workflow.
-extend-exclude = ["build"]
+# docs/headref-ui-pack is a reference copy of the UI handed over by design. It is not
+# imported or shipped; app/web holds the code that runs.
+extend-exclude = ["build", "docs/headref-ui-pack"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "S"]
@@ -56,10 +58,14 @@ ignore = ["S101"]  # pytest uses assert
 # S310: it calls the local Ollama HTTP API with urllib, by design.
 # S607: it invokes ollama and docker from PATH, by design.
 "scripts/*" = ["E501", "S310", "S607"]
+# seed_demo.py puts the project root on sys.path before importing app, so it runs as a
+# plain script (python seed/seed_demo.py).
+"seed/seed_demo.py" = ["E402"]
 
 [tool.black]
 line-length = 100
 target-version = ["py311"]
+extend-exclude = "docs/headref-ui-pack"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
