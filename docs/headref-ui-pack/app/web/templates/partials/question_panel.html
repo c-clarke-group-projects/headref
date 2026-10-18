@@ -1,0 +1,212 @@
+{#
+  The answer area for 1 question type. Used by member.html and by the
+  PROPOSED fragment route GET /members/{id}/panel?question=<type>.
+  Context: member, insight, question, signals (optional), now
+  Section order (DESIGN.md S2): summary, answer, conflicts, assigned work,
+  not determined, recent activity.
+  Fields marked G1, G3, G4 are PROPOSED contract additions; the template
+  skips them cleanly when they are not present.
+#}
+{% import "partials/icons.html" as i %}
+{% import "partials/badges.html" as b %}
+{% import "partials/notices.html" as n %}
+
+{% set name = member.display_name %}
+{% set headings = {
+  "current_work": "What is " ~ name ~ " likely working on",
+  "blockers": "Is anything blocking " ~ name ~ "'s work",
+  "risks": "What work is at risk",
+} %}
+{% set unavailable = insight.source_health|selectattr("state", "equalto", "unavailable")|list %}
+{% set fallback_used = insight.fallback_used if insight.fallback_used is defined else false %}
+
+{# Collect conflicts from every Insight in the response, de-duplicated. #}
+{% set all_insights = ([insight.likely_current_work] if insight.likely_current_work else []) + insight.blockers + insight.risks %}
+{% set conflicts = [] %}
+{% for ins in all_insights %}{% for c in ins.conflicts if c not in conflicts %}{% set _ = conflicts.append(c) %}{% endfor %}{% endfor %}
+
+<div class="layout-main">
+  <div class="stack">
+
+    {# 1. Heading and summary #}
+    <section class="card card--pad">
+      <h2 class="panel-heading" tabindex="-1" data-panel-heading>{{ headings[question] }}</h2>
+      {% if insight.summary or fallback_used %}
+      <div class="summary">
+        <div class="summary__head">
+          <span class="pill-dark" style="height: 28px">Summary</span>
+          {% if fallback_used %}{{ n.fallback_notice() }}{% else %}<span class="caption">Written by the local model from the findings below.</span>{% endif %}
+        </div>
+        {% if insight.summary %}<p class="summary__text">{{ insight.summary }}</p>{% endif %}
+        {% if fallback_used %}<p class="caption" style="margin-top: 10px">Built by code from the findings below, without the local model.</p>{% endif %}
+      </div>
+      {% endif %}
+    </section>
+
+    {# 2. The answer #}
+    {% if question == "current_work" %}
+      {% if insight.likely_current_work %}
+        {% with insight = insight.likely_current_work, claim_id = "current-0", label = "Likely current work" %}{% include "partials/claim.html" %}{% endwith %}
+      {% else %}
+        <section class="unknown-claim">
+          <p class="claim__label">Likely current work</p>
+          <p class="claim__text">No Jira or GitHub activity is recorded for {{ name }} in the last 14 days. This does not mean no work occurred. Work not tracked in these tools is not visible to Headref.</p>
+        </section>
+      {% endif %}
+    {% else %}
+      {% set items = insight.blockers if question == "blockers" else insight.risks %}
+      {% set word = "blockers" if question == "blockers" else "risks" %}
+      {% for ins in items %}
+        {% set plain = none %}
+        {% if ins.classification == "unknown" and not ins.evidence and unavailable %}
+          {% set src = unavailable[0] %}
+          {% set plain = (src.source|source_label) ~ " data is unavailable, so " ~ word ~ " cannot be determined." %}
+        {% endif %}
+        {% with insight = ins, claim_id = question ~ "-" ~ loop.index0, label = ("Blocker" if question == "blockers" else "Risk"), plain_text = plain %}{% include "partials/claim.html" %}{% endwith %}
+      {% else %}
+        {# Empty list. Only reached when the sources are fine; an unavailable
+           required source comes back as an Unknown claim, never as empty. #}
+        <section class="card card--pad">
+          <p class="claim__text" style="margin-top: 0">{{ "No blockers detected in the last 14 days." if question == "blockers" else "No delivery risks detected." }}</p>
+        </section>
+      {% endfor %}
+
+      {% if signals %}
+      <section class="card card--pad">
+        <div class="card__head">
+          <h3 class="card__title-cond">Signals checked</h3>
+          <span class="order-note">{{ signals|selectattr("checked")|list|length }} of {{ signals|length }} checked{% if signals|rejectattr("checked")|list %}. The rest need {{ unavailable|map(attribute="source")|map("source_label")|join(" and ") }}{% endif %}.</span>
+        </div>
+        <div class="signals">
+          {% for s in signals %}
+            <div class="signal {{ 'signal--checked' if s.checked else 'signal--skipped' }}">
+              <span class="caption num">{{ s.id }}</span>
+              <span style="font-size: 15px; line-height: 1.4">{{ s.text }}</span>
+              {% if s.checked %}
+                <span class="signal__chip signal__chip--found-none">{{ i.icon("check", 12) }}{{ "Found" if s.found else "Checked, not found" }}</span>
+              {% else %}
+                <span class="signal__chip signal__chip--skipped">Not checked, needs {{ s.needs_label }}</span>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+    {% endif %}
+
+    {# 3. Conflicts. Shown side by side, never resolved. #}
+    <section class="card card--pad">
+      {% if unavailable %}
+        <h3 class="card__title">Conflicts</h3>
+        <p class="empty-note" style="margin-top: 10px">Conflicts cannot be checked while {{ unavailable|map(attribute="source")|map("source_label")|join(" and ") }} is unavailable.</p>
+      {% elif conflicts %}
+        {% for c in conflicts %}
+          <div{% if not loop.first %} style="margin-top: var(--s-6)"{% endif %}>
+          {% if c is mapping %}
+            {# PROPOSED structured conflict: {entity_key, jira_state, github_state, github_entity, github_detail} #}
+            <div class="conflict__head">
+              <span class="conflict__icon">{{ i.icon("warning", 18) }}</span>
+              <div><p class="conflict__kicker">Conflict</p><h3 class="conflict__title">Jira and GitHub disagree on {{ c.entity_key }}</h3></div>
+            </div>
+            <div class="conflict__sides">
+              <div class="conflict__side">
+                <p class="conflict__source">{{ i.icon("jira", 14) }}Jira says</p>
+                <p class="conflict__state">{{ c.jira_state }}</p>
+                <p class="conflict__entity num">{{ c.entity_key }}</p>
+              </div>
+              <span class="conflict__ne" role="img" aria-label="does not match">&ne;</span>
+              <div class="conflict__side">
+                <p class="conflict__source">{{ i.icon("github", 14) }}GitHub says</p>
+                <p class="conflict__state">{{ c.github_state }}</p>
+                <p class="conflict__entity">{{ c.github_entity }}</p>
+                {% if c.github_detail %}<p class="mono" style="margin-top: 14px; color: var(--slate)">{{ c.github_detail }}</p>{% endif %}
+              </div>
+            </div>
+          {% else %}
+            {# Frozen contract: conflicts are plain strings. #}
+            <div class="conflict__head">
+              <span class="conflict__icon">{{ i.icon("warning", 18) }}</span>
+              <div><p class="conflict__kicker">Conflict</p><h3 class="conflict__title">{{ c }}</h3></div>
+            </div>
+          {% endif %}
+          </div>
+        {% endfor %}
+        <p class="conflict__note">Headref does not choose. Check which one is out of date.</p>
+      {% else %}
+        <h3 class="card__title">Conflicts</h3>
+        <p class="empty-note" style="margin-top: 10px">No conflicts detected between Jira and GitHub.</p>
+      {% endif %}
+    </section>
+
+    {# 4. Assigned work. Facts from Jira, each key links to Jira. #}
+    <section class="card" style="padding: var(--s-7) var(--s-5) 20px">
+      <div class="card__head" style="padding: 0 var(--s-4)">
+        <h3 class="card__title-cond">Assigned work</h3>
+        <span class="caption">From Jira. Each key opens the issue in Jira.</span>
+      </div>
+      {% if unavailable|selectattr("source", "equalto", "jira")|list %}
+        <p class="empty-note" style="padding: var(--s-4)">Assigned work comes from Jira and cannot be shown while Jira is unavailable.</p>
+      {% elif not insight.assigned %}
+        <p class="empty-note" style="padding: var(--s-4)">No Jira work items are assigned to {{ name }}.</p>
+      {% else %}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th scope="col">Key</th><th scope="col">Title</th><th scope="col">Status</th><th scope="col" class="col-priority">Priority</th><th scope="col">Due</th><th scope="col">Blocked by</th></tr></thead>
+          <tbody>
+            {% for w in insight.assigned|sort_assigned %}
+            <tr>
+              <td class="num"><a href="{{ w.source_url|external_url }}" target="_blank" rel="noopener noreferrer" aria-label="{{ w.external_id }}, open in Jira (opens in a new tab)">{{ w.external_id }}</a>{% if w.is_flagged %} <span class="badge badge--sm badge--status-blocked">Flagged</span>{% endif %}</td>
+              <td>{{ w.title }}<span class="priority-inline">{{ w.priority or "No priority" }} priority</span></td>
+              <td>{{ b.work_status(w.status, w.raw_status) }}</td>
+              <td class="col-priority">{{ w.priority or "None" }}</td>
+              <td class="num">{% if w.due_date %}{{ w.due_date|fmt_date }}{% if w.status != "done" and w.due_date|is_past(now) %}<p class="past-due">Past due</p>{% endif %}{% else %}<span class="muted">None</span>{% endif %}</td>
+              <td class="num">{% if w.blocked_by %}{{ w.blocked_by|join(", ") }}{% else %}<span class="muted">None recorded</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="card card--dark how-built">
+      <h3 class="card__title">How this answer was built</h3>
+      <ol class="how-built__list">
+        <li class="how-built__item"><span class="step-num">1</span><span><strong>Synced.</strong> Read only records from Jira and GitHub, last 14 days.</span></li>
+        <li class="how-built__item"><span class="step-num">2</span><span><strong>Found by code.</strong> Every claim, class and confidence.</span></li>
+        <li class="how-built__item"><span class="step-num">3</span><span><strong>Summarised.</strong> The local model writes 2 sentences over those findings.</span></li>
+      </ol>
+    </section>
+
+    {% if insight.activity is defined and insight.activity %}
+    {% set a = insight.activity %}
+    <section class="card card--pad-md">
+      <h3 class="card__title">Recent activity</h3>
+      <p class="caption" style="margin-top: 4px">Last {{ a.window_days }} days</p>
+      <div style="margin-top: var(--s-4)">
+        <p class="activity__row"><span class="activity__num">{{ a.open_pull_requests }}</span>open pull request{{ "s" if a.open_pull_requests != 1 }}</p>
+        <p class="activity__row"><span class="activity__num">{{ a.commits }}</span>commit{{ "s" if a.commits != 1 }}</p>
+        <p class="activity__row"><span class="activity__num">{{ a.reviews_given }}</span>review{{ "s" if a.reviews_given != 1 }} given</p>
+      </div>
+      {% if insight.truncated is defined and insight.truncated %}{{ n.truncated_notice(100, "commits") }}{% endif %}
+      <p class="activity__note">These counts are context, not a measure of productivity. Pair programming, design, debugging, mentoring and review discussion are not fully visible in commits.</p>
+      {% for pr in a.unlinked_pull_requests %}
+        <p style="margin-top: var(--s-3); font-size: var(--fs-small)">Pull request <a href="{{ pr.source_url|external_url }}" target="_blank" rel="noopener noreferrer">{{ pr.number }}</a> is not linked to any Jira work item.</p>
+      {% else %}
+        <p style="margin-top: var(--s-3); font-size: var(--fs-small)">No unlinked pull requests in the last {{ a.window_days }} days.</p>
+      {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if insight.unknowns %}
+    <section class="card card--dashed card--pad-md">
+      <h3 class="card__title" style="display: flex; align-items: center; gap: var(--s-2)"><span class="marker marker--unknown" aria-hidden="true"></span>Not determined</h3>
+      <ul style="margin-top: 10px">
+        {% for u in insight.unknowns %}<li class="empty-note">{{ u }}</li>{% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+  </aside>
+</div>

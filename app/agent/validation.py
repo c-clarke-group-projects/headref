@@ -10,7 +10,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-logger = logging.getLogger("argus.agent.validation")
+logger = logging.getLogger("headref.agent.validation")
 
 # Forbidden person-judgment terms per AI_BEHAVIOR.md 5.11
 FORBIDDEN_TERMS = [

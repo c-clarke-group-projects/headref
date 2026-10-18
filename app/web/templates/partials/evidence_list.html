@@ -1,0 +1,39 @@
+{#
+  Evidence items for 1 claim (P5-003). Rendered inside the claim's details
+  element; app.js clones it into the drawer, so opening the drawer makes
+  no request.
+  Context:
+    evidence: list of EvidenceItem
+    claim_id: str, unique per claim on the page
+  Security: every field below is escaped by autoescape. Never add the safe filter.
+  excerpt is UNTRUSTED source text: plain text, no links, no Markdown.
+#}
+{% import "partials/icons.html" as i %}
+{% import "partials/badges.html" as b %}
+<ol class="ev-list">
+  {% for ev in evidence %}
+    {% set stale = ev.source_state == "stale" %}
+    {% set label = ev.source|source_label %}
+    <li class="ev-item{% if stale %} ev-item--stale{% endif %}" id="{{ claim_id }}-{{ ev.id }}" data-ev-id="{{ ev.id }}">
+      <span class="ev-item__node">{{ i.source_icon(ev.source) }}</span>
+      <div class="ev-item__card">
+        <p class="ev-item__head">
+          {{ b.ev_marker(ev.id) }}<span>{{ label }}</span>
+          {% if stale %}<span class="stale-note">{{ i.icon("clock", 14) }}Stale</span>{% endif %}
+        </p>
+        <p class="ev-item__summary">{{ ev.summary }}</p>
+        {% if ev.excerpt %}
+          <p class="ev-item__excerpt-label">Excerpt (source text, not verified)</p>
+          <blockquote class="ev-item__excerpt">{{ ev.excerpt }}</blockquote>
+        {% endif %}
+        <dl class="ev-item__meta">
+          <dt>Record</dt>
+          <dd{% if ev.entity_type in ["commit", "work_item_link"] %} class="mono"{% else %} class="num"{% endif %}>{{ ev.entity_key }}</dd>
+          <dt>Observed</dt><dd>{{ b.ts(ev.observed_at) }}</dd>
+          <dt>Retrieved</dt><dd>{{ b.ts(ev.retrieved_at) }}</dd>
+        </dl>
+        <a class="ev-item__link" href="{{ ev.source_url|external_url }}" target="_blank" rel="noopener noreferrer" aria-label="Open in {{ label }} (opens in a new tab)">Open in {{ label }}{{ i.icon("external", 14) }}</a>
+      </div>
+    </li>
+  {% endfor %}
+</ol>

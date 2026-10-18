@@ -42,7 +42,7 @@ def test_recover_stuck_sync_marks_failed(db_session: Session) -> None:
 
     stuck_run = SyncRun(
         source="github",
-        scope="keshan-dev/argus",
+        scope="keshan-dev/headref",
         status="running",
         started_at=stuck_time,
     )
@@ -52,7 +52,7 @@ def test_recover_stuck_sync_marks_failed(db_session: Session) -> None:
     is_running = recover_stuck_syncs(
         session=db_session,
         source="github",
-        scope="keshan-dev/argus",
+        scope="keshan-dev/headref",
         timeout_minutes=15,
         now=now,
     )
@@ -71,7 +71,7 @@ def test_active_sync_prevents_duplicate_run(db_session: Session) -> None:
 
     active_run = SyncRun(
         source="github",
-        scope="keshan-dev/argus",
+        scope="keshan-dev/headref",
         status="running",
         started_at=recent_time,
     )
@@ -81,7 +81,7 @@ def test_active_sync_prevents_duplicate_run(db_session: Session) -> None:
     is_running = recover_stuck_syncs(
         session=db_session,
         source="github",
-        scope="keshan-dev/argus",
+        scope="keshan-dev/headref",
         timeout_minutes=15,
         now=now,
     )
@@ -90,7 +90,7 @@ def test_active_sync_prevents_duplicate_run(db_session: Session) -> None:
     # When run_scheduled_tick runs, GitHub is skipped
     results = run_scheduled_tick(
         session=db_session,
-        gh_scope="keshan-dev/argus",
+        gh_scope="keshan-dev/headref",
         jira_scope="ALL",
         stuck_timeout_minutes=15,
     )
@@ -110,7 +110,7 @@ def test_scheduled_tick_executes_sync_paths(
 
     results = run_scheduled_tick(
         session=db_session,
-        gh_scope="keshan-dev/argus",
+        gh_scope="keshan-dev/headref",
         jira_scope="ALL",
     )
     assert results["github"] == "success"

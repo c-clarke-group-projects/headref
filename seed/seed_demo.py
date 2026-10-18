@@ -15,6 +15,10 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 from app.db import get_sync_session
 from app.integrations.github import GitHubClient
 from app.integrations.identity_loader import load_identity_map
@@ -22,7 +26,7 @@ from app.integrations.jira import JiraClient
 from app.models.canonical import AppUser, Organization, Team
 from app.sync import sync_github, sync_jira
 
-logger = logging.getLogger("argus.seed")
+logger = logging.getLogger("headref.seed")
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 
@@ -95,7 +99,7 @@ def seed_demo_database(
     # 1. Organization and Team
     org = session.scalar(select(Organization))
     if not org:
-        org = Organization(name="ARGUS Demo Corp")
+        org = Organization(name="headref Demo Corp")
         session.add(org)
         session.flush()
 
@@ -149,7 +153,7 @@ def seed_demo_database(
     gh_run = sync_github(
         session=session,
         team_id=team.id,
-        scope="keshan-dev/argus",
+        scope="keshan-dev/headref",
         gh_client=gh_client,
     )
 

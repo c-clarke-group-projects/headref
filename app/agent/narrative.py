@@ -13,10 +13,24 @@ from typing import Any
 import httpx
 from pydantic import BaseModel, Field, ValidationError
 
-logger = logging.getLogger("argus.agent.narrative")
+from app.config import get_settings
 
-OLLAMA_URL = os.getenv("OLLAMA_HOST", "http://localhost:11434") + "/api/chat"
-DEFAULT_MODEL_ID = os.getenv("MODEL_ID", "llama3.2")
+logger = logging.getLogger("headref.agent.narrative")
+
+# A local model on CPU took 22 seconds in the DEC-018 measurement, so this is well above
+# the 10 second HTTP_TIMEOUT_SECONDS used for the GitHub and Jira APIs.
+REQUEST_TIMEOUT_SECONDS = 30.0
+ATTEMPTS = 2
+
+
+def _default_ollama_url() -> str:
+    return get_settings().ollama_url.rstrip("/") + "/api/chat"
+
+
+def _default_model_id() -> str:
+    return get_settings().model_id
+
+
 FIXED_SEED = 42
 MAX_PREDICT = 300
 
@@ -39,6 +53,7 @@ class NarrativeResult(BaseModel):
     prompt_eval_count: int = 0
     latency_ms: int = 0
     fallback_used: bool = False
+    error_type: str | None = None
     raw_response: dict[str, Any] | None = None
 
 
@@ -58,6 +73,7 @@ def load_prompt(findings_text: str) -> str:
 def deterministic_fallback(
     fallback_text: str | None = None,
     latency_ms: int = 0,
+    error_type: str | None = None,
 ) -> NarrativeResult:
     """Produce deterministic fallback result when model call fails or is unavailable."""
     summary = fallback_text or "Deterministic summary generated from recorded activity."
@@ -69,6 +85,7 @@ def deterministic_fallback(
         prompt_eval_count=0,
         latency_ms=latency_ms,
         fallback_used=True,
+        error_type=error_type,
     )
 
 
@@ -83,8 +100,8 @@ async def generate_narrative(
 
     Per DEC-018 and AC-3: pass NO tools, emit NO claims or evidence IDs.
     """
-    url = ollama_url or OLLAMA_URL
-    model = model_id or DEFAULT_MODEL_ID
+    url = ollama_url or _default_ollama_url()
+    model = model_id or _default_model_id()
     prompt = load_prompt(findings_text)
 
     # Note: No 'tools' key in payload per AC-3
@@ -101,16 +118,16 @@ async def generate_narrative(
     }
 
     start_time = time.perf_counter()
-    attempts = 2
+    error_type = "UPSTREAM_ERROR"
 
     should_close_client = False
     http_client = client
     if http_client is None:
-        http_client = httpx.AsyncClient(timeout=30.0)
+        http_client = httpx.AsyncClient(timeout=REQUEST_TIMEOUT_SECONDS)
         should_close_client = True
 
     try:
-        for attempt in range(attempts):
+        for attempt in range(1, ATTEMPTS + 1):
             try:
                 response = await http_client.post(url, json=payload)
                 response.raise_for_status()
@@ -138,15 +155,28 @@ async def generate_narrative(
                     url,
                     model,
                 )
+                error_type = "UPSTREAM_ERROR"
                 break
-            except (httpx.HTTPStatusError, json.JSONDecodeError, ValidationError) as err:
-                logger.warning("Narrative attempt %d failed: %s. Retrying...", attempt + 1, err)
-                if attempt == attempts - 1:
-                    break
+            except httpx.TimeoutException as err:
+                error_type = "TIMEOUT"
+                logger.warning("Narrative attempt %d of %d timed out: %s", attempt, ATTEMPTS, err)
+            except (json.JSONDecodeError, ValidationError) as err:
+                error_type = "SCHEMA_INVALID"
+                logger.warning(
+                    "Narrative attempt %d of %d failed schema validation: %s",
+                    attempt,
+                    ATTEMPTS,
+                    err,
+                )
+            except (httpx.HTTPStatusError, httpx.TransportError) as err:
+                error_type = "UPSTREAM_ERROR"
+                logger.warning("Narrative attempt %d of %d failed: %s", attempt, ATTEMPTS, err)
     finally:
         if should_close_client:
             await http_client.aclose()
 
     latency_ms = int((time.perf_counter() - start_time) * 1000)
-    logger.info("Falling back to deterministic summary (LLM unavailable or failed).")
-    return deterministic_fallback(fallback_text=fallback_text, latency_ms=latency_ms)
+    logger.info("Falling back to deterministic summary (error_type=%s).", error_type)
+    return deterministic_fallback(
+        fallback_text=fallback_text, latency_ms=latency_ms, error_type=error_type
+    )

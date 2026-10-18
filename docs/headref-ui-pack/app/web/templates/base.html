@@ -1,0 +1,60 @@
+{#
+  Page shell for every authenticated page.
+  Context (all pages):
+    request, actor (ActorInfo), team_name, unmatched_count
+    nav_current: "team" | "unmatched" | "member"
+  Blocks: title, hero, banners, content
+#}
+{% import "partials/icons.html" as i %}
+{% import "partials/notices.html" as n %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Headref{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+  <script src="{{ url_for('static', path='app.js') }}"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="page">
+    <header class="topnav">
+      <nav class="pillbar" aria-label="Main">
+        <a class="brand" href="/">{{ i.glyph() }}Headref</a>
+        <a class="navlink" href="/teams/{{ actor.team_id }}"{% if nav_current == "team" %} aria-current="page"{% endif %}>{{ team_name }}</a>
+        <a class="navlink" href="/admin/unmatched"{% if nav_current == "unmatched" %} aria-current="page"{% endif %}>Unmatched accounts{% if unmatched_count %}<span class="count" aria-label="{{ unmatched_count }} unmatched">{{ unmatched_count }}</span>{% endif %}</a>
+      </nav>
+      <div class="topnav__spacer"></div>
+      <div class="userchip">
+        <span class="avatar avatar--xs {{ actor.user_id|avatar_tint }}" aria-hidden="true">{{ actor.display_name|initials }}</span>
+        <span>Signed in as {{ actor.display_name }}</span>
+        <form method="post" action="/logout" data-logout>
+          <button type="submit" class="navlink" style="border: 0; background: var(--mist); cursor: pointer">Log out</button>
+        </form>
+      </div>
+    </header>
+
+    <main id="main">
+      {% block hero %}{% endblock %}
+      {% block banners %}{% endblock %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  {# Evidence drawer. Empty until app.js fills it from a claim's details element. #}
+  <div class="drawer__backdrop" data-drawer-backdrop hidden></div>
+  <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" data-drawer hidden>
+    <div class="drawer__head">
+      <div class="drawer__title-row">
+        <h2 class="drawer__title" id="drawer-title" tabindex="-1">Evidence</h2>
+        <button type="button" class="drawer__close" data-drawer-close aria-label="Close evidence">{{ i.icon("close") }}</button>
+      </div>
+      <p class="drawer__claim" data-drawer-claim></p>
+      <div class="drawer__badges" data-drawer-badges></div>
+    </div>
+    <div class="drawer__body" data-drawer-body></div>
+  </aside>
+</body>
+</html>

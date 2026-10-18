@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from app.models.canonical import Project
 from app.models.work import WorkItem, WorkItemDependency
 
-logger = logging.getLogger("argus.integrations.jira_normalizer")
+logger = logging.getLogger("headref.integrations.jira_normalizer")
 
 # Values a Jira impediment field carries, whatever the field is named.
 _IMPEDIMENT_VALUES = frozenset({"impediment", "flagged"})

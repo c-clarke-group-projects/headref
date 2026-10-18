@@ -44,7 +44,7 @@ def _base_pr(
     return PullRequestOut(
         pull_request_id=10,
         number=number,
-        repo_full_name="keshan-dev/argus",
+        repo_full_name="keshan-dev/headref",
         title="feat: refresh token rotation",
         state=state,
         is_draft=is_draft,
@@ -55,7 +55,7 @@ def _base_pr(
         last_review_at=last_review_at,
         source_updated_at=now,
         retrieved_at=now,
-        source_url=f"https://github.com/keshan-dev/argus/pull/{number}",
+        source_url=f"https://github.com/keshan-dev/headref/pull/{number}",
     )
 
 
@@ -125,11 +125,11 @@ def test_bl4_changes_requested_no_commit_positive() -> None:
     commit = CommitOut(
         commit_id=1,
         sha="c1",
-        repo_full_name="keshan-dev/argus",
+        repo_full_name="keshan-dev/headref",
         message_excerpt="old commit",
         branch_name="feature/AUTH-245-token",
         committed_at=review_time - timedelta(hours=2),
-        source_url="https://github.com/keshan-dev/argus/commit/c1",
+        source_url="https://github.com/keshan-dev/headref/commit/c1",
         retrieved_at=review_time,
     )
     blockers = detect_blockers([], [pr], commits=[commit])
@@ -143,11 +143,11 @@ def test_bl4_changes_requested_with_commit_negative() -> None:
     commit = CommitOut(
         commit_id=1,
         sha="c2",
-        repo_full_name="keshan-dev/argus",
+        repo_full_name="keshan-dev/headref",
         message_excerpt="addressed review feedback",
         branch_name="feature/AUTH-245-token",
         committed_at=review_time + timedelta(hours=1),
-        source_url="https://github.com/keshan-dev/argus/commit/c2",
+        source_url="https://github.com/keshan-dev/headref/commit/c2",
         retrieved_at=review_time,
     )
     blockers = detect_blockers([], [pr], commits=[commit])
@@ -180,6 +180,16 @@ def test_bl5_open_unreviewed_negative() -> None:
     )
     blockers = detect_blockers([], [pr], as_of=now)
     assert not any(b.signal_id == "BL-5" for b in blockers)
+
+
+def test_pr_blocker_evidence_keys_match_the_evidence_builder_key() -> None:
+    # The evidence builder keys a pull request by str(number). A blocker citing only
+    # "PR-182" resolved no evidence, so its confidence came back UNKNOWN.
+    now = datetime(2026, 9, 21, 12, 0, tzinfo=UTC)
+    pr = _base_pr(number=182, review_state="none", created_at_source=now - timedelta(days=4))
+    blockers = detect_blockers([], [pr], as_of=now)
+    bl5 = next(b for b in blockers if b.signal_id == "BL-5")
+    assert "182" in bl5.evidence_keys
 
 
 # ---------------------------------------------------------------------------

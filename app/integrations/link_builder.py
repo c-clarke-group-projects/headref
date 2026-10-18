@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 
 from app.models.work import Commit, PullRequest, WorkItem, WorkItemLink
 
-logger = logging.getLogger("argus.integrations.link_builder")
+logger = logging.getLogger("headref.integrations.link_builder")
 
 CONFIDENCE_RANKS: dict[str, int] = {
     "HIGH": 3,

@@ -48,7 +48,7 @@ def _sample_pull_requests() -> list[PullRequestOut]:
         PullRequestOut(
             pull_request_id=10,
             number=182,
-            repo_full_name="keshan-dev/argus",
+            repo_full_name="keshan-dev/headref",
             title="feat: refresh token rotation",
             state="open",
             is_draft=False,
@@ -58,12 +58,12 @@ def _sample_pull_requests() -> list[PullRequestOut]:
             created_at=now - timedelta(days=1),
             source_updated_at=now,
             retrieved_at=now,
-            source_url="https://github.com/keshan-dev/argus/pull/182",
+            source_url="https://github.com/keshan-dev/headref/pull/182",
         ),
         PullRequestOut(
             pull_request_id=11,
             number=180,
-            repo_full_name="keshan-dev/argus",
+            repo_full_name="keshan-dev/headref",
             title="docs: cookie spec",
             state="merged",
             is_draft=False,
@@ -73,7 +73,7 @@ def _sample_pull_requests() -> list[PullRequestOut]:
             created_at=now - timedelta(days=2),
             source_updated_at=now,
             retrieved_at=now,
-            source_url="https://github.com/keshan-dev/argus/pull/180",
+            source_url="https://github.com/keshan-dev/headref/pull/180",
         ),
     ]
 
@@ -84,11 +84,11 @@ def _sample_commits() -> list[CommitOut]:
         CommitOut(
             commit_id=101,
             sha="abcdef123456",
-            repo_full_name="keshan-dev/argus",
+            repo_full_name="keshan-dev/headref",
             message_excerpt="feat: implement token rotation",
             branch_name="feature/AUTH-245-token",
             committed_at=now,
-            source_url="https://github.com/keshan-dev/argus/commit/abcdef123456",
+            source_url="https://github.com/keshan-dev/headref/commit/abcdef123456",
             retrieved_at=now,
         )
     ]
@@ -101,12 +101,12 @@ def _sample_reviews() -> list[ReviewOut]:
             review_id=201,
             pull_request_id=10,
             pull_request_number=182,
-            repo_full_name="keshan-dev/argus",
+            repo_full_name="keshan-dev/headref",
             reviewer_user_id=1,
             state="approved",
             body_excerpt="Looks solid.",
             submitted_at=now,
-            source_url="https://github.com/keshan-dev/argus/pull/182#r201",
+            source_url="https://github.com/keshan-dev/headref/pull/182#r201",
             retrieved_at=now,
         )
     ]
@@ -132,7 +132,7 @@ def test_deterministic_summary_populated() -> None:
     assert "AUTH-245: Refresh token rotation [In Progress, High]" in text
     assert "(blocked by: AUTH-246)" in text
     assert "Completed: AUTH-240" in text
-    assert "#182 (keshan-dev/argus): feat: refresh token rotation" in text
+    assert "#182 (keshan-dev/headref): feat: refresh token rotation" in text
     assert "checks: passing" in text
     assert "review: approved" in text
     assert PRODUCTIVITY_CONTEXT_NOTE in text

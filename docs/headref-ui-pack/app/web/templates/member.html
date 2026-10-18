@@ -1,0 +1,62 @@
+{#
+  S2 Member profile (P5-002).
+  Context: base context plus
+    member: TeamMemberOut (user_id, display_name, role_label, linked_accounts)
+    insight: MemberInsight
+    question: "current_work" | "blockers" | "risks"
+    is_own: bool, actor.user_id == member.user_id
+    tab_counts: optional dict {"blockers": int, "risks": int}. Only pass
+      real numbers the API returned; omit the key when unknown.
+    signals: list from ui_format.signal_rows(), only for blockers and risks
+    team_id, now
+#}
+{% extends "base.html" %}
+{% import "partials/icons.html" as i %}
+{% import "partials/notices.html" as n %}
+
+{% block title %}{% set q_titles = {"current_work": "current work", "blockers": "blockers", "risks": "risks"} %}{{ member.display_name }}, {{ q_titles.get(question, "current work") }}, Headref{% endblock %}
+
+{% block hero %}
+<section class="hero">
+  <div>
+    <a class="hero__back" href="/teams/{{ team_id }}">{{ i.icon("arrow-left") }}Back to team</a>
+    <div class="hero__person">
+      <span class="avatar avatar--xl {{ member.user_id|avatar_tint }}" aria-hidden="true">{{ member.display_name|initials }}</span>
+      <div>
+        {% if member.role_label %}<p class="hero__role">{{ member.role_label }}</p>{% endif %}
+        <h1 class="hero__name">{{ member.display_name }}</h1>
+      </div>
+    </div>
+    <div class="hero__pills">
+      {% for acc in member.linked_accounts %}
+        <span class="pill-dark">{{ i.source_icon(acc.integration, 14) }}{{ acc.integration|source_label }} {{ acc.external_handle }}{% if is_own %} ({{ acc.match_method }}){% endif %}</span>
+      {% endfor %}
+      {% if is_own %}<span class="pill-dark pill-dark--mint">This is your profile</span>{% endif %}
+    </div>
+    {% if is_own %}<p class="hero__note">If an account here is not yours, ask your team lead to correct seed/identity_map.yml.</p>{% endif %}
+  </div>
+  {% with source_health = insight.source_health, show_note = false %}
+    {% include "partials/freshness.html" %}
+  {% endwith %}
+</section>
+{% endblock %}
+
+{% block banners %}{{ n.banners(insight.source_health, unmatched_count) }}{% endblock %}
+
+{% block content %}
+{% set tabs = [("current_work", "Current work"), ("blockers", "Blockers"), ("risks", "Risks")] %}
+<div class="tabs" role="tablist" aria-label="Question" data-tabs data-member-id="{{ member.user_id }}">
+  {% for key, label in tabs %}
+    <a class="tab" role="tab" id="tab-{{ key }}" href="/members/{{ member.user_id }}?question={{ key }}"
+       aria-selected="{{ 'true' if key == question else 'false' }}" aria-controls="question-panel"
+       tabindex="{{ '0' if key == question else '-1' }}" data-question="{{ key }}">
+      {{ label }}
+      {% if tab_counts is defined and key in tab_counts %}<span class="tab__count">{{ tab_counts[key] }}</span>{% endif %}
+    </a>
+  {% endfor %}
+</div>
+
+<div id="question-panel" role="tabpanel" aria-labelledby="tab-{{ question }}" data-panel>
+  {% include "partials/question_panel.html" %}
+</div>
+{% endblock %}

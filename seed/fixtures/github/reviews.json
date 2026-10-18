@@ -8,7 +8,7 @@
     },
     "body": "Looks good to me, clean session isolation.",
     "state": "APPROVED",
-    "html_url": "https://github.com/keshan-dev/argus/pull/1#pullrequestreview-5001",
+    "html_url": "https://github.com/keshan-dev/headref/pull/1#pullrequestreview-5001",
     "submitted_at": "2026-09-19T10:00:00Z",
     "commit_id": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
   },
@@ -21,7 +21,7 @@
     },
     "body": "Please add explicit error handling when the token is malformed.",
     "state": "CHANGES_REQUESTED",
-    "html_url": "https://github.com/keshan-dev/argus/pull/2#pullrequestreview-5002",
+    "html_url": "https://github.com/keshan-dev/headref/pull/2#pullrequestreview-5002",
     "submitted_at": "2026-09-20T09:30:00Z",
     "commit_id": "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3"
   }

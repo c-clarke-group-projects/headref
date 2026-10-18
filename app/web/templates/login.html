@@ -1,0 +1,62 @@
+{#
+  Login page supporting GitHub OAuth authentication with offline demo fallback.
+  Context: request, users, next, error, oauth_enabled
+#}
+{% import "partials/icons.html" as i %}
+{% import "partials/badges.html" as b %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in, Headref</title>
+  <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+</head>
+<body>
+  <main class="login">
+    <section class="login__intro">
+      <p class="brand" style="align-self: flex-start">{{ i.glyph(18) }}Headref</p>
+      <h1 class="login__tagline">The current state of your team's work, with the evidence.</h1>
+      <div class="login__promises" style="margin-top: var(--s-8)">
+        <span class="pill-dark">{{ i.icon("check", 14) }}Every statement cites its records</span>
+        <span class="pill-dark">{{ i.icon("check", 14) }}Read only for Jira and GitHub</span>
+        <span class="pill-dark">{{ i.icon("check", 14) }}No rankings, no scores</span>
+      </div>
+    </section>
+    <section class="login__form">
+      <span class="login__badge">GitHub Authentication</span>
+      <h2 class="page-title" style="margin-top: 20px; font-size: 56px">Sign in</h2>
+      <p class="muted" style="margin-top: 14px">Sign in with your team GitHub account to access your team intelligence dashboard.</p>
+
+      {% if error %}
+        <p class="form-error" role="alert" style="margin-top: 20px">{{ error }}</p>
+      {% endif %}
+
+      <div style="margin-top: 32px">
+        {% if oauth_enabled %}
+          <a href="/auth/github/login?next={{ (next or '/')|urlencode }}" class="btn btn--primary btn--block" style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; min-height: 54px;">
+            {{ i.icon("github", 20) }}
+            <span>Sign in with GitHub</span>
+          </a>
+        {% else %}
+          <div class="banner banner--unavailable">
+            <div class="banner__icon">{{ i.icon("warning", 18) }}</div>
+            <div>
+              <strong>GitHub OAuth not configured</strong>
+              <p class="caption" style="margin-top: 4px; color: inherit">
+                Set <code>GITHUB_OAUTH_CLIENT_ID</code> and <code>GITHUB_OAUTH_CLIENT_SECRET</code> in <code>.env</code> to activate GitHub authentication.
+              </p>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+
+      <p class="caption" style="margin-top: 24px">
+        Connect with your GitHub account to access your repositories, team members, and real-time updates.
+      </p>
+    </section>
+  </main>
+</body>
+</html>
+

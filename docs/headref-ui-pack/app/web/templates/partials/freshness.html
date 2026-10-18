@@ -1,0 +1,54 @@
+{#
+  Per source freshness (P5-006). Sits in the right column of the dark hero
+  on every page that shows member data.
+  Context:
+    source_health: list of SourceHealthOut, any order
+    team_id: int, for the Refresh button
+    now: aware datetime, for relative times (pass from the route)
+    show_note: bool, show the read only note under Refresh
+#}
+{% import "partials/icons.html" as i %}
+{% set ordered = [] %}
+{% for name in ["github", "jira"] %}
+  {% for s in source_health if s.source == name %}{% set _ = ordered.append(s) %}{% endfor %}
+{% endfor %}
+<div class="sources" aria-label="Data freshness">
+  <p class="sources__label">Source freshness</p>
+  {% for s in ordered %}
+    {% set label = s.source|source_label %}
+    {% if s.last_success_at is none %}
+      {% set state = "never" %}
+    {% else %}
+      {% set state = s.state %}
+    {% endif %}
+    <div class="source-tile{% if state in ['unavailable', 'never'] %} source-tile--unavailable{% endif %}">
+      <p class="source-tile__head">
+        {{ i.source_icon(s.source) }}{{ label }}
+        {% if state == "fresh" %}
+          <span class="source-tile__state source-tile__state--fresh"><span class="source-tile__dot" aria-hidden="true"></span>Fresh</span>
+        {% elif state == "stale" %}
+          <span class="source-tile__state source-tile__state--stale">{{ i.icon("clock", 14) }}Stale</span>
+        {% elif state == "never" %}
+          <span class="source-tile__state source-tile__state--never">{{ i.icon("warning", 14) }}Never synced</span>
+        {% else %}
+          <span class="source-tile__state source-tile__state--unavailable">{{ i.icon("warning", 14) }}Unavailable</span>
+        {% endif %}
+      </p>
+      <p class="source-tile__detail">
+        {% if state == "fresh" %}
+          Synced <time datetime="{{ s.last_success_at|iso_utc }}" title="{{ s.last_success_at|utc_title }}">{{ s.last_success_at|reltime(now) }}</time>
+        {% elif state == "stale" %}
+          Synced <time datetime="{{ s.last_success_at|iso_utc }}" title="{{ s.last_success_at|utc_title }}">{{ s.last_success_at|reltime(now) }}</time>. Answers that use {{ label }} show lower confidence.
+        {% elif state == "never" %}
+          {{ label }} has never synced.
+        {% else %}
+          Last successful sync <time datetime="{{ s.last_success_at|iso_utc }}" title="{{ s.last_success_at|utc_title }}" data-local="short">{{ s.last_success_at|fmt_short }}</time>. Error: {{ s.last_error_type|error_label }}.
+        {% endif %}
+      </p>
+    </div>
+  {% endfor %}
+  <button type="button" class="btn btn--mint btn--block" data-refresh data-team-id="{{ team_id }}">
+    <span data-refresh-icon>{{ i.icon("refresh") }}</span><span data-refresh-label>Refresh</span>
+  </button>
+  <p class="sources__note" id="refresh-status" role="status" aria-live="polite">{% if show_note %}Syncs into Headref only. Nothing is written to Jira or GitHub.{% endif %}</p>
+</div>

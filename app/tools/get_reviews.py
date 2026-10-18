@@ -57,6 +57,31 @@ def get_reviews(
         stmt = stmt.order_by(Review.submitted_at.desc())
         results = session.execute(stmt).all()
 
+        # Fallback: the window returned nothing, so show the latest reviews.
+        if not results:
+            fallback_stmt = (
+                select(Review, PullRequest, Repository)
+                .join(PullRequest, Review.pull_request_id == PullRequest.id)
+                .join(Repository, PullRequest.repository_id == Repository.id)
+            )
+            if input_data.direction == "given":
+                fallback_stmt = fallback_stmt.where(
+                    Review.reviewer_app_user_id == input_data.subject_user_id
+                )
+            elif input_data.direction == "received":
+                fallback_stmt = fallback_stmt.where(
+                    PullRequest.author_app_user_id == input_data.subject_user_id
+                )
+            else:
+                fallback_stmt = fallback_stmt.where(
+                    or_(
+                        Review.reviewer_app_user_id == input_data.subject_user_id,
+                        PullRequest.author_app_user_id == input_data.subject_user_id,
+                    )
+                )
+            fallback_stmt = fallback_stmt.order_by(Review.submitted_at.desc()).limit(5)
+            results = session.execute(fallback_stmt).all()
+
         reviews: list[ReviewOut] = []
         for review, pr, repo in results:
             reviews.append(

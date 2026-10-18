@@ -47,13 +47,13 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: argus
-          POSTGRES_PASSWORD: argus
-          POSTGRES_DB: argus
+          POSTGRES_USER: headref
+          POSTGRES_PASSWORD: headref
+          POSTGRES_DB: headref
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U argus -d argus"
+          --health-cmd "pg_isready -U headref -d headref"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
@@ -75,7 +75,7 @@ jobs:
       # so they are run on a developer machine, not in CI.
       - name: pytest
         env:
-          DATABASE_URL: postgresql+psycopg://argus:argus@localhost:5432/argus
+          DATABASE_URL: postgresql+psycopg://headref:headref@localhost:5432/headref
         run: pytest -v --ignore=tests/eval
 
   secret-scan:
@@ -111,13 +111,13 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: argus
-          POSTGRES_PASSWORD: argus
-          POSTGRES_DB: argus
+          POSTGRES_USER: headref
+          POSTGRES_PASSWORD: headref
+          POSTGRES_DB: headref
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U argus -d argus"
+          --health-cmd "pg_isready -U headref -d headref"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
@@ -150,7 +150,7 @@ jobs:
       - name: alembic upgrade head
         if: steps.check.outputs.present == 'true'
         env:
-          DATABASE_URL: postgresql+psycopg://argus:argus@localhost:5432/argus
+          DATABASE_URL: postgresql+psycopg://headref:headref@localhost:5432/headref
         run: alembic upgrade head
 
       # With 2 developers and 1 migration directory, a second head is the most
@@ -158,7 +158,7 @@ jobs:
       - name: Exactly 1 alembic head
         if: steps.check.outputs.present == 'true'
         env:
-          DATABASE_URL: postgresql+psycopg://argus:argus@localhost:5432/argus
+          DATABASE_URL: postgresql+psycopg://headref:headref@localhost:5432/headref
         run: |
           COUNT=$(alembic heads | grep -c "(head)" || true)
           echo "heads found: $COUNT"

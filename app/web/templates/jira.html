@@ -1,0 +1,109 @@
+{#
+  Jira integration status page for Headref. Read only for configuration: Jira
+  credentials come from the environment at start up (CLAUDE.md rule 3), never from
+  this page.
+  Context: base context plus
+    jira_configured, jira_base_url, jira_email, jira_project_keys,
+    last_jira_sync (SyncRun or None), success (str or None),
+    error_message (fixed copy chosen by the route, never exception text), now
+#}
+{% extends "base.html" %}
+{% import "partials/icons.html" as i %}
+{% import "partials/badges.html" as b %}
+
+{% block title %}Jira, Headref{% endblock %}
+
+{% block hero %}
+<section class="hero">
+  <div>
+    <p class="hero__meta">
+      <span class="hero__dot" aria-hidden="true"></span>
+      Integrations &middot; Issue tracking
+    </p>
+    <h1 class="hero__title">Jira</h1>
+    <p class="hero__lead">
+      Jira is optional. With it, answers include assigned issues, Jira blockers, due dates and
+      conflicts between Jira and GitHub. Without it, answers use GitHub only and say so.
+    </p>
+  </div>
+</section>
+{% endblock %}
+
+{% block banners %}
+{% if success in ("synced", "demo_loaded") %}
+<div class="banners">
+  <div class="banner" role="status">
+    <span class="banner__dot" aria-hidden="true"></span>
+    <span>{% if success == "synced" %}Jira sync finished.{% else %}Sample Jira data loaded.{% endif %}</span>
+    <a class="navlink banner__action" href="/">View team</a>
+  </div>
+</div>
+{% endif %}
+{% if error_message %}
+<div class="banners">
+  <div class="banner banner--unavailable" role="alert">
+    <span class="banner__icon">{{ i.icon("warning", 18) }}</span>
+    <span>{{ error_message }}</span>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="grid-2">
+    <div class="card card--pad-md">
+      <div class="card__head">
+        <h2 class="card__title">{{ i.source_icon("jira", 18) }} Jira Cloud</h2>
+        {% if jira_configured %}
+          <span class="badge badge--sm">{{ i.icon("check", 12) }} Configured</span>
+        {% else %}
+          <span class="badge badge--sm">Not configured</span>
+        {% endif %}
+      </div>
+
+      {% if jira_configured %}
+        <dl class="kv">
+          <dt>Instance</dt><dd class="num">{{ jira_base_url }}</dd>
+          <dt>Account</dt><dd>{{ jira_email }}</dd>
+          <dt>Project scope</dt><dd>{{ jira_project_keys or "ALL" }}</dd>
+          <dt>Last sync</dt>
+          <dd>
+            {% if last_jira_sync %}
+              {{ last_jira_sync.status }}, {{ b.ts(last_jira_sync.started_at) }}
+              ({{ last_jira_sync.items_written }} written, {{ last_jira_sync.items_skipped }} skipped)
+              {% if last_jira_sync.error_type %}, last error {{ last_jira_sync.error_type }}{% endif %}
+            {% else %}
+              never synced
+            {% endif %}
+          </dd>
+        </dl>
+        <form method="post" action="/jira/sync">
+          <button type="submit" class="btn btn--primary btn--sm">{{ i.icon("clock", 14) }} Sync Jira now</button>
+        </form>
+      {% else %}
+        <p class="caption">Headref reads Jira credentials from the environment when it starts.
+          They cannot be entered on this page.</p>
+      {% endif %}
+    </div>
+
+    <div class="card card--pad-md">
+      <h2 class="card__title">Preview sample Jira data</h2>
+      <p class="caption">Loads the recorded sample issues through the real ingestion path, without
+        contacting Jira.</p>
+      <form method="post" action="/jira/demo">
+        <button type="submit" class="btn btn--quiet btn--sm">Load sample Jira data {{ i.icon("arrow-right", 12) }}</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section class="section--loose">
+  <h2 class="page-title">How to configure Jira</h2>
+  <ol class="steps">
+    <li class="step"><span class="step__num">1</span><span class="step__title">Create a read only API token</span><span class="step__body">In your Atlassian account settings, under Security, create an API token.</span></li>
+    <li class="step"><span class="step__num">2</span><span class="step__title">Set the environment</span><span class="step__body">Set JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN and optionally JIRA_PROJECT_KEYS in .env. See .env.example.</span></li>
+    <li class="step"><span class="step__num">3</span><span class="step__title">Restart and sync</span><span class="step__body">Restart Headref, then press Sync Jira now or wait for the scheduled sync.</span></li>
+  </ol>
+</section>
+{% endblock %}

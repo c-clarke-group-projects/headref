@@ -47,7 +47,7 @@ def test_t007_source_health_fresh_and_stale(db_session: Session) -> None:
     # GitHub: fresh (synced 2 hours ago)
     gh_run = SyncRun(
         source="github",
-        scope="keshan-dev/argus",
+        scope="keshan-dev/headref",
         status="success",
         items_fetched=10,
         items_written=10,
@@ -167,3 +167,39 @@ def test_t007_source_health_fail_closed_on_db_error(
     assert isinstance(res, ToolFailure)
     assert res.tool_id == "T-007"
     assert res.error_type == "UPSTREAM_ERROR"
+
+
+def test_t007_source_health_fresh_despite_unconfigured_runtime_error(db_session: Session) -> None:
+    """T-007 preserves fresh sync status when a recent attempt failed with internal RuntimeError."""
+    team = _seed_team(db_session)
+    now = datetime.now(UTC)
+
+    success_run = SyncRun(
+        source="github",
+        scope="keshan-dev/headref",
+        status="success",
+        items_fetched=5,
+        items_written=5,
+        items_skipped=0,
+        started_at=now - timedelta(hours=1),
+        finished_at=now - timedelta(hours=1),
+    )
+    failed_run = SyncRun(
+        source="github",
+        scope="keshan-dev/headref",
+        status="failed",
+        error_type="RuntimeError",
+        error_detail="GITHUB_TOKEN must be configured in environment or settings.",
+        started_at=now - timedelta(minutes=5),
+        finished_at=now - timedelta(minutes=5),
+    )
+    db_session.add_all([success_run, failed_run])
+    db_session.flush()
+
+    inp = GetSourceHealthInput(team_id=team.id, sources=["github"])
+    res = get_source_health(db_session, inp)
+
+    assert isinstance(res, GetSourceHealthOutput)
+    assert len(res.sources) == 1
+    assert res.sources[0].state == "fresh"
+    assert res.sources[0].last_error_type is None

@@ -16,7 +16,7 @@ import httpx
 from app.config import HTTP_MAX_ATTEMPTS, HTTP_TIMEOUT_SECONDS, settings
 from app.integrations.http import HttpClient
 
-logger = logging.getLogger("argus.integrations.github")
+logger = logging.getLogger("headref.integrations.github")
 
 # Regex to extract URL with rel="next" from RFC-5988 Link header
 _NEXT_LINK_REGEX = re.compile(r'<([^>]+)>;\s*rel="next"')
@@ -28,6 +28,27 @@ def parse_next_page_url(link_header: str | None) -> str | None:
         return None
     match = _NEXT_LINK_REGEX.search(link_header)
     return match.group(1) if match else None
+
+
+_ACTIVE_GITHUB_TOKEN: str | None = None
+
+
+def set_active_github_token(token: str | None) -> None:
+    """Store the authenticated user's GitHub token in memory for sync operations."""
+    global _ACTIVE_GITHUB_TOKEN
+    _ACTIVE_GITHUB_TOKEN = token
+
+
+def get_active_github_token() -> str | None:
+    """Retrieve the active GitHub token from memory, env, or settings."""
+    if _ACTIVE_GITHUB_TOKEN:
+        return _ACTIVE_GITHUB_TOKEN
+    env_token = os.getenv("GITHUB_TOKEN")
+    if env_token:
+        return env_token
+    if settings is not None and settings.github_token:
+        return settings.github_token
+    return None
 
 
 class GitHubClient:
@@ -42,9 +63,7 @@ class GitHubClient:
         transport: httpx.BaseTransport | None = None,
     ) -> None:
         if token is None:
-            token = os.getenv("GITHUB_TOKEN")
-            if not token and settings is not None:
-                token = settings.github_token
+            token = get_active_github_token()
 
         if not token:
             raise RuntimeError("GITHUB_TOKEN must be configured in environment or settings.")
@@ -115,6 +134,10 @@ class GitHubClient:
         else:
             url = "/user/repos"
         return self._paginate(url, params={"per_page": 100})
+
+    def list_organizations(self) -> list[dict[str, Any]]:
+        """List organizations for the authenticated user."""
+        return self._paginate("/user/orgs", params={"per_page": 100})
 
     def list_pull_requests(
         self,

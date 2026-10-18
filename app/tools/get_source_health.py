@@ -74,8 +74,16 @@ def get_source_health(
             # Evaluate 3-state condition per DEC-010:
             # 1. Unavailable if most recent attempt failed
             if last_attempt and last_attempt.status == "failed":
-                state = "unavailable"
-                last_error_type = last_attempt.error_type or "UPSTREAM_ERROR"
+                if last_success_at is not None and last_attempt.error_type == "RuntimeError":
+                    if age_hours is not None and age_hours <= FRESHNESS_WINDOW_HOURS:
+                        state = "fresh"
+                        last_error_type = None
+                    else:
+                        state = "stale"
+                        last_error_type = None
+                else:
+                    state = "unavailable"
+                    last_error_type = last_attempt.error_type or "UPSTREAM_ERROR"
             # 2. Unavailable if no successful sync has ever occurred
             elif last_success_at is None:
                 state = "unavailable"

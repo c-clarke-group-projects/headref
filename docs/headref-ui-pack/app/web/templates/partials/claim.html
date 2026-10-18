@@ -1,0 +1,68 @@
+{#
+  1 claim with class, confidence, stale marker, conflicts and evidence.
+  Context:
+    insight: Insight (claim, classification, confidence, evidence, conflicts)
+    claim_id: str, unique per claim on the page, for example "blockers-0"
+    label: str, small heading above the claim, for example "Likely current work"
+    plain_text: optional str. For unknown claims, the plain sentence to show
+      instead of the code reason, for example "Jira data is unavailable, so
+      blockers cannot be determined." The code reason then shows below it.
+  Unknown claims with no evidence render as the hatched unknown card and
+  show their reason instead of an evidence button.
+#}
+{% import "partials/icons.html" as i %}
+{% import "partials/badges.html" as b %}
+{% set ev_count = insight.evidence|length %}
+{% set stale_sources = insight.evidence|selectattr("source_state", "equalto", "stale")|map(attribute="source")|unique|list %}
+{% set is_unknown = insight.classification == "unknown" and ev_count == 0 %}
+{% set display_text = plain_text if (plain_text is defined and plain_text) else insight.claim %}
+
+<article class="{{ 'unknown-claim' if is_unknown else 'card claim' }}" id="{{ claim_id }}" data-claim aria-labelledby="{{ claim_id }}-text">
+  <div class="claim__top">
+    <h3 class="claim__label">{{ label }}</h3>
+    {% for src in stale_sources %}
+      <span class="stale-note">{{ i.icon("clock", 14) }}Uses stale {{ src|source_label }} data</span>
+    {% endfor %}
+  </div>
+  <p class="claim__text" id="{{ claim_id }}-text">{{ display_text }}</p>
+  <div class="claim__meta" data-claim-meta>
+    {{ b.claim_class(insight.classification, "lg") }}
+    {{ b.confidence(insight.confidence, "lg") }}
+  </div>
+
+  {% for c in insight.conflicts %}
+    <p class="claim__conflict">{{ i.icon("warning", 14) }} {{ c }}</p>
+  {% endfor %}
+
+  {% if is_unknown %}
+    <p class="claim__reason">{{ insight.claim }} There is no evidence to show.</p>
+  {% else %}
+    <p class="evidence-chain__label">Evidence chain</p>
+    <div class="evidence-chain">
+      <ul class="evidence-chain__list">
+        {% for ev in insight.evidence %}
+          <li>
+            <a class="ev-tile{% if ev.source_state == 'stale' %} ev-tile--stale{% endif %}" href="#{{ claim_id }}-evidence" data-ev-open="{{ claim_id }}" data-ev-target="{{ ev.id }}">
+              <span class="ev-tile__head">
+                {{ b.ev_marker(ev.id) }}
+                <span class="ev-tile__source">{{ i.source_icon(ev.source, 14) }}{{ ev.source|source_label }}</span>
+                {% if ev.source_state == "stale" %}<span class="stale-note" style="margin-left: auto">Stale</span>{% endif %}
+              </span>
+              <span class="ev-tile__summary" style="display: block">{{ ev.summary }}</span>
+              <span class="ev-tile__time" style="display: block">Observed {{ b.ts(ev.observed_at) }}</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="claim__foot">
+      <span class="caption">{{ ev_count }} evidence item{{ "s" if ev_count != 1 }}{% if stale_sources %}, {{ insight.evidence|selectattr("source_state", "equalto", "stale")|list|length }} from stale data{% endif %}</span>
+      <button type="button" class="btn btn--primary" data-ev-open="{{ claim_id }}" hidden>Show {{ ev_count }} evidence item{{ "s" if ev_count != 1 }}{{ i.icon("arrow-right") }}</button>
+    </div>
+    {# No JS fallback: the same evidence inline. app.js hides this and unhides the button above. #}
+    <details class="evidence-details" id="{{ claim_id }}-evidence">
+      <summary>Show {{ ev_count }} evidence item{{ "s" if ev_count != 1 }}</summary>
+      {% with evidence = insight.evidence %}{% include "partials/evidence_list.html" %}{% endwith %}
+    </details>
+  {% endif %}
+</article>

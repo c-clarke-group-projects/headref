@@ -1,10 +1,10 @@
-# ARGUS Agent Tools
+# headref Agent Tools
 
-Every tool available to the ARGUS agent, with its full contract.
+Every tool available to the headref agent, with its full contract.
 
 ---
 
-## Important: what "tool" means in ARGUS
+## Important: what "tool" means in headref
 
 In many agent systems a tool is something the model chooses to call. **That is not the
 case here.**
@@ -13,7 +13,7 @@ Per DEC-001 and DEC-005, the reasoning call in stage S4 is passed **no tools at 
 model never selects, invokes or sees a tool. It receives a finished evidence set and
 returns claims.
 
-In ARGUS a tool is a **typed read function invoked by the deterministic orchestrator in
+In headref a tool is a **typed read function invoked by the deterministic orchestrator in
 stage S2**, according to the fixed plan produced in stage S1. Tools are called by code, in
 a fixed order, with parameters derived from the plan and never from model output.
 
@@ -22,7 +22,7 @@ The tool contracts below still matter, and they are still strict, because:
 - They define the boundary between the read path and the database.
 - They define the typed failures the agent must reason about (FR-033).
 - They are the contract Developer 2 builds against.
-- They are what a future free-text version of ARGUS would expose if a model ever were
+- They are what a future free-text version of headref would expose if a model ever were
   allowed to choose (Stage 2, requires a new decision record).
 
 ### The 3 rules that apply to every tool
@@ -585,7 +585,7 @@ optional.
 
 **When it MUST NOT be used:**
 - MUST NOT be skipped as an optimization. An answer produced without checking source
-  health is not a valid ARGUS answer.
+  health is not a valid headref answer.
 - MUST NOT be used to trigger a sync. It reports; it does not act.
 
 **Failure cases:** `UPSTREAM_ERROR`. If this tool itself fails, the run MUST return

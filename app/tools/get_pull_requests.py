@@ -2,6 +2,11 @@
 
 Returns GitHub pull requests authored by a person, with state, draft flag,
 review state, branch name and check status from PostgreSQL.
+
+When no pull requests fall within the requested window the tool returns up to 5
+of the user's most recently updated pull requests without a date filter. This
+allows the agent to infer likely current work even for repositories that have
+been quiet for longer than the configured window (DEC-020).
 """
 
 from sqlalchemy import or_, select
@@ -17,12 +22,20 @@ from app.schemas.tools import (
 )
 from app.tools.base import execute_tool_query
 
+# Maximum PRs to show when falling back to all-time most-recent.
+_FALLBACK_LIMIT = 5
+
 
 def get_pull_requests(
     session: Session,
     input_data: GetPullRequestsInput,
 ) -> GetPullRequestsOutput | ToolFailure:
-    """Retrieve pull requests authored by a subject within a window."""
+    """Retrieve pull requests authored by a subject within a window.
+
+    Primary query honours the requested window.  When that returns nothing, a
+    fallback query fetches the _FALLBACK_LIMIT most recently updated PRs for
+    the user across all time so the agent always has real data to reason from.
+    """
 
     def _query() -> GetPullRequestsOutput | ToolFailure:
         user = session.get(AppUser, input_data.subject_user_id)
@@ -33,6 +46,7 @@ def get_pull_requests(
                 detail=f"User with ID {input_data.subject_user_id} does not exist",
             )
 
+        # Primary: within the requested window
         stmt = (
             select(PullRequest, Repository)
             .join(Repository, PullRequest.repository_id == Repository.id)
@@ -57,6 +71,21 @@ def get_pull_requests(
 
         stmt = stmt.order_by(PullRequest.source_updated_at.desc())
         results = session.execute(stmt).all()
+
+        # Fallback: the window returned nothing, so show the latest pull requests.
+        if not results:
+            fallback_stmt = (
+                select(PullRequest, Repository)
+                .join(Repository, PullRequest.repository_id == Repository.id)
+                .where(PullRequest.author_app_user_id == input_data.subject_user_id)
+                .order_by(PullRequest.source_updated_at.desc())
+                .limit(_FALLBACK_LIMIT)
+            )
+            if input_data.states:
+                fallback_stmt = fallback_stmt.where(PullRequest.state.in_(input_data.states))
+            if not input_data.include_drafts:
+                fallback_stmt = fallback_stmt.where(PullRequest.is_draft.is_(False))
+            results = session.execute(fallback_stmt).all()
 
         pull_requests: list[PullRequestOut] = []
         for pr, repo in results:

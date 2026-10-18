@@ -2,6 +2,11 @@
 
 Returns commits authored by a person within a window, with branch and message
 excerpt from PostgreSQL. Flags truncated=True if more rows exist than limit.
+
+When no commits fall within the requested window the tool returns up to 5 of
+the user's most recent commits without a date filter. This allows the agent to
+infer likely current work even for repositories that have been quiet for longer
+than the configured window (DEC-020).
 """
 
 from sqlalchemy import select
@@ -17,12 +22,20 @@ from app.schemas.tools import (
 )
 from app.tools.base import execute_tool_query
 
+# Maximum commits to show when falling back to all-time most-recent.
+_FALLBACK_LIMIT = 5
+
 
 def get_commits(
     session: Session,
     input_data: GetCommitsInput,
 ) -> GetCommitsOutput | ToolFailure:
-    """Retrieve commits authored by a subject with truncation detection."""
+    """Retrieve commits authored by a subject with truncation detection.
+
+    Primary query honours the requested window.  When that returns nothing, a
+    fallback query fetches the _FALLBACK_LIMIT most recent commits for the user
+    across all time so the agent always has real data to reason from.
+    """
 
     def _query() -> GetCommitsOutput | ToolFailure:
         user = session.get(AppUser, input_data.subject_user_id)
@@ -33,7 +46,7 @@ def get_commits(
                 detail=f"User with ID {input_data.subject_user_id} does not exist",
             )
 
-        # Query limit + 1 rows to determine if results were truncated
+        # Primary: within the requested window
         stmt = (
             select(Commit, Repository)
             .join(Repository, Commit.repository_id == Repository.id)
@@ -49,6 +62,19 @@ def get_commits(
         truncated = len(results) > input_data.limit
         if truncated:
             results = results[: input_data.limit]
+
+        # Fallback: the window returned nothing, so show the latest commits of any age.
+        # Capped at _FALLBACK_LIMIT so evidence scoring is not artificially inflated.
+        if not results:
+            fallback_stmt = (
+                select(Commit, Repository)
+                .join(Repository, Commit.repository_id == Repository.id)
+                .where(Commit.author_app_user_id == input_data.subject_user_id)
+                .order_by(Commit.committed_at.desc())
+                .limit(_FALLBACK_LIMIT)
+            )
+            results = session.execute(fallback_stmt).all()
+            truncated = False
 
         commits: list[CommitOut] = []
         for commit, repo in results:

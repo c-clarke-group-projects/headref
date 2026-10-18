@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
-SESSION_COOKIE = "argus_session"
+SESSION_COOKIE = "headref_session"
 SESSION_MAX_AGE_SECONDS = 8 * 60 * 60
 
 # Signing key for the session cookie. It is random per process and never stored or

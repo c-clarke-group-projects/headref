@@ -13,7 +13,7 @@ import httpx
 from app.config import settings
 from app.integrations.http import HttpClient
 
-logger = logging.getLogger("argus.integrations.jira")
+logger = logging.getLogger("headref.integrations.jira")
 
 
 class JiraClient:

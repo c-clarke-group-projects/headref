@@ -1,4 +1,4 @@
-# ARGUS Architecture Decision Records
+# headref Architecture Decision Records
 
 Decisions that shape the system and are expensive to reverse. Ordinary implementation
 choices do not belong here.
@@ -33,6 +33,7 @@ supersedes or amends it, not a workaround.
 | DEC-017 | Local inference with Ollama, no hosted LLM API | Accepted |
 | DEC-018 | The model writes the narrative, code produces the findings | Accepted |
 | DEC-019 | Lane rebalance: data and findings vs agent and interface | Accepted |
+| DEC-020 | Members are analysed from repository history without Jira | Proposed |
 
 ---
 
@@ -44,7 +45,7 @@ Owner: Both
 
 ### Context
 
-ARGUS reads text written by other people: pull request descriptions, Jira comments, commit
+headref reads text written by other people: pull request descriptions, Jira comments, commit
 messages. Any of that text can contain instructions aimed at the model. Large language
 models do not reliably ignore injected instructions just because a prompt tells them to.
 
@@ -59,7 +60,7 @@ The question is how much damage a successful injection can do.
 
 ### Decision
 
-Option 3. ARGUS is read-only for the entire MVP. No tool writes to any external system.
+Option 3. headref is read-only for the entire MVP. No tool writes to any external system.
 The LLM is given no tools whatsoever.
 
 ### Reason
@@ -548,7 +549,7 @@ Owner: Developer 1
 ### Context
 
 DEC-002 means the agent reads the database. A database query returns rows whether or not
-the source that filled it is currently reachable. Without something extra, ARGUS cannot
+the source that filled it is currently reachable. Without something extra, headref cannot
 tell the difference between "Jira reports no blockers" and "Jira has been unreachable for
 2 days", and it would report the second as the first. That is the single most damaging
 failure mode this product has.
@@ -726,7 +727,7 @@ Option 3. The MVP runs PostgreSQL and the application container, nothing else.
 - Rate limiting: ingestion is single-process and sequential, so a token bucket in process
   memory is sufficient.
 - Background work: ingestion is a CLI command (DEC-003).
-- Semantic search: not needed. Nearly every ARGUS query is structured, filtered by person,
+- Semantic search: not needed. Nearly every headref query is structured, filtered by person,
   work item and time window. If a genuine need appears, use `pgvector` inside the
   PostgreSQL already running, not a separate service.
 
@@ -872,7 +873,7 @@ Owner: Both
 
 DEC-002 keeps the read path offline. DEC-003 then made ingestion a manually triggered CLI
 command, which leaves data only as fresh as the last time somebody remembered to run it.
-That is not good enough: a lead opening ARGUS before standup needs current data without
+That is not good enough: a lead opening headref before standup needs current data without
 thinking about it.
 
 The question is how to get freshness without putting network calls back into the request
@@ -1173,3 +1174,59 @@ waits on the other.
 ### Related documents
 
 DEC-015, DEC-018, `TASKS.md` -> Developer Ownership.
+
+---
+
+## DEC-020: Members are analysed from repository history without Jira
+
+Date: 2026-10-17
+Status: Proposed
+Owner: Developer 1, needs Developer 2 agreement (the planner is in their lane, DEC-019)
+
+### Context
+
+Repositories onboarded through `/repos/select` create a member for every GitHub author.
+Most of these teams have no Jira. `current_work` and `blockers` required both Jira and
+GitHub, so for these members the answer was always "Cannot be established: jira is
+unavailable", even with months of pull requests and commits on record. Likely current work
+was also picked from Jira items only.
+
+### Options considered
+
+1. Keep Jira required. Repository-only teams get no answer at all.
+2. Make Jira optional for `current_work` and `blockers`, and infer current work from
+   GitHub when there is no Jira item.
+3. Add a GitHub-only question type. Adds a 4th question, which DEC-007 forbids.
+
+### Decision
+
+Option 2.
+
+- `current_work` and `blockers`: GitHub required, Jira optional. `risks` is unchanged, it
+  is about Jira due dates.
+- When Jira is not usable, the answer lists it under "Not determined" as "jira is
+  unavailable (...), so this answer does not use jira data". It is never silent.
+- With no Jira work item, likely current work is the open pull request with the latest
+  activity, else the branch or repository of the latest commit. It is always classified
+  `inference`, and confidence is computed by `evaluate_confidence` as before.
+- Planned in the same direction, each in its own pull request: a "Likely next" line in
+  the `current_work` answer built by code from assigned not-started items, requested
+  reviews and draft pull requests; and ingestion of GitHub issues.
+
+### Reason
+
+The person reading the page can act on "probably working on PR #14, Jira not checked".
+They cannot act on "Cannot be established". The honesty rule is kept by saying what was
+not checked, rather than refusing to answer.
+
+### Consequences
+
+- A member with no recent GitHub activity still gets the "no activity recorded" message.
+- Jira-only blockers (BL rules that read Jira) are listed as not checked when Jira is
+  missing.
+- Source health is still per source, not per repository (DEC-010). A failing scope marks
+  all GitHub data unavailable. Raised separately in `WORKLOG.md`.
+
+### Related documents
+
+DEC-007, DEC-010, DEC-018, FR-014, FR-020, FR-023.

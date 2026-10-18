@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.schemas.tools import SourceHealthOut, WorkItemOut
+from app.schemas.tools import PullRequestOut, SourceHealthOut, WorkItemOut
 
 
 class EvidenceItem(BaseModel):
@@ -31,7 +31,7 @@ class EvidenceItem(BaseModel):
         description="Untrusted source text, capped at EXCERPT_MAX_CHARS and URL-stripped",
     )
     observed_at: datetime = Field(description="When event occurred at source")
-    retrieved_at: datetime = Field(description="When fetched into ARGUS")
+    retrieved_at: datetime = Field(description="When fetched into Headref")
     source_state: Literal["fresh", "stale"] = Field(
         description="Freshness state of source at evidence construction time"
     )
@@ -116,6 +116,23 @@ class Insight(BaseModel):
         return data
 
 
+class ActivitySummary(BaseModel):
+    """This member's own activity counts inside the window (Gap G3).
+
+    Context for the reader, never a score: no totals across members, no averages and
+    no trend (CLAUDE.md rule 15, AI_BEHAVIOR.md 5.11).
+    """
+
+    window_days: int = Field(description="Length of the window the counts cover")
+    open_pull_requests: int = Field(default=0, description="Open pull requests in the window")
+    commits: int = Field(default=0, description="Commits in the window")
+    reviews_given: int = Field(default=0, description="Reviews this member gave in the window")
+    unlinked_pull_requests: list[PullRequestOut] = Field(
+        default_factory=list,
+        description="Pull requests in the window with no stored work item link",
+    )
+
+
 class MemberInsight(BaseModel):
     """Full API response contract for a team member's insight view."""
 
@@ -138,3 +155,69 @@ class MemberInsight(BaseModel):
         description="Per-source operational health and availability state",
     )
     summary: str | None = Field(default=None, description="Optional high-level narrative summary")
+    fallback_used: bool = Field(
+        default=False, description="Whether deterministic fallback was used"
+    )
+    activity: ActivitySummary | None = Field(
+        default=None,
+        description="Activity counts, or None when a tool they need failed or was not run",
+    )
+    truncated: dict[str, int] | None = Field(
+        default=None,
+        description="What a read tool capped, mapped to the cap applied, e.g. {'commits': 100}",
+    )
+
+
+class AttentionItem(BaseModel):
+    """An attention item on the team overview (blocker or risk, Gap G6)."""
+
+    kind: Literal["blocker", "risk"] = Field(description="Signal category")
+    claim: str = Field(description="Statement describing the attention item")
+    classification: Literal["fact", "inference", "unknown"] = Field(
+        default="fact", description="Epistemic classification"
+    )
+    confidence: Literal["HIGH", "MEDIUM", "LOW", "UNKNOWN"] = Field(
+        default="HIGH", description="Confidence level assigned by code"
+    )
+    evidence: list[EvidenceItem] = Field(
+        default_factory=list, description="Resolved evidence backing this item"
+    )
+
+
+class TeamMemberOverview(BaseModel):
+    """Per-member state rollup on the team overview."""
+
+    user_id: int = Field(description="Internal user ID")
+    display_name: str = Field(description="Display name of the team member")
+    role_label: str | None = Field(default=None, description="Role label if configured")
+    state: Literal["on_track", "needs_attention", "blocked", "unknown"] = Field(
+        description="Computed member state"
+    )
+    state_reason: str | None = Field(default=None, description="Explanation when state is unknown")
+    attention_count: int = Field(default=0, description="Count of attention items")
+    attention_items: list[AttentionItem] = Field(
+        default_factory=list, description="Items needing attention"
+    )
+    backing_evidence: list[EvidenceItem] = Field(
+        default_factory=list, description="Evidence items backing this member state"
+    )
+
+
+class TeamOverview(BaseModel):
+    """Full API response contract for GET /api/teams/{team_id}/overview."""
+
+    team_id: int = Field(description="Internal team ID")
+    team_name: str = Field(description="Name of the team")
+    overall_status: Literal["On Track", "Needs Attention", "Blocked", "Unknown"] = Field(
+        description="High-level status of the team"
+    )
+    source_health: list[SourceHealthOut] = Field(
+        default_factory=list, description="Per-source health and availability"
+    )
+    last_synced: dict[str, datetime | None] = Field(
+        default_factory=dict, description="Per-source last sync timestamp"
+    )
+    unmatched_count: int = Field(default=0, description="Count of unmatched accounts for the team")
+    members: list[TeamMemberOverview] = Field(
+        default_factory=list, description="Team member state rollups in alphabetical order"
+    )

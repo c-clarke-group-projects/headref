@@ -1,0 +1,57 @@
+{#
+  Banners and notices. Banners stack under the hero, most severe first,
+  and are never dismissible because the condition is real until it changes.
+    {% import "partials/notices.html" as n %}
+#}
+{% import "partials/icons.html" as i %}
+
+{# 1 banner per unavailable source (DESIGN.md 6.5). #}
+{% macro unavailable_banners(source_health) -%}
+{%- for s in source_health if s.state == "unavailable" -%}
+<div class="banner banner--unavailable" role="alert">
+  <span class="banner__icon">{{ i.icon("warning", 18) }}</span>
+  <span>{{ s.source|source_label }} data is unavailable ({{ s.last_error_type|error_label }}). Answers that depend on {{ s.source|source_label }} show as unknown.{% if s.last_success_at %} Last successful sync <time datetime="{{ s.last_success_at|iso_utc }}" title="{{ s.last_success_at|utc_title }}" data-local="short">{{ s.last_success_at|fmt_short }}</time>.{% endif %}</span>
+</div>
+{%- endfor -%}
+{%- endmacro %}
+
+{# Filled by app.js when a refresh fails or times out. Empty and hidden otherwise. #}
+{% macro refresh_banner() -%}
+<div class="banner banner--failed" data-refresh-banner hidden role="alert">
+  <span class="banner__icon">{{ i.icon("warning", 18) }}</span>
+  <span data-refresh-banner-text></span>
+</div>
+{%- endmacro %}
+
+{% macro unmatched_banner(count) -%}
+{%- if count and count > 0 -%}
+<div class="banner">
+  <span class="banner__dot" aria-hidden="true"></span>
+  <span>{{ count }} external account{{ "s are" if count != 1 else " is" }} not mapped to a team member. {{ "Their" if count != 1 else "Its" }} activity is excluded.</span>
+  <a class="navlink banner__action" href="/admin/unmatched" style="background: var(--mist)">View unmatched accounts</a>
+</div>
+{%- endif -%}
+{%- endmacro %}
+
+{# All banners in the correct order. #}
+{% macro banners(source_health, unmatched_count) -%}
+<div class="banners">
+  {{ unavailable_banners(source_health) }}
+  {{ refresh_banner() }}
+  {{ unmatched_banner(unmatched_count) }}
+</div>
+{%- endmacro %}
+
+{# Summary area when the model failed (FR-022). Needs fallback_used, gap G1. #}
+{% macro fallback_notice() -%}
+<span class="summary__fallback">{{ i.icon("warning", 14) }}AI reasoning is temporarily unavailable, showing recorded facts only.</span>
+{%- endmacro %}
+
+{# Needs truncated on MemberInsight, gap G4. #}
+{% macro truncated_notice(n, things) -%}
+<p class="caption">Showing the most recent {{ n }} {{ things }}.</p>
+{%- endmacro %}
+
+{% macro schema_invalid_notice() -%}
+<p class="caption">Some records could not be read and were left out. See the logs.</p>
+{%- endmacro %}

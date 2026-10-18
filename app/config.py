@@ -1,4 +1,4 @@
-"""ARGUS configuration module.
+"""Headref configuration module.
 
 Defines typed application settings and named constants (NFR-006, NFR-011, NFR-021).
 All thresholds, timeouts, and model parameters are defined here in one place.
@@ -48,6 +48,31 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("JIRA_API_TOKEN", "jira_api_token"),
         description="Atlassian Jira API token.",
     )
+    github_oauth_client_id: str = Field(
+        default="",
+        validation_alias=AliasChoices("GITHUB_OAUTH_CLIENT_ID", "github_oauth_client_id"),
+        description="GitHub OAuth application client ID.",
+    )
+    github_oauth_client_secret: str = Field(
+        default="",
+        validation_alias=AliasChoices("GITHUB_OAUTH_CLIENT_SECRET", "github_oauth_client_secret"),
+        description="GitHub OAuth application client secret.",
+    )
+
+    @property
+    def github_oauth_enabled(self) -> bool:
+        """True if GitHub OAuth credentials are configured."""
+        return bool(self.github_oauth_client_id and self.github_oauth_client_secret)
+
+    @property
+    def jira_enabled(self) -> bool:
+        """True if Jira credentials and base URL are configured."""
+        return bool(self.jira_base_url and self.jira_email and self.jira_api_token)
+
+    @property
+    def github_enabled(self) -> bool:
+        """True if GitHub PAT or OAuth credentials are configured."""
+        return bool(self.github_token or self.github_oauth_enabled)
 
     # -------------------------------------------------------------------------
     # Operational Settings
@@ -124,6 +149,22 @@ class Settings(BaseSettings):
         default=40,
         validation_alias=AliasChoices("MAX_EVIDENCE_ITEMS", "max_evidence_items"),
         description="Maximum evidence items presented to reasoning stage.",
+    )
+    github_repos: str = Field(
+        default="keshan-dev/headref",
+        validation_alias=AliasChoices("GITHUB_REPOS", "github_repos"),
+        description=(
+            "Comma separated owner/repo scopes this deployment ingests. "
+            "The MVP has 1 team, so these are the team's GitHub scopes."
+        ),
+    )
+    jira_project_keys: str = Field(
+        default="ALL",
+        validation_alias=AliasChoices("JIRA_PROJECT_KEYS", "jira_project_keys"),
+        description=(
+            "Comma separated Jira project keys this deployment ingests, or ALL. "
+            "The MVP has 1 team, so these are the team's Jira scopes."
+        ),
     )
     sync_interval_minutes: int = Field(
         default=5,
@@ -266,3 +307,18 @@ def get_settings() -> Settings:
     if settings is None:
         settings = load_settings()
     return settings
+
+
+def _split_scopes(raw: str) -> list[str]:
+    """Split a comma separated scope setting, dropping blanks."""
+    return [part.strip() for part in raw.split(",") if part.strip()]
+
+
+def github_scopes() -> list[str]:
+    """GitHub owner/repo scopes this deployment ingests, from GITHUB_REPOS."""
+    return _split_scopes(get_settings().github_repos)
+
+
+def jira_scopes() -> list[str]:
+    """Jira project key scopes this deployment ingests, from JIRA_PROJECT_KEYS."""
+    return _split_scopes(get_settings().jira_project_keys)

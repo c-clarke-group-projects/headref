@@ -1,0 +1,45 @@
+{#
+  Inline SVG icons, drawn locally in currentColor. No icon font, no CDN,
+  no copied brand logos. Usage:
+    {% import "partials/icons.html" as i %}
+    {{ i.icon("clock", 14) }}
+#}
+{% macro icon(name, size=16) -%}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+{%- if name == "clock" -%}
+<circle cx="8" cy="8" r="6"></circle><path d="M8 4.8V8l2.4 1.6"></path>
+{%- elif name == "warning" -%}
+<path d="M8 2.2L14.6 13.6H1.4Z"></path><path d="M8 6.6v3.2M8 11.7v0.1"></path>
+{%- elif name == "refresh" -%}
+<path d="M13.2 8.4A5.2 5.2 0 1 1 11.6 4.3"></path><path d="M12.4 1.8v3h-3"></path>
+{%- elif name == "external" -%}
+<path d="M9.5 2.5h4v4M13.5 2.5L7.5 8.5M11.5 9.5v4h-9v-9h4"></path>
+{%- elif name == "close" -%}
+<path d="M4 4l8 8M12 4l-8 8"></path>
+{%- elif name == "arrow-right" -%}
+<path d="M3 8h10M9 4l4 4-4 4"></path>
+{%- elif name == "arrow-left" -%}
+<path d="M13 8H3M7 4L3 8l4 4"></path>
+{%- elif name == "check" -%}
+<path d="M3.5 8.5l3 3 6-7"></path>
+{%- elif name == "jira" -%}
+<rect x="2" y="3.5" width="12" height="9" rx="1.5"></rect><path d="M5 7h6M5 9.5h3.5"></path>
+{%- elif name == "github" -%}
+<circle cx="4.5" cy="3.5" r="1.6"></circle><circle cx="4.5" cy="12.5" r="1.6"></circle><circle cx="11.5" cy="5.5" r="1.6"></circle><path d="M4.5 5.1v5.8M11.5 7.1c0 2.6-3.2 2.6-6.4 4.2"></path>
+{%- elif name == "unmatched" -%}
+<circle cx="6.5" cy="5.5" r="2.8"></circle><path d="M1.5 14c0.6-2.8 2.6-4.3 5-4.3s4.4 1.5 5 4.3"></path><path d="M12 3.5l3 3M15 3.5l-3 3"></path>
+{%- endif -%}
+</svg>
+{%- endmacro %}
+
+{#
+  Wordmark glyph: a ref pointing at a commit. White arrow, mint dot.
+  Use on dark backgrounds (the brand pill is always black).
+#}
+{% macro glyph(size=16) -%}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M1.5 8H8M5.5 5.2L8.3 8L5.5 10.8" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="12.4" cy="8" r="2.6" fill="#d1ffca"></circle></svg>
+{%- endmacro %}
+
+{% macro source_icon(source, size=16) -%}
+{{ icon("jira" if source == "jira" else "github", size) }}
+{%- endmacro %}

@@ -1,4 +1,4 @@
-# ARGUS System Architecture
+# headref System Architecture
 
 The whole software system. For the AI reasoning design see `AGENT_ARCHITECTURE.md`, which
 this document references rather than repeats.
@@ -7,7 +7,7 @@ this document references rather than repeats.
 
 ## 1. System overview
 
-ARGUS is a single Python application with 2 entry points and 1 database.
+headref is a single Python application with 2 entry points and 1 database.
 
 | Entry point | Trigger | Makes network calls | Owner |
 |---|---|---|---|
@@ -324,9 +324,9 @@ services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_USER: argus
-      POSTGRES_PASSWORD: argus
-      POSTGRES_DB: argus
+      POSTGRES_USER: headref
+      POSTGRES_PASSWORD: headref
+      POSTGRES_DB: headref
     ports: ["5432:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
   api:

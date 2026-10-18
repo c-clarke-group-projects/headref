@@ -58,7 +58,7 @@ def test_runtime_and_model_settings() -> None:
 def test_secrets_redacted_in_repr_and_str() -> None:
     """No secret or token appears in __repr__ or __str__."""
     cfg = Settings(
-        database_url="postgresql+psycopg://argus:super_secret_pw@localhost:5432/argus",
+        database_url="postgresql+psycopg://headref:super_secret_pw@localhost:5432/headref",
         github_token="ghp_verysecrettoken12345",
         jira_base_url="https://secret-domain.atlassian.net",
         jira_email="engineer@example.com",
@@ -129,7 +129,7 @@ def test_load_settings_fails_fast_with_clear_message(monkeypatch: pytest.MonkeyP
 def test_alias_support() -> None:
     """Aliases like OLLAMA_BASE_URL and EVIDENCE_WINDOW_DAYS are properly mapped."""
     cfg = Settings(
-        database_url="postgresql+psycopg://argus:argus@localhost:5432/argus",
+        database_url="postgresql+psycopg://headref:headref@localhost:5432/headref",
         github_token="gh_token",
         jira_base_url="https://example.atlassian.net",
         jira_email="user@example.com",

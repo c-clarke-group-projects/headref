@@ -1,4 +1,4 @@
-"""Verify the local Ollama setup for ARGUS and measure this machine.
+"""Verify the local Ollama setup for headref and measure this machine.
 
 Task P0-005, issue #5. Standard library only, so it runs before the project
 skeleton exists and needs no virtualenv.
@@ -26,7 +26,7 @@ DEFAULT_MODEL = "llama3.2"
 BASE = "http://localhost:11434"
 TIMEOUT = 900
 
-# The findings a real ARGUS run would hand to stage S4b (DEC-018).
+# The findings a real headref run would hand to stage S4b (DEC-018).
 FACTS = """likely_current_work: AUTH-245 "Refresh token rotation" (confidence HIGH)
 assigned: AUTH-245 (In Progress, High, due 2026-09-16), AUTH-301 (To Do, Medium)
 open_pull_request: acme/api#182, branch feature/AUTH-245-refresh-token
@@ -112,7 +112,7 @@ def main() -> int:
     args = ap.parse_args()
     model = args.model
 
-    print("\nARGUS Ollama check  (task P0-005, issue #5)")
+    print("\nheadref Ollama check  (task P0-005, issue #5)")
     print(f"model: {model}   host: {BASE}\n")
 
     ram = total_ram_gb()
@@ -166,7 +166,7 @@ def main() -> int:
         return report(model, ram)
 
     # 5. the real thing: structured narrative, as stage S4b does it
-    print("\n  running the ARGUS narrative task...")
+    print("\n  running the headref narrative task...")
     payload = {
         "model": model,
         "stream": False,

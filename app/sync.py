@@ -16,6 +16,7 @@ from typing import Any
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from app.config import github_scopes, jira_scopes
 from app.db import get_sync_session
 from app.integrations.errors import IntegrationError
 from app.integrations.github import GitHubClient
@@ -47,7 +48,7 @@ from app.models.canonical import Organization, Project, Repository
 from app.models.operations import SyncCursor, SyncRun
 from app.models.work import PullRequest, WorkItem
 
-logger = logging.getLogger("argus.sync")
+logger = logging.getLogger("headref.sync")
 
 # An Authorization header renders as "Authorization: Bearer <credential>", so the
 # scheme word has to be consumed too or the credential after it survives redaction.
@@ -101,14 +102,32 @@ def advance_cursor(
     return new_cursor
 
 
+def _only_configured_scope(scopes: list[str], source: str) -> str:
+    """Return the single configured scope, or fail loudly rather than guess.
+
+    A deployment that ingests several scopes must say which one this run is for.
+    Picking the first silently would sync 1 repository and report success for all.
+    """
+    if not scopes:
+        raise ValueError(f"No {source} scope is configured. Set it in the environment.")
+    if len(scopes) > 1:
+        raise ValueError(
+            f"{len(scopes)} {source} scopes are configured, so scope cannot be inferred. "
+            f"Pass scope explicitly."
+        )
+    return scopes[0]
+
+
 def sync_github(
     session: Session,
     team_id: int = 1,
-    scope: str = "keshan-dev/argus",
+    scope: str | None = None,
     reset_cursor: bool = False,
     gh_client: GitHubClient | None = None,
+    auto_create_contributors: bool = False,
 ) -> SyncRun:
     """Run end-to-end GitHub ingestion, normalization, identity attribution and links."""
+    scope = scope or _only_configured_scope(github_scopes(), "GitHub")
     logger.info("Starting GitHub sync for scope=%s, team_id=%d", scope, team_id)
 
     # 1. Reset cursor if requested
@@ -176,9 +195,19 @@ def sync_github(
             all_persisted_reviews.extend(revs)
 
         # Identity resolution
-        attribute_pull_requests(session, prs, raw_prs)
-        attribute_commits(session, commits, raw_commits)
-        attribute_reviews(session, all_persisted_reviews, all_raw_reviews)
+        attribute_pull_requests(
+            session, prs, raw_prs, auto_create=auto_create_contributors, team_id=team_id
+        )
+        attribute_commits(
+            session, commits, raw_commits, auto_create=auto_create_contributors, team_id=team_id
+        )
+        attribute_reviews(
+            session,
+            all_persisted_reviews,
+            all_raw_reviews,
+            auto_create=auto_create_contributors,
+            team_id=team_id,
+        )
 
         # Link building
         projects = session.scalars(select(Project)).all()
@@ -225,11 +254,12 @@ def sync_github(
 def sync_jira(
     session: Session,
     team_id: int = 1,
-    scope: str = "ALL",
+    scope: str | None = None,
     reset_cursor: bool = False,
     jira_client: JiraClient | None = None,
 ) -> SyncRun:
     """Run end-to-end Jira ingestion, normalization, dependencies and remote links."""
+    scope = scope or _only_configured_scope(jira_scopes(), "Jira")
     logger.info("Starting Jira sync for scope=%s, team_id=%d", scope, team_id)
 
     # 1. Reset cursor if requested
@@ -341,7 +371,7 @@ def sync_jira(
 
 def main(argv: list[str] | None = None) -> int:
     """CLI entrypoint for running integration synchronizations."""
-    parser = argparse.ArgumentParser(description="ARGUS Ingestion Sync CLI")
+    parser = argparse.ArgumentParser(description="Headref Ingestion Sync CLI")
     parser.add_argument(
         "--source",
         choices=["github", "jira", "all"],

@@ -1,4 +1,4 @@
-# ARGUS Work Log
+# headref Work Log
 
 **Append new entries at the top. Do not rewrite previous entries unless correcting a
 factual mistake.**
@@ -57,6 +57,506 @@ When you complete work, append an entry using the template above. Record what yo
 did, not what was planned. If you were unable to complete something, say so in Problems
 and leave the status as `IN_PROGRESS`. Do not mark a task `DONE` unless every acceptance
 criterion in `TASKS.md` is met.
+
+---
+
+## 2026-10-18 | Keshan | Phase 5 completion: suite repair, Jira credentials, fallback honesty, activity
+Status: IN_REVIEW
+
+### Completed
+1. Suite repaired: was 35 failed, 5 errors on `feat/phase-05` at `f09f363`, now 391 passed,
+   1 skipped. Causes: in-memory SQLite without `StaticPool` in 2 TestClient fixtures; a Jira
+   route mutating `os.environ` and the settings singleton, which failed 18 orchestrator tests
+   whenever they ran after it; empty compose variables overriding the test defaults; tests
+   left behind by the 2026-10-17 UI changes. An autouse fixture now restores the
+   environment and settings after every test.
+2. Jira credentials come from the environment only. `POST /jira/connect` and
+   `/jira/disconnect` are removed: any signed-in user could write an API token into
+   `os.environ` and rewrite `.env` on disk. `/jira` is a status page with the steps to
+   configure it. Error redirects carry a fixed code, never exception text.
+3. Fallback honesty: `MemberInsight.fallback_used` was never set, so a code-built summary
+   was labelled "Written by the local model". A model timeout raised instead of falling
+   back (EV-12 B). `agent_run` now records a typed `error_type` and the configured model.
+4. Activity counts (G3) and truncation disclosure (G4) on `MemberInsight`, counted by code,
+   this member only, window rows only, withheld when a tool they need failed.
+5. Page-level tests for unavailable, never synced, conflict, hostile excerpt, empty member.
+6. Committed the pending changes: pull request blocker evidence keys (fixes the UNKNOWN
+   confidence noted on 2026-10-17), and the empty-window fallback in T-002 to T-005.
+7. `ruff check .` and `black --check .` clean over the whole tree.
+
+### Changed
+`app/web/routes.py`, `app/web/templates/jira.html`, `login.html`, `question_panel.html`,
+`app/agent/narrative.py`, `orchestrator.py`, `blockers.py`, `app/schemas/insight.py`,
+`app/tools/get_*.py`, `tests/conftest.py` and 8 test modules, `pyproject.toml`.
+
+### Problems
+1. Running the suite inside the `project-api` container rewrote the developer's `.env`
+   through the old Jira routes. Jira values in `.env` were blanked and need re-entering if
+   they were set. Fixed by item 2; tests can no longer write outside `tmp_path`.
+2. Not verified in a browser: evidence links opening the right record (P5-003), the refresh
+   progress and reload (P5-007), widths and contrast (WP8). No screenshots attached.
+
+### Decisions Needed
+1. The empty-window fallback in T-002 to T-005 returns old rows unmarked. EV-03 expects
+   UNKNOWN with `NO_EVIDENCE` for an empty window, and DEC-020 says such a member still
+   gets "no activity recorded". Merged by choice of Developer 1; needs an `outside_window`
+   flag and a DEC-020 amendment, or a revert, before P6-004 writes EV-03.
+2. The team page unmatched card was removed on 2026-10-17. P5-004 and FR-003 require the
+   unmatched count to be visible. The criterion is unticked until this is agreed.
+3. DEC-020 is still Proposed. Phase 6 scenarios EV-01b, EV-03 and EV-04 B depend on it.
+4. This work sits in the Developer 2 lane (DEC-019). Developer 2 to review.
+
+### Next Step
+Phase 6, after this pull request is merged: settle the spec drift in
+`TESTING_AND_EVALUATION.md` 11.2, expand the fixtures, then the harness (P6-003).
+
+### AI Assistance
+Implemented with an AI assistant, verified in the `project-api` image on Python 3.11.17
+against a copy of the tree without `.env`. Check the new `/jira` page copy and the
+activity card in a real browser.
+
+---
+
+## 2026-10-18 | Keshan | Fix Source Health and Repository Analysis for Authenticated GitHub Users
+Status: DONE
+
+### Completed
+1. Integrated active GitHub OAuth token tracking in memory (`set_active_github_token` and `get_active_github_token`), allowing background sync and on-demand refresh to reuse the authenticated user's access token without requiring GITHUB_TOKEN in `.env`.
+2. Updated background sync scheduler (`app/scheduler.py`) to skip unconfigured sources (Jira when unconfigured, GitHub when no token is present) rather than failing with RuntimeError and inserting false failure rows in `sync_run`.
+3. Updated `resolve_team_scopes` in `app/scheduler.py` to automatically include all onboarded repositories from the database.
+4. Updated `get_source_health` (T-007) so internal RuntimeError from unconfigured scheduler runs does not invalidate valid, fresh repository sync data in PostgreSQL.
+5. Filtered unconfigured Jira out of `source_health` in `generate_team_overview` and `orchestrator._check_health`, removing confusing Jira "Unavailable" tiles and error alert banners when only GitHub is in use.
+6. Scoped member profile analysis (`run_agent`) to the selected repository (`repository_name`), allowing contributors to display their actual likely current work, blockers, and activity without requiring each member to connect their personal GitHub account.
+7. Added unit test in `tests/test_source_health.py` verifying that fresh sync records are preserved when a background tick encounters an unconfigured token RuntimeError.
+
+### Changed
+`app/config.py`, `app/integrations/github.py`, `app/scheduler.py`, `app/tools/get_source_health.py`, `app/agent/team_overview.py`, `app/agent/orchestrator.py`, `app/web/routes.py`, `tests/test_source_health.py`, `WORKLOG.md`.
+
+### Discovered
+Background scheduler ticks were executing unconditionally every 5 minutes and triggering RuntimeError when GITHUB_TOKEN or Jira credentials were empty, writing failed `SyncRun` rows that poisoned T-007 source health and closed the reasoning gate for all team members.
+
+---
+
+## 2026-10-17 | Keshan | Analyse members from repository history (DEC-020, part 1 of 3)
+Status: IN_PROGRESS
+
+### Completed
+1. `current_work` and `blockers` now require GitHub only. Jira is optional, and when it is
+   not usable the answer says so under "Not determined" (`GateResult.skipped`).
+2. With no Jira work item, likely current work is inferred from GitHub: the most recently
+   active open pull request, else the latest commit's branch or repository. Always
+   `inference`, confidence from `evaluate_confidence`.
+3. Tests updated for the new plan, plus 4 new tests for the GitHub fallback and the Jira
+   skip note. Planner and orchestrator tests pass.
+4. Fixed the local setup after the argus to headref rename: `.env` `DATABASE_URL`, new
+   database migrated and seeded, stale `argus.egg-info` and old volume removed.
+
+### Changed
+`app/agent/planner.py`, `app/agent/orchestrator.py`, `tests/test_planner.py`,
+`tests/test_orchestrator.py`, `docs/DECISIONS.md` (DEC-020, Proposed).
+
+### Discovered
+- Source health is per source, not per scope. The scheduler fails every tick on
+  `keshan-dev/headref` because `GITHUB_TOKEN` is empty, so GitHub reads as unavailable for
+  every member, including repositories synced successfully through OAuth.
+- `github_repos` default in `app/config.py` is `keshan-dev/headref`, but the GitHub
+  repository is still `keshan-dev/argus`.
+- Blocker "PR open with no review" comes back with confidence UNKNOWN: its evidence key
+  does not match the pull request evidence key. Not changed here.
+- Commits from OAuth-synced repositories have no branch name, so the branch fallback is
+  rarely reached on real data.
+
+### Problems
+15 tests fail and 5 error in `test_github_oauth.py`, `test_headref_ux_and_jira.py`,
+`test_team_overview.py`, `test_ui_team.py`, `tests/web/test_ui_templates.py` (SQLite
+thread errors, missing tables, changed page text). They fail without this change too.
+
+### Decisions Needed
+DEC-020 needs Developer 2 agreement. Fix for per-source health versus per-scope failures.
+
+### Next Step
+Part 2: "Likely next" line in `current_work`. Part 3: GitHub issues ingestion (needs a
+migration, announce first, rule 11).
+
+### AI Assistance
+Implemented with an AI assistant. Check the wording of the GitHub-only claims in the UI.
+
+---
+
+## 2026-10-17 | Keshan | GitHub Authenticated Organization & Repository Onboarding
+Status: DONE
+
+### Completed
+1. Expanded GitHub OAuth scope to `read:user,repo,read:org` to support access to personal repositories and organization memberships.
+2. Implemented automatic user onboarding in `GET /auth/github/callback`: new GitHub accounts logging in are automatically provisioned with active `AppUser` and verified `IdentityLink` records, and redirected to `/repos`.
+3. Stored GitHub access token securely in an HttpOnly, SameSite=lax `headref_gh_token` cookie, cleared on logout.
+4. Created dedicated repository and organization selection page at `GET /repos`: lists the user's organizations, personal and org repositories, and marks already ingested repositories. Supports organization pill filtering, live name searching, and custom repository input.
+5. Implemented `POST /repos/select`: validates repository full name, triggers GitHub ingestion (`sync_github`) with automatic contributor provisioning (`auto_create_contributors=True`), and redirects to the team dashboard with a success notice.
+6. Added Repositories link to the top navigation pillbar in `app/web/templates/base.html`, and added sync confirmation notice to `app/web/templates/team.html`.
+7. Added unit and integration tests in `tests/test_github_oauth.py` covering scope validation, user auto-provisioning, `/repos` page rendering with mocked GitHub API responses, and `/repos/select` sync execution.
+8. Resolved `AttributeError: type object 'UnmatchedEntity' has no attribute 'status'` in `GET /repos` by replacing invalid status check with canonical `UnmatchedEntity.resolved_app_user_id.is_(None)`. Verified live page rendering with browser subagent.
+9. Implemented repository-scoped team overview in `generate_team_overview` and `_render_team_page`: clicking "View Team" on a synced repository now strictly displays contributors and activity belonging to that specific repository, rather than all members across all synced repositories. Added repository switcher pill navigation to `team.html` and verified per-repo isolation in the live browser.
+
+### Changed
+`app/agent/team_overview.py`, `app/web/routes.py`, `app/web/templates/base.html`, `app/web/templates/repos.html`, `app/web/templates/team.html`, `tests/test_team_overview.py`, `tests/test_github_oauth.py`, `WORKLOG.md`.
+
+### Discovered
+Storing the user's OAuth access token in an HttpOnly session cookie enables seamless per-session GitHub API queries (listing organizations and repos) and user-scoped repository ingestion without requiring database schema alterations. Unresolved accounts on `UnmatchedEntity` are tracked by `resolved_app_user_id IS NULL`.
+
+---
+
+## 2026-10-17 | Keshan | GitHub OAuth Login Integration for Headref
+Status: IN_PROGRESS
+
+### Completed
+1. Added GitHub OAuth settings: `github_oauth_client_id` and `github_oauth_client_secret` in `app/config.py` with `github_oauth_enabled` property. Updated `.env.example` with setup notes.
+2. Implemented `GET /auth/github/login` endpoint with cryptographically secure state generation, redirect cookie state management, and GitHub authorization URL redirection.
+3. Implemented `GET /auth/github/callback` endpoint: validates CSRF state, exchanges authorization code for an access token via GitHub's API, retrieves authenticated GitHub user profile, resolves user against `IdentityLink` in PostgreSQL, and creates signed `headref_session` session cookie.
+4. Updated `app/web/templates/login.html` to feature the "Sign in with GitHub" button prominently, showing clear error messaging and an unconfigured notice banner when credentials are absent, alongside an offline demo fallback disclosure.
+5. Renamed application title and service identifier to `Headref` / `headref` in `app/main.py`, `tests/test_health.py`, `app/web/routes.py`, and `app/web/auth.py`.
+6. Added `tests/test_github_oauth.py`: 8 unit and integration tests covering unconfigured states, CSRF state verification, upstream error handling, unmapped GitHub accounts, and successful sign-in.
+
+### Changed
+`app/main.py`, `app/config.py`, `.env.example`, `app/web/auth.py`, `app/web/routes.py`, `app/web/templates/login.html`, `tests/test_health.py`, `tests/test_github_oauth.py`, `WORKLOG.md`.
+
+### Discovered
+Matching by GitHub user ID in `IdentityLink` works seamlessly with both numeric IDs (`external_id`) and GitHub logins (`external_handle`). When an unmapped account attempts to log in, clear actionable error guidance informs them that their account is not mapped to any Headref team member and points them to `seed/identity_map.yml`.
+
+### Next Step
+Configure GitHub OAuth App credentials in `.env` and verify the live browser OAuth authorization loop in Headref.
+
+
+---
+
+## 2026-10-08 | Isiwara | Web shell hardening (WP6)
+Status: IN_PROGRESS
+
+### Completed
+1. Closed the open redirect on login. `next` arrives from the query string on `GET /login`
+and from the form body on `POST /login`, and went straight into `RedirectResponse` with no
+validation, so `GET /login?next=https://evil.example/` sent the user off site after a
+successful login. Added `safe_next()`, which accepts only a path rooted at `/`, normalises
+backslashes and rejects a protocol relative `//host`. Both login paths use it.
+2. Removed the font copy from `app/main.py`. The application was running
+`shutil.copytree` from `docs/headref-ui-pack/` into `app/web/static/fonts/` at import
+time. The fonts are committed repository assets with their OFL licence, and a docs
+directory is not a runtime asset source.
+3. HTML routes now render `error.html` instead of raw JSON. The exception handler returned
+`JSONResponse` for every status except 401, so a 403 or 404 on a page showed a JSON body
+and `error.html` was referenced by nothing. The API path is unchanged and still returns
+its JSON body. `exc.detail` never reaches the HTML page: the template picks fixed copy
+from the status code, so no exception internals are exposed.
+4. `error.html` gained a `403page` copy variant. Wiring every 403 to the template made a
+team level denial say "You cannot view this member", which is the wrong statement.
+5. Split `GET /` and `GET /teams/{team_id}` into 2 handlers. Stacked on 1 handler with
+`team_id` defaulting to None, `team_id` was also accepted as a query parameter on `/`.
+6. Added a `RequestValidationError` handler. FastAPI handles that separately from
+`HTTPException`, so a browser hitting a page route with a malformed path or query
+parameter still got a JSON body listing the internal field locations. Page requests now
+get the error page; the API still gets the JSON error list.
+7. `_member_id_from` used `str.isdigit()`, which is True for characters `int()` rejects,
+such as the superscript 2. A 404 or 422 on `/members/<that>/x` would have raised inside
+the exception handler. Changed to `str.isdecimal()`.
+8. `safe_next()` strips tab, carriage return and newline before its checks. Browsers strip
+those from a `Location` value, so `/<TAB>//host` would otherwise resolve protocol
+relative. Starlette percent encodes them today, confirmed in this environment, but that is
+its behaviour to change, not a guarantee the validator should lean on.
+9. Added `tests/test_web_hardening.py`, 25 tests: 11 open redirect cases including the
+backslash and protocol relative variants, an AST check that `app/main.py` performs no
+filesystem write at import, a check that every `@font-face` source in `style.css` resolves
+to a file that exists, HTML versus JSON error rendering, the 403 copy split, avatar tints,
+and an OpenAPI assertion that `/` declares no `team_id`.
+
+### Changed
+`app/main.py`, `app/web/routes.py`, `app/web/templates/error.html`,
+`tests/test_web_hardening.py`, `WORKLOG.md`.
+
+### Discovered
+Ran the project security-review skill over the branch. It reported no HIGH or MEDIUM
+finding. It confirmed the redirect validator against Starlette's own quoting, confirmed
+`_scope_filter` builds its predicate entirely through SQLAlchemy with no string
+interpolation, confirmed no `|safe` or `Markup` anywhere, and confirmed the drawer in
+`app.js` uses `textContent` and `replaceChildren` rather than `innerHTML` for untrusted
+values. It surfaced the `isdigit` bug above, which is fixed here.
+
+The session cookie is set with `httponly` and `samesite=lax` but without `secure`. That is
+correct for the local HTTP demo and wrong for anything deployed. It is in `app/web/auth.py`
+from P3-001, not part of this change. Raised below rather than changed quietly.
+
+### Decisions Needed
+1. Should the session cookie set `secure=True` when the app is not running locally, keyed
+off `APP_ENV`? Needed before anything is deployed over HTTPS.
+2. Still unanswered from the previous 2 entries: the uppercase display question from the
+design system, the untested dark theme contrast, and whether an empty team should report
+"On Track" or "Unknown".
+
+### Next Step
+WP4, the activity field on `MemberInsight`, then WP5 for truncation disclosure.
+
+### AI Assistance
+An assistant implemented WP6 and ran the project security-review skill over the branch.
+Verified in a scratch virtual environment on Python 3.13, not the 3.11 that
+`pyproject.toml` pins: `348 passed, 1 skipped`, `ruff check app tests` clean,
+`black --check app tests` clean. Reproduce on 3.11 before merging. A human should confirm
+the redirect fix by hand against a real browser, because the tests assert the Location
+header rather than browser behaviour.
+
+---
+
+## 2026-10-08 | Isiwara | Ingestion scope configuration and honest sync endpoints (WP3)
+Status: IN_PROGRESS
+
+### Completed
+1. Ingestion scope now comes from configuration, not from a hardcoded default argument.
+`GITHUB_REPOS` and `JIRA_PROJECT_KEYS` are new settings in `app/config.py` with
+`github_scopes()` and `jira_scopes()` helpers, both added to `.env.example` per HOW_TO B2.
+The literal `"keshan-dev/headref"` is gone from `app/sync.py` and `app/scheduler.py`.
+`sync_github` and `sync_jira` resolve the scope when it is not passed, and raise rather
+than guess when several are configured. `run_scheduled_tick` iterates every configured
+scope and guards each one separately, and returns a per scope `details` map alongside the
+existing aggregate statuses.
+2. Added `resolve_team_scopes(team_id)` in `app/scheduler.py`. The MVP ingests 1 team, so
+it returns the configured scopes whatever team id is asked for. Per team scope is a column
+on the `team` table, which is a migration, and is deferred until a second team exists. The
+parameter is there so the call sites already pass it.
+3. WP3, the on-demand sync endpoints (P5-007, issue #49):
+   - Added the `SyncStatus`, `SyncTriggerResponse` and `SyncStatusResponse` contracts in
+     `app/schemas/sync.py` (gap G7). Both endpoints are typed; the `dict[str, Any]`
+     returns are gone, so they appear properly in the OpenAPI document.
+   - Removed the fabricated payload. The endpoint used to report GitHub and Jira as
+     `running` when no `sync_run` row existed. It now returns an empty `runs` list with
+     `started: true`, and the page says "starting". Rule 9: an absent row means "I cannot
+     see a run", not "a run is in progress".
+   - The in-flight guard filters `sync_run` by `source` and `scope` for this team's
+     configured scopes. It previously matched every running row in the table, so a sync
+     for an unrelated scope blocked the team.
+   - The background task handle is retained in a module level set with a done callback.
+     asyncio holds only a weak reference, so the task could be collected before it ran.
+     The suite no longer reports `coroutine 'to_thread' was never awaited`.
+   - `_do_background_sync` logs what it started and what came back, per rule 8.
+   - `app.js` reads the new `started` flag and says "A sync is already running" rather than
+     implying this click started one.
+4. Tests added: the 403 case now asserts nothing was started, a trigger with no rows
+asserts `runs == []`, and the in-flight query is asserted to be scope filtered by
+compiling the SQL. Ticked the P5-007 concurrency criterion in `docs/TASKS.md`.
+
+### Changed
+`app/config.py`, `.env.example`, `app/sync.py`, `app/scheduler.py`, `app/schemas/sync.py`,
+`app/schemas/__init__.py`, `app/web/routes.py`, `app/web/static/app.js`,
+`tests/test_api_sync.py`, `docs/TASKS.md`, `WORKLOG.md`.
+
+### Discovered
+`AppUser` now carries a `user_id` property aliasing `id`. That closes the avatar tint
+problem noted in the previous entry: `base.html` reads `actor.user_id` while the routes
+pass the ORM row, and every avatar was falling back to tint 0.
+
+### Problems
+Still open, tracked as WP4 to WP8 in `impl/implementation_plan_phase_5_completion.md`:
+`MemberInsight` has no `activity` field, so the activity card never renders, and no
+`truncated` field, so the truncation notice never fires. The login `next` parameter is an
+open redirect. `app/main.py` still copies fonts out of `docs/` at import time and renders
+every HTML error as raw JSON.
+
+### Decisions Needed
+Carried over from the previous entry and still unanswered: the uppercase display question
+from the design system, the untested dark theme contrast, and whether an empty team should
+report "On Track" or "Unknown".
+
+### Next Step
+WP6, the login open redirect, because it is the only remaining security defect.
+
+### AI Assistance
+An assistant implemented the configuration option and WP3, and split the Phase 5 work into
+separate commits. Verified in a scratch virtual environment on Python 3.13, not the 3.11
+that `pyproject.toml` pins: `323 passed, 1 skipped`, `ruff check app tests` clean,
+`black --check app tests` clean. Reproduce on 3.11 before merging. The choice to read
+scope from configuration rather than from the `team` table was made by the developers.
+
+---
+
+## 2026-10-08 | Isiwara | Phase 5 status correction, WP0 to WP2
+Status: IN_PROGRESS
+
+### Completed
+1. Corrected `docs/TASKS.md`. P5-002 to P5-007 were recorded DONE with every acceptance
+box ticked. They are back to IN_PROGRESS, and 4 boxes that were not true are unticked:
+P5-002 "Activity counts carry the context note", P5-003 "Clicking a link opens the correct
+source record", P5-006 "Truncation is disclosed", P5-007 "A sync already running returns
+the in-flight run, and no second run starts".
+2. WP1, made the suite run. It did not collect at all before this.
+   - `tests/test_ui_member.py` imported `ActivitySummary` and `AssignedWorkItem`, neither
+     of which exists. The fixture is rebuilt against the real `MemberInsight`: `user_id`,
+     not `member_id`, no `question_type`, and `assigned` as `WorkItemOut`.
+   - `tests/test_team_overview.py` used `SourceHealthOut(state="healthy")`, which is not a
+     valid literal, and built `GetCommitsOutput` without the required `truncated`.
+   - The same file left `assignee_user_id` and `author_user_id` unset. `build_evidence`
+     drops any row with a null actor (AC-14), so the evidence set came back empty and every
+     member fell through to "unknown". That is the code working correctly, so the fixtures
+     now carry the subject id.
+   - `tests/test_ui_team.py` built `TeamOverview` without the required `overall_status`.
+   - `tests/test_ui_freshness.py` rendered a template into a variable it never asserted on.
+3. WP2, fixed `GET /admin/unmatched`. It constructed `GetSourceHealthInput()` with no
+arguments while `team_id` and `sources` are required, so the page returned 500. The route
+now passes both, handles an actor with no team, and treats a `ToolFailure` from the health
+tool as unavailable with the typed error rather than letting it crash or silently read as
+an empty result (rule 9). Added a rendering case for the no team actor.
+4. `ruff check app tests` and `black app tests` applied, both clean.
+
+### Changed
+`docs/TASKS.md`, `app/web/routes.py`, `tests/test_team_overview.py`, `tests/test_ui_team.py`,
+`tests/test_ui_member.py`, `tests/test_ui_unmatched.py`, `tests/test_ui_freshness.py`,
+`impl/implementation_plan_phase_5_completion.md` (new).
+
+### Discovered
+1. `app/web/routes.py` binds `load_user` at import time, so a test that patches only
+`app.web.auth.load_user` leaves the form login path calling the real loader against a None
+session. The UI test fixtures now patch both bindings.
+2. `tests/test_ui_team.py` asserted `"rank" not in html`. The team page carries the
+disclaimer "Headref does not rank or compare people", which is exactly the copy
+AI_BEHAVIOR 5.11 asks for, so the assertion punished the right behaviour. It is replaced
+with a structural check: the disclaimer is present, member cards are in alphabetical order,
+and no sorting control or scoring vocabulary appears.
+3. `generate_team_overview` returns "On Track" for a team with no members. That asserts a
+state with no evidence behind it. Not changed here, raised below.
+
+### Problems
+Not fixed yet, tracked as WP3 to WP8 in `impl/implementation_plan_phase_5_completion.md`:
+`POST /api/teams/{id}/sync` reports GitHub and Jira as `running` when no `sync_run` row
+exists, its in flight guard is not scoped to the team, and the background task handle is
+discarded, which the suite still reports as `RuntimeWarning: coroutine 'to_thread' was
+never awaited`. `MemberInsight` still has no `activity` or `truncated` field. The login
+`next` parameter is an open redirect. `app/main.py` copies fonts out of `docs/` at import
+time and turns every HTML error page into raw JSON.
+
+### Decisions Needed
+1. The design reference in `impl/design system/` specifies uppercase display headings
+throughout. `style.css` sets no `text-transform: uppercase` anywhere. Recommend keeping
+sentence case: the subject matter is people, and the reference is a marketing site. Agree
+it explicitly so it is a decision rather than an accident.
+2. The dark theme block in `style.css` is untested for contrast and `--smoke` already fails
+AA as body text on white. Either fix the pairs or ship light only.
+3. An empty team reporting "On Track" needs a ruling. "Unknown" is the honest value.
+
+### Next Step
+WP3, the sync endpoints. That is the package with a direct rule 9 violation in it.
+
+### AI Assistance
+An assistant ran the audit, wrote the completion plan and applied WP0 to WP2. The test
+results below were produced in a scratch virtual environment on Python 3.13, not on the
+3.11 that `pyproject.toml` pins and CI runs, so reproduce them before merging:
+`321 passed, 1 skipped` for `pytest tests/`, clean `ruff check app tests` and
+`black --check app tests`. The 3 `Decisions Needed` items above are for the 2 developers,
+not for the assistant.
+
+---
+
+## 2026-10-05 | Isiwara | Phase 5 UI & API Implementation (P5-002 to P5-007)
+Status: DONE
+
+### Completed
+Delivered Phase 5 user interface and web application:
+1. P5-002 (Issue #34): Implemented member profile page (`member.html`, question tabs, claim cards with classification and categorical confidence badges, assigned work grouping, activity context disclaimer).
+2. P5-003 (Issue #35): Integrated evidence drawer in `app.js` with focus trapping, keyboard navigation (Tab/Esc), and safe HTML details fallback.
+3. P5-004 (Issue #36): Delivered team overview dashboard (`team.html`, hero status, alphabetical member cards, attention items linked to member tabs, unmatched banner).
+4. P5-005 (Issue #37): Implemented unmatched identity view (`unmatched.html`, `GET /admin/unmatched`) with occurrence counts, date tracking, and safe handle escaping.
+5. P5-006 (Issue #38): Delivered honest freshness component (`partials/freshness.html`), degraded-state notices (`partials/notices.html`), and client-side time localizer in `app.js`.
+6. P5-007 (Issue #49): Built asynchronous on-demand refresh (`POST /api/teams/{id}/sync` returning 202 in <500ms) and status polling (`GET /api/teams/{id}/sync/status`) with cached data retention on failure.
+7. Mounted static asset pipeline (`StaticFiles`), self-hosted IBM Plex fonts, and registered pure Jinja2 formatting helpers in `app/web/ui_format.py`.
+8. Added test suites: `tests/web/test_ui_templates.py`, `tests/test_ui_team.py`, `tests/test_ui_member.py`, `tests/test_ui_unmatched.py`, `tests/test_ui_freshness.py`, and `tests/test_api_sync.py`.
+
+### Changed
+`app/main.py`, `app/web/routes.py`, `app/web/ui_format.py`, `app/web/static/` (`app.js`, `favicon.svg`), `app/web/templates/` (`base.html`, `login.html`, `error.html`, `team.html`, `member.html`, `unmatched.html`, `partials/*.html`), `tests/web/test_ui_templates.py`, `tests/test_ui_team.py`, `tests/test_ui_member.py`, `tests/test_ui_unmatched.py`, `tests/test_ui_freshness.py`, `tests/test_api_sync.py`, `docs/TASKS.md`, `WORKLOG.md`.
+
+### Discovered
+All member routes (`/members/{member_id}` and `/members/{member_id}/panel`) take `MemberGuard` to satisfy the security guard inspection in `tests/test_auth.py`. Using pure urllib parse in `post_login` allows robust form decoding without requiring `python-multipart`.
+
+### Next Step
+Phase 6: Testing and Evaluation.
+
+
+## 2026-10-05 | Isiwara | P5-001 Member insight and team overview endpoints
+Status: DONE
+
+### Completed
+Closed issue #33 (task P5-001).
+1. Added `fallback_used: bool = False` to `MemberInsight` (Gap G1) and defined `AttentionItem`,
+`TeamMemberOverview`, and `TeamOverview` in `app/schemas/insight.py` (Gap G6), re-exporting
+them in `app/schemas/__init__.py`.
+2. Created `app/agent/team_overview.py` with `generate_team_overview()`, providing pure
+deterministic overview calculation from read tools T-001 and T-007 and findings rules
+(`detect_blockers`, `detect_risks`, `detect_conflicts`). Unavailable sources force member
+states to `unknown` per FR-025, and every state is backed by evidence items.
+3. Refactored `app/web/routes.py` to remove placeholder mocks and wire endpoints to real
+authorizations: `/api/members/{member_id}/insight` takes `MemberGuard` (FR-028) and executes
+`run_agent()` (FR-014, DEC-007), and `/api/teams/{team_id}/overview` verifies actor team
+membership before generating the overview.
+4. Added unit test suite `tests/test_team_overview.py` and updated `tests/test_api_insights.py`
+covering all 6 acceptance criteria (200 contracts, 422 question validation, 401/403/404
+security and access controls, unavailable source handling, and evidence backing).
+
+### Changed
+`app/schemas/insight.py`, `app/schemas/__init__.py`, `app/agent/team_overview.py`,
+`app/agent/__init__.py`, `app/web/routes.py`, `tests/test_team_overview.py`,
+`tests/test_api_insights.py`, `docs/TASKS.md`, `WORKLOG.md`,
+`impl/implementation_plan_issue_33.md`.
+
+### Discovered
+Wiring `MemberGuard` directly into `/api/members/{member_id}/insight` satisfies both the
+dynamic authorization check and the static AST inspection check in
+`tests/test_auth.py::test_no_member_route_in_the_real_app_bypasses_the_guard`.
+
+### Next Step
+P5-002: Member profile page (`member.html`).
+
+
+## 2026-10-03 | Keshan | P5-001 CI fixes
+Status: IN_PROGRESS
+
+### Completed
+Made `Lint and format` and `Project rules` pass on pull request #84.
+1. Fixed the 11 ruff findings in `app/web/routes.py` and `tests/test_api_insights.py`:
+unsorted import blocks (I001), 3 unused imports (`fastapi.Depends`, `typing.Optional`,
+`pytest`), `typing.List` replaced with `list` (UP035, UP006), and 3 lines over 100
+characters (E501).
+2. Reformatted both files with black and added the missing trailing newline to
+`app/main.py`, which was the only black failure in the tree.
+3. Added this entry. `Project rules` was failing because pull request #84 targets
+`feat/phase-05`, and against that base the branch did not touch `WORKLOG.md`. It did
+against `main`, which is why the check passed earlier in the branch's life and started
+failing when the base was retargeted.
+
+### Changed
+`app/web/routes.py`, `tests/test_api_insights.py`, `app/main.py` (trailing newline only),
+`WORKLOG.md`.
+
+### Discovered
+The `WORKLOG.md` check in CI compares against `origin/${{ github.base_ref }}`, so it is
+relative to whatever branch a pull request targets. Retargeting a pull request can make a
+previously passing run fail without any code change.
+
+### Problems
+None in this change. It is formatting only, no behaviour was altered.
+
+### Decisions Needed
+`app/web/routes.py` as it stands returns hardcoded responses. It does not call the
+orchestrator, and it defines a local `can_view_member` stub rather than taking the
+`MemberGuard` dependency from `app/web/auth.py` that `app/main.py` names in its module
+docstring. Against the P5-001 acceptance criteria in `docs/TASKS.md` this leaves 3 unmet:
+per-source freshness is a fixed string rather than real data, the Unknown state for
+unavailable source data is not implemented in the team overview, and no overview state is
+backed by an evidence item. Leaving invented timestamps and summaries in a shipped
+endpoint also runs against CLAUDE.md rule 10. P5-001 should stay IN_PROGRESS and the
+endpoints should be wired to the orchestrator before the task is closed.
+
+### Next Step
+Wire both endpoints to the orchestrator and to `MemberGuard`, then re-check the P5-001
+acceptance criteria.
+
+### AI Assistance
+An AI assistant made the lint and format fixes and wrote this entry. The fixes are
+mechanical (import order, unused imports, line wrapping, trailing newline) and the diff is
+worth a quick read to confirm no behaviour changed. The gap described under Decisions
+Needed was found by reading `docs/TASKS.md`, not verified against a running system.
 
 ---
 
@@ -903,7 +1403,7 @@ closed: "Both developers confirm it runs on their machine."
 | Check | Result |
 |---|---|
 | `docker compose up --build -d` | `db` healthy, `api` up (image build 55.5 s) |
-| `GET /health` | 200, `{"status":"ok","service":"argus","version":"0.1.0",...}` |
+| `GET /health` | 200, `{"status":"ok","service":"headref","version":"0.1.0",...}` |
 | `pytest` inside the container | 1 passed |
 | `ruff check .` inside the container | All checks passed |
 | `black --check .` inside the container | 5 files unchanged |
@@ -966,7 +1466,7 @@ and the outstanding container criterion on P0-005 is now met.
 | Check | Result |
 |---|---|
 | `docker compose up --build` | `db` healthy, `api` up |
-| `GET /health` | 200, `{"status":"ok","service":"argus","version":"0.1.0",...}` |
+| `GET /health` | 200, `{"status":"ok","service":"headref","version":"0.1.0",...}` |
 | `pytest` inside the container | 1 passed |
 | `ruff check .` inside the container | All checks passed |
 | `black --check .` inside the container | 5 files unchanged |
@@ -1252,7 +1752,7 @@ Status: IN_PROGRESS
 
 ### Completed
 Added `scripts/check_ollama.py`, a standard-library-only script that verifies every
-acceptance criterion on issue #5 and prints a WORKLOG block. It runs the real ARGUS
+acceptance criterion on issue #5 and prints a WORKLOG block. It runs the real headref
 narrative task (stage S4b), not a toy prompt, so the numbers reflect actual use.
 
 Verified on my machine. 11 checks passed, 0 failed.
@@ -1338,7 +1838,7 @@ for the next two weeks, so it is the one to protect.
 Status: DONE
 
 ### Completed
-Created the ARGUS documentation set in `docs/`, before any application code:
+Created the headref documentation set in `docs/`, before any application code:
 `README.md`, `PROJECT_REQUIREMENTS.md`, `AGENT_ARCHITECTURE.md`, `AGENT_TOOLS.md`,
 `AI_BEHAVIOR.md`, `DATA_AND_EVIDENCE.md`, `ARCHITECTURE.md`, `DECISIONS.md`, `TASKS.md`,
 `WORKLOG.md`, `TESTING_AND_EVALUATION.md`.
@@ -1407,7 +1907,7 @@ fixtures).
 
 ### AI Assistance
 The documentation set was drafted with an AI assistant from the earlier planning material
-(`ARGUS_MVP_Plan.html`, `TeamPulse_Production_Ready_AI_Agent_Checklist.md`,
+(`headref_MVP_Plan.html`, `TeamPulse_Production_Ready_AI_Agent_Checklist.md`,
 `TeamPulse_Analysis_and_Recommendations.md`). The 5 gaps listed above were identified
 during that review.
 

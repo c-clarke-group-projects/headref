@@ -33,18 +33,20 @@ class RetrievalPlan(BaseModel):
 
 
 PLANS: dict[str, RetrievalPlan] = {
+    # Jira is optional for these 2 so a member seen only in repository history can still
+    # be analysed from GitHub. The answer then says Jira was not checked (DEC-020).
     "current_work": RetrievalPlan(
         question_type="current_work",
-        required_sources=("jira", "github"),
-        optional_sources=(),
+        required_sources=("github",),
+        optional_sources=("jira",),
         window_days=RECENT_ACTIVITY_DAYS,
         include_open_due_items=False,
         tools=("T-002", "T-003", "T-004", "T-005", "T-006"),
     ),
     "blockers": RetrievalPlan(
         question_type="blockers",
-        required_sources=("jira", "github"),
-        optional_sources=(),
+        required_sources=("github",),
+        optional_sources=("jira",),
         window_days=RECENT_ACTIVITY_DAYS,
         include_open_due_items=False,
         tools=("T-002", "T-003", "T-004", "T-005", "T-006"),

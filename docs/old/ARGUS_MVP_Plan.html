@@ -1,217 +1,599 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ARGUS MVP - Build Plan for a 2 Person Team</title>
-<style>
-  :root{
-    --bg:#f6f7f9; --panel:#ffffff; --panel-2:#f0f2f5; --ink:#1a1d21; --ink-2:#4a5159;
-    --muted:#6b7280; --border:#e2e5ea; --brand:#2f6df6; --brand-ink:#1b4fd0;
-    --laneA:#2f6df6; --laneA-bg:#e9f0ff; --laneB:#0f9d76; --laneB-bg:#e3f7ef;
-    --shared:#8a5cf6; --shared-bg:#f0eaff; --warn:#c2410c; --warn-bg:#fff1e8;
-    --ok:#0f9d76; --code-bg:#0f1419; --code-ink:#e6e6e6; --radius:12px;
-  }
-  @media (prefers-color-scheme: dark){
-    :root{
-      --bg:#0d1117; --panel:#161b22; --panel-2:#1c232d; --ink:#e6edf3; --ink-2:#c2ccd6;
-      --muted:#9aa4b2; --border:#2a313c; --brand:#5b8bff; --brand-ink:#8ab0ff;
-      --laneA:#5b8bff; --laneA-bg:#12243f; --laneB:#3fd6a6; --laneB-bg:#0f2e26;
-      --shared:#b18bff; --shared-bg:#241a3d; --warn:#f59e6b; --warn-bg:#3a2416;
-      --ok:#3fd6a6; --code-bg:#0a0e13; --code-ink:#d6dee6;
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>headref MVP - Build Plan for a 2 Person Team</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --panel-2: #f0f2f5;
+      --ink: #1a1d21;
+      --ink-2: #4a5159;
+      --muted: #6b7280;
+      --border: #e2e5ea;
+      --brand: #2f6df6;
+      --brand-ink: #1b4fd0;
+      --laneA: #2f6df6;
+      --laneA-bg: #e9f0ff;
+      --laneB: #0f9d76;
+      --laneB-bg: #e3f7ef;
+      --shared: #8a5cf6;
+      --shared-bg: #f0eaff;
+      --warn: #c2410c;
+      --warn-bg: #fff1e8;
+      --ok: #0f9d76;
+      --code-bg: #0f1419;
+      --code-ink: #e6e6e6;
+      --radius: 12px;
     }
-  }
-  *{box-sizing:border-box}
-  html{scroll-behavior:smooth}
-  body{
-    margin:0; background:var(--bg); color:var(--ink);
-    font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  }
-  a{color:var(--brand); text-decoration:none}
-  a:hover{text-decoration:underline}
-  .layout{display:grid; grid-template-columns:280px 1fr; gap:0; max-width:1400px; margin:0 auto}
-  /* Sidebar */
-  aside{
-    position:sticky; top:0; align-self:start; height:100vh; overflow-y:auto;
-    background:var(--panel); border-right:1px solid var(--border); padding:22px 18px;
-  }
-  aside .brand{font-weight:800; font-size:19px; letter-spacing:.2px; margin:0 0 4px}
-  aside .sub{color:var(--muted); font-size:12px; margin:0 0 18px}
-  nav a{display:block; color:var(--ink-2); font-size:13.5px; padding:5px 10px; border-radius:8px; margin:1px 0}
-  nav a:hover{background:var(--panel-2); text-decoration:none}
-  nav .grp{font-size:11px; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); margin:16px 0 6px 10px}
-  main{padding:40px 44px 120px; min-width:0}
-  header.hero{
-    background:linear-gradient(135deg,var(--brand),#7b3ff2); color:#fff;
-    border-radius:16px; padding:34px 34px; margin-bottom:30px;
-  }
-  header.hero h1{margin:0 0 8px; font-size:30px; line-height:1.2}
-  header.hero p{margin:0; opacity:.95; max-width:70ch}
-  .hero-meta{display:flex; flex-wrap:wrap; gap:10px; margin-top:18px}
-  .hero-meta span{background:rgba(255,255,255,.16); padding:5px 12px; border-radius:999px; font-size:12.5px; font-weight:600}
-  section{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:26px 28px; margin:0 0 22px}
-  h2{font-size:22px; margin:0 0 4px; scroll-margin-top:20px}
-  h2 .num{color:var(--brand); font-weight:800; margin-right:8px}
-  h3{font-size:16.5px; margin:22px 0 8px}
-  h4{font-size:14px; margin:16px 0 6px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted)}
-  p{margin:8px 0}
-  ul,ol{margin:8px 0; padding-left:22px}
-  li{margin:4px 0}
-  code{background:var(--panel-2); padding:1.5px 6px; border-radius:5px; font-family:"SF Mono",Consolas,Menlo,monospace; font-size:13px}
-  pre{background:var(--code-bg); color:var(--code-ink); padding:16px 18px; border-radius:10px; overflow-x:auto; font-family:"SF Mono",Consolas,Menlo,monospace; font-size:12.5px; line-height:1.55}
-  pre code{background:none; padding:0; color:inherit}
-  .tbl-wrap{overflow-x:auto; margin:12px 0}
-  table{border-collapse:collapse; width:100%; font-size:13.5px; min-width:520px}
-  th,td{border:1px solid var(--border); padding:9px 11px; text-align:left; vertical-align:top}
-  th{background:var(--panel-2); font-weight:700}
-  tr:nth-child(even) td{background:color-mix(in srgb,var(--panel-2) 45%, transparent)}
-  .lead{font-size:16.5px; color:var(--ink-2)}
-  .callout{border-left:4px solid var(--brand); background:var(--panel-2); padding:12px 16px; border-radius:0 8px 8px 0; margin:14px 0}
-  .callout.warn{border-color:var(--warn); background:var(--warn-bg)}
-  .callout.ok{border-color:var(--ok)}
-  .pill{display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px; vertical-align:middle}
-  .pill.A{background:var(--laneA-bg); color:var(--laneA)}
-  .pill.B{background:var(--laneB-bg); color:var(--laneB)}
-  .pill.S{background:var(--shared-bg); color:var(--shared)}
-  .pill.p0{background:var(--warn-bg); color:var(--warn)}
-  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px}
-  .card{border:1px solid var(--border); border-radius:10px; padding:16px 18px; background:var(--panel-2)}
-  .card.laneA{border-top:3px solid var(--laneA)}
-  .card.laneB{border-top:3px solid var(--laneB)}
-  .card.shared{border-top:3px solid var(--shared)}
-  .card h3{margin-top:0}
-  ul.check{list-style:none; padding-left:4px}
-  ul.check li{position:relative; padding-left:28px; margin:6px 0}
-  ul.check li::before{content:"\2713"; position:absolute; left:0; top:0; width:19px; height:19px; background:var(--ok); color:#fff; border-radius:5px; font-size:12px; text-align:center; line-height:19px; font-weight:800}
-  ul.box li{position:relative; padding-left:28px; list-style:none; margin:6px 0}
-  ul.box li::before{content:""; position:absolute; left:0; top:3px; width:16px; height:16px; border:2px solid var(--muted); border-radius:4px}
-  ul.box{padding-left:4px}
-  .legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); margin:10px 0 0}
-  .legend b{color:var(--ink)}
-  .toc-top{display:none}
-  footer{color:var(--muted); font-size:12.5px; text-align:center; padding:30px 0 10px}
-  @media (max-width:920px){
-    .layout{grid-template-columns:1fr}
-    aside{position:static; height:auto; border-right:none; border-bottom:1px solid var(--border)}
-    main{padding:24px 18px 80px}
-    .grid2{grid-template-columns:1fr}
-  }
-</style>
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0d1117;
+        --panel: #161b22;
+        --panel-2: #1c232d;
+        --ink: #e6edf3;
+        --ink-2: #c2ccd6;
+        --muted: #9aa4b2;
+        --border: #2a313c;
+        --brand: #5b8bff;
+        --brand-ink: #8ab0ff;
+        --laneA: #5b8bff;
+        --laneA-bg: #12243f;
+        --laneB: #3fd6a6;
+        --laneB-bg: #0f2e26;
+        --shared: #b18bff;
+        --shared-bg: #241a3d;
+        --warn: #f59e6b;
+        --warn-bg: #3a2416;
+        --ok: #3fd6a6;
+        --code-bg: #0a0e13;
+        --code-ink: #d6dee6;
+      }
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html {
+      scroll-behavior: smooth
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    a {
+      color: var(--brand);
+      text-decoration: none
+    }
+
+    a:hover {
+      text-decoration: underline
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 0;
+      max-width: 1400px;
+      margin: 0 auto
+    }
+
+    /* Sidebar */
+    aside {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      overflow-y: auto;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      padding: 22px 18px;
+    }
+
+    aside .brand {
+      font-weight: 800;
+      font-size: 19px;
+      letter-spacing: .2px;
+      margin: 0 0 4px
+    }
+
+    aside .sub {
+      color: var(--muted);
+      font-size: 12px;
+      margin: 0 0 18px
+    }
+
+    nav a {
+      display: block;
+      color: var(--ink-2);
+      font-size: 13.5px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      margin: 1px 0
+    }
+
+    nav a:hover {
+      background: var(--panel-2);
+      text-decoration: none
+    }
+
+    nav .grp {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--muted);
+      margin: 16px 0 6px 10px
+    }
+
+    main {
+      padding: 40px 44px 120px;
+      min-width: 0
+    }
+
+    header.hero {
+      background: linear-gradient(135deg, var(--brand), #7b3ff2);
+      color: #fff;
+      border-radius: 16px;
+      padding: 34px 34px;
+      margin-bottom: 30px;
+    }
+
+    header.hero h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      line-height: 1.2
+    }
+
+    header.hero p {
+      margin: 0;
+      opacity: .95;
+      max-width: 70ch
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px
+    }
+
+    .hero-meta span {
+      background: rgba(255, 255, 255, .16);
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 600
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 26px 28px;
+      margin: 0 0 22px
+    }
+
+    h2 {
+      font-size: 22px;
+      margin: 0 0 4px;
+      scroll-margin-top: 20px
+    }
+
+    h2 .num {
+      color: var(--brand);
+      font-weight: 800;
+      margin-right: 8px
+    }
+
+    h3 {
+      font-size: 16.5px;
+      margin: 22px 0 8px
+    }
+
+    h4 {
+      font-size: 14px;
+      margin: 16px 0 6px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--muted)
+    }
+
+    p {
+      margin: 8px 0
+    }
+
+    ul,
+    ol {
+      margin: 8px 0;
+      padding-left: 22px
+    }
+
+    li {
+      margin: 4px 0
+    }
+
+    code {
+      background: var(--panel-2);
+      padding: 1.5px 6px;
+      border-radius: 5px;
+      font-family: "SF Mono", Consolas, Menlo, monospace;
+      font-size: 13px
+    }
+
+    pre {
+      background: var(--code-bg);
+      color: var(--code-ink);
+      padding: 16px 18px;
+      border-radius: 10px;
+      overflow-x: auto;
+      font-family: "SF Mono", Consolas, Menlo, monospace;
+      font-size: 12.5px;
+      line-height: 1.55
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      color: inherit
+    }
+
+    .tbl-wrap {
+      overflow-x: auto;
+      margin: 12px 0
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 13.5px;
+      min-width: 520px
+    }
+
+    th,
+    td {
+      border: 1px solid var(--border);
+      padding: 9px 11px;
+      text-align: left;
+      vertical-align: top
+    }
+
+    th {
+      background: var(--panel-2);
+      font-weight: 700
+    }
+
+    tr:nth-child(even) td {
+      background: color-mix(in srgb, var(--panel-2) 45%, transparent)
+    }
+
+    .lead {
+      font-size: 16.5px;
+      color: var(--ink-2)
+    }
+
+    .callout {
+      border-left: 4px solid var(--brand);
+      background: var(--panel-2);
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin: 14px 0
+    }
+
+    .callout.warn {
+      border-color: var(--warn);
+      background: var(--warn-bg)
+    }
+
+    .callout.ok {
+      border-color: var(--ok)
+    }
+
+    .pill {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 999px;
+      vertical-align: middle
+    }
+
+    .pill.A {
+      background: var(--laneA-bg);
+      color: var(--laneA)
+    }
+
+    .pill.B {
+      background: var(--laneB-bg);
+      color: var(--laneB)
+    }
+
+    .pill.S {
+      background: var(--shared-bg);
+      color: var(--shared)
+    }
+
+    .pill.p0 {
+      background: var(--warn-bg);
+      color: var(--warn)
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      background: var(--panel-2)
+    }
+
+    .card.laneA {
+      border-top: 3px solid var(--laneA)
+    }
+
+    .card.laneB {
+      border-top: 3px solid var(--laneB)
+    }
+
+    .card.shared {
+      border-top: 3px solid var(--shared)
+    }
+
+    .card h3 {
+      margin-top: 0
+    }
+
+    ul.check {
+      list-style: none;
+      padding-left: 4px
+    }
+
+    ul.check li {
+      position: relative;
+      padding-left: 28px;
+      margin: 6px 0
+    }
+
+    ul.check li::before {
+      content: "\2713";
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 19px;
+      height: 19px;
+      background: var(--ok);
+      color: #fff;
+      border-radius: 5px;
+      font-size: 12px;
+      text-align: center;
+      line-height: 19px;
+      font-weight: 800
+    }
+
+    ul.box li {
+      position: relative;
+      padding-left: 28px;
+      list-style: none;
+      margin: 6px 0
+    }
+
+    ul.box li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 3px;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--muted);
+      border-radius: 4px
+    }
+
+    ul.box {
+      padding-left: 4px
+    }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      font-size: 12.5px;
+      color: var(--muted);
+      margin: 10px 0 0
+    }
+
+    .legend b {
+      color: var(--ink)
+    }
+
+    .toc-top {
+      display: none
+    }
+
+    footer {
+      color: var(--muted);
+      font-size: 12.5px;
+      text-align: center;
+      padding: 30px 0 10px
+    }
+
+    @media (max-width:920px) {
+      .layout {
+        grid-template-columns: 1fr
+      }
+
+      aside {
+        position: static;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border)
+      }
+
+      main {
+        padding: 24px 18px 80px
+      }
+
+      .grid2 {
+        grid-template-columns: 1fr
+      }
+    }
+  </style>
 </head>
+
 <body>
-<div class="layout">
-  <aside>
-    <p class="brand">ARGUS MVP</p>
-    <p class="sub">2 person build plan - Stage 1</p>
-    <nav>
-      <div class="grp">Foundations</div>
-      <a href="#s1">1. What we are building</a>
-      <a href="#s2">2. MVP scope in and out</a>
-      <a href="#s3">3. Architecture plan</a>
-      <a href="#s4">4. Tech stack</a>
-      <a href="#s5">5. Repo and file layout</a>
-      <div class="grp">Working as 2 lanes</div>
-      <a href="#s6">6. Two lane ownership</a>
-      <a href="#s7">7. Interface contracts</a>
-      <a href="#s8">8. Conflict free rules</a>
-      <a href="#s9">9. Branching strategy</a>
-      <a href="#s10">10. WORKLOG single log</a>
-      <div class="grp">Execution</div>
-      <a href="#s11">11. Implementation plan</a>
-      <a href="#s12">12. GitHub issues guide</a>
-      <a href="#s13">13. Definition of Done</a>
-      <a href="#s14">14. Coding rules</a>
-      <a href="#s15">15. Env and secrets</a>
-      <a href="#s16">16. Deployment plan</a>
-      <a href="#s17">17. Testing</a>
-      <div class="grp">Wrap up</div>
-      <a href="#s18">18. Timeline</a>
-      <a href="#s19">19. Risks</a>
-      <a href="#s20">20. Quick start checklist</a>
-    </nav>
-  </aside>
+  <div class="layout">
+    <aside>
+      <p class="brand">headref MVP</p>
+      <p class="sub">2 person build plan - Stage 1</p>
+      <nav>
+        <div class="grp">Foundations</div>
+        <a href="#s1">1. What we are building</a>
+        <a href="#s2">2. MVP scope in and out</a>
+        <a href="#s3">3. Architecture plan</a>
+        <a href="#s4">4. Tech stack</a>
+        <a href="#s5">5. Repo and file layout</a>
+        <div class="grp">Working as 2 lanes</div>
+        <a href="#s6">6. Two lane ownership</a>
+        <a href="#s7">7. Interface contracts</a>
+        <a href="#s8">8. Conflict free rules</a>
+        <a href="#s9">9. Branching strategy</a>
+        <a href="#s10">10. WORKLOG single log</a>
+        <div class="grp">Execution</div>
+        <a href="#s11">11. Implementation plan</a>
+        <a href="#s12">12. GitHub issues guide</a>
+        <a href="#s13">13. Definition of Done</a>
+        <a href="#s14">14. Coding rules</a>
+        <a href="#s15">15. Env and secrets</a>
+        <a href="#s16">16. Deployment plan</a>
+        <a href="#s17">17. Testing</a>
+        <div class="grp">Wrap up</div>
+        <a href="#s18">18. Timeline</a>
+        <a href="#s19">19. Risks</a>
+        <a href="#s20">20. Quick start checklist</a>
+      </nav>
+    </aside>
 
-  <main>
-    <header class="hero">
-      <h1>ARGUS MVP Build Plan</h1>
-      <p>An evidence based engineering team intelligence agent. This document is everything 2 people need to build the first stage without stepping on each other: architecture, implementation, ownership lanes, branching, rules, a single work log, and descriptive GitHub issues.</p>
-      <div class="hero-meta">
-        <span>Keshan - Lane A</span>
-        <span>Isiwara - Lane B</span>
-        <span>Stage: MVP only</span>
-        <span>Sources: GitHub + Jira</span>
-        <span>Mode: read only</span>
-        <span>Target: 3 to 4 weeks</span>
-      </div>
-    </header>
-
-    <div class="legend">
-      Legend:
-      <span><span class="pill S">SHARED</span> both build together first</span>
-      <span><span class="pill A">LANE A</span> Keshan (data and integrations)</span>
-      <span><span class="pill B">LANE B</span> Isiwara (agent, api, ui)</span>
-      <span><span class="pill p0">P0</span> must have for MVP</span>
-    </div>
-
-    <div class="callout"><strong>Team and lanes.</strong> <strong>Keshan</strong> owns Lane A (data and integrations). <strong>Isiwara</strong> owns Lane B (agent, api, ui). Merge policy: Isiwara's pull requests need Keshan's review and approval before merge. Keshan may review and merge his own work. Branches are kept after merge, not deleted.</div>
-
-    <!-- 1 -->
-    <section id="s1">
-      <h2><span class="num">1</span>What we are building</h2>
-      <p class="lead">Argus answers a team lead question like "What is Keshan working on and is anything blocking him" using real evidence from engineering tools, not guesses.</p>
-      <p>The one rule that shapes every decision: <strong>Argus is an evidence based decision support tool, not a surveillance or productivity scoring tool.</strong> Every answer is labelled as one of 3 classes:</p>
-      <div class="tbl-wrap"><table>
-        <tr><th>Class</th><th>Meaning</th><th>Example</th></tr>
-        <tr><td><strong>Verified fact</strong></td><td>Directly backed by a source</td><td>Jira shows AUTH-245 assigned to Keshan, status In Progress</td></tr>
-        <tr><td><strong>Inference</strong></td><td>Reasonable conclusion from 2 or more signals</td><td>Keshan is likely working on AUTH-245 based on assignment, branch activity and an open PR</td></tr>
-        <tr><td><strong>Unknown</strong></td><td>Cannot be established from sources</td><td>Exact real time activity is unknown</td></tr>
-      </table></div>
-      <div class="callout"><strong>Why this matters for the grade and the product:</strong> most student agents just call an LLM and print whatever it says. Ours separates facts from guesses, cites evidence, and admits what it does not know. That is what makes it look industry ready.</div>
-    </section>
-
-    <!-- 2 -->
-    <section id="s2">
-      <h2><span class="num">2</span>MVP scope: in and out</h2>
-      <p>Keep the load small. Do the deterministic, high value part first. Everything guessy or heavy is deferred.</p>
-      <div class="grid2">
-        <div class="card">
-          <h3 style="color:var(--ok)">In scope for MVP</h3>
-          <ul class="check">
-            <li>GitHub read only (commits, PRs, reviews)</li>
-            <li>Jira read only (issues, status, assignee)</li>
-            <li>Identity graph (map GitHub user to Jira user to one person)</li>
-            <li>Canonical data model in Postgres</li>
-            <li>Deterministic member summary (assigned, in progress, open PRs, recent activity)</li>
-            <li>One LLM reasoning call over structured evidence</li>
-            <li>Evidence records + rule based confidence (HIGH / MEDIUM / LOW)</li>
-            <li>Conflict detection (Jira status vs GitHub PR state)</li>
-            <li>Simple web UI: team overview, member profile, evidence drawer</li>
-            <li>Seed script with a demo team and sample data</li>
-          </ul>
+    <main>
+      <header class="hero">
+        <h1>headref MVP Build Plan</h1>
+        <p>An evidence based engineering team intelligence agent. This document is everything 2 people need to build the
+          first stage without stepping on each other: architecture, implementation, ownership lanes, branching, rules, a
+          single work log, and descriptive GitHub issues.</p>
+        <div class="hero-meta">
+          <span>Keshan - Lane A</span>
+          <span>Isiwara - Lane B</span>
+          <span>Stage: MVP only</span>
+          <span>Sources: GitHub + Jira</span>
+          <span>Mode: read only</span>
+          <span>Target: 3 to 4 weeks</span>
         </div>
-        <div class="card">
-          <h3 style="color:var(--warn)">Out of scope (later stages)</h3>
-          <ul class="box">
-            <li>Slack and Teams integration</li>
-            <li>Calendar integration</li>
-            <li>Any write actions (posting, changing tickets)</li>
-            <li>Numeric or percentage confidence scores</li>
-            <li>Vector search / semantic index</li>
-            <li>SSO, multi tenancy, full RBAC (use a simple login stub)</li>
-            <li>Human in the loop approval flows</li>
-            <li>Daily briefings, proactive notifications</li>
-            <li>Kubernetes, autoscaling, canary deploys</li>
-          </ul>
-        </div>
-      </div>
-      <div class="callout warn"><strong>Golden rule for MVP:</strong> if a feature needs guessing or a write action, it is not in the MVP. We ship reliable facts plus one careful inference layer, and we ship it running.</div>
-    </section>
+      </header>
 
-    <!-- 3 -->
-    <section id="s3">
-      <h2><span class="num">3</span>Architecture plan</h2>
-      <p>Simplified from the full production diagram. Most stages are plain Python. Only 2 calls touch the LLM (reason, then validate). This keeps cost, latency and failure surface low.</p>
-      <pre><code>            TEAM LEAD (browser)
+      <div class="legend">
+        Legend:
+        <span><span class="pill S">SHARED</span> both build together first</span>
+        <span><span class="pill A">LANE A</span> Keshan (data and integrations)</span>
+        <span><span class="pill B">LANE B</span> Isiwara (agent, api, ui)</span>
+        <span><span class="pill p0">P0</span> must have for MVP</span>
+      </div>
+
+      <div class="callout"><strong>Team and lanes.</strong> <strong>Keshan</strong> owns Lane A (data and integrations).
+        <strong>Isiwara</strong> owns Lane B (agent, api, ui). Merge policy: Isiwara's pull requests need Keshan's
+        review and approval before merge. Keshan may review and merge his own work. Branches are kept after merge, not
+        deleted.</div>
+
+      <!-- 1 -->
+      <section id="s1">
+        <h2><span class="num">1</span>What we are building</h2>
+        <p class="lead">headref answers a team lead question like "What is Keshan working on and is anything blocking
+          him" using real evidence from engineering tools, not guesses.</p>
+        <p>The one rule that shapes every decision: <strong>headref is an evidence based decision support tool, not a
+            surveillance or productivity scoring tool.</strong> Every answer is labelled as one of 3 classes:</p>
+        <div class="tbl-wrap">
+          <table>
+            <tr>
+              <th>Class</th>
+              <th>Meaning</th>
+              <th>Example</th>
+            </tr>
+            <tr>
+              <td><strong>Verified fact</strong></td>
+              <td>Directly backed by a source</td>
+              <td>Jira shows AUTH-245 assigned to Keshan, status In Progress</td>
+            </tr>
+            <tr>
+              <td><strong>Inference</strong></td>
+              <td>Reasonable conclusion from 2 or more signals</td>
+              <td>Keshan is likely working on AUTH-245 based on assignment, branch activity and an open PR</td>
+            </tr>
+            <tr>
+              <td><strong>Unknown</strong></td>
+              <td>Cannot be established from sources</td>
+              <td>Exact real time activity is unknown</td>
+            </tr>
+          </table>
+        </div>
+        <div class="callout"><strong>Why this matters for the grade and the product:</strong> most student agents just
+          call an LLM and print whatever it says. Ours separates facts from guesses, cites evidence, and admits what it
+          does not know. That is what makes it look industry ready.</div>
+      </section>
+
+      <!-- 2 -->
+      <section id="s2">
+        <h2><span class="num">2</span>MVP scope: in and out</h2>
+        <p>Keep the load small. Do the deterministic, high value part first. Everything guessy or heavy is deferred.</p>
+        <div class="grid2">
+          <div class="card">
+            <h3 style="color:var(--ok)">In scope for MVP</h3>
+            <ul class="check">
+              <li>GitHub read only (commits, PRs, reviews)</li>
+              <li>Jira read only (issues, status, assignee)</li>
+              <li>Identity graph (map GitHub user to Jira user to one person)</li>
+              <li>Canonical data model in Postgres</li>
+              <li>Deterministic member summary (assigned, in progress, open PRs, recent activity)</li>
+              <li>One LLM reasoning call over structured evidence</li>
+              <li>Evidence records + rule based confidence (HIGH / MEDIUM / LOW)</li>
+              <li>Conflict detection (Jira status vs GitHub PR state)</li>
+              <li>Simple web UI: team overview, member profile, evidence drawer</li>
+              <li>Seed script with a demo team and sample data</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3 style="color:var(--warn)">Out of scope (later stages)</h3>
+            <ul class="box">
+              <li>Slack and Teams integration</li>
+              <li>Calendar integration</li>
+              <li>Any write actions (posting, changing tickets)</li>
+              <li>Numeric or percentage confidence scores</li>
+              <li>Vector search / semantic index</li>
+              <li>SSO, multi tenancy, full RBAC (use a simple login stub)</li>
+              <li>Human in the loop approval flows</li>
+              <li>Daily briefings, proactive notifications</li>
+              <li>Kubernetes, autoscaling, canary deploys</li>
+            </ul>
+          </div>
+        </div>
+        <div class="callout warn"><strong>Golden rule for MVP:</strong> if a feature needs guessing or a write action,
+          it is not in the MVP. We ship reliable facts plus one careful inference layer, and we ship it running.</div>
+      </section>
+
+      <!-- 3 -->
+      <section id="s3">
+        <h2><span class="num">3</span>Architecture plan</h2>
+        <p>Simplified from the full production diagram. Most stages are plain Python. Only 2 calls touch the LLM
+          (reason, then validate). This keeps cost, latency and failure surface low.</p>
+        <pre><code>            TEAM LEAD (browser)
                   |
                   v
         +---------------------------+
@@ -246,45 +628,137 @@
         GitHub API        Jira API
         (PAT, read only)  (token, read only)</code></pre>
 
-      <h3>The 5 stage agent flow (per request)</h3>
-      <div class="tbl-wrap"><table>
-        <tr><th>Stage</th><th>Type</th><th>Owner</th><th>What it does</th></tr>
-        <tr><td>1. Plan</td><td>Code</td><td><span class="pill B">B</span></td><td>Decide which tools and time window the question needs</td></tr>
-        <tr><td>2. Build evidence</td><td>Code</td><td><span class="pill B">B</span></td><td>Call tools, correlate issue to branch to PR to commits, dedupe</td></tr>
-        <tr><td>3. Reason</td><td>LLM</td><td><span class="pill B">B</span></td><td>One Claude call over the structured evidence, forced to a schema</td></tr>
-        <tr><td>4. Validate</td><td>Code + rules</td><td><span class="pill B">B</span></td><td>Check each claim maps to real evidence, set confidence, flag conflicts</td></tr>
-        <tr><td>5. Respond</td><td>Code</td><td><span class="pill B">B</span></td><td>Format the JSON into the UI response with evidence and freshness</td></tr>
-      </table></div>
-      <div class="callout"><strong>Security by design:</strong> the LLM in stage 3 never receives any write tool. Retrieved text (PR descriptions, Jira comments) is passed as untrusted data, never as instructions. This makes prompt injection unable to cause an action, at worst it affects one answer the user could already see.</div>
-    </section>
+        <h3>The 5 stage agent flow (per request)</h3>
+        <div class="tbl-wrap">
+          <table>
+            <tr>
+              <th>Stage</th>
+              <th>Type</th>
+              <th>Owner</th>
+              <th>What it does</th>
+            </tr>
+            <tr>
+              <td>1. Plan</td>
+              <td>Code</td>
+              <td><span class="pill B">B</span></td>
+              <td>Decide which tools and time window the question needs</td>
+            </tr>
+            <tr>
+              <td>2. Build evidence</td>
+              <td>Code</td>
+              <td><span class="pill B">B</span></td>
+              <td>Call tools, correlate issue to branch to PR to commits, dedupe</td>
+            </tr>
+            <tr>
+              <td>3. Reason</td>
+              <td>LLM</td>
+              <td><span class="pill B">B</span></td>
+              <td>One Claude call over the structured evidence, forced to a schema</td>
+            </tr>
+            <tr>
+              <td>4. Validate</td>
+              <td>Code + rules</td>
+              <td><span class="pill B">B</span></td>
+              <td>Check each claim maps to real evidence, set confidence, flag conflicts</td>
+            </tr>
+            <tr>
+              <td>5. Respond</td>
+              <td>Code</td>
+              <td><span class="pill B">B</span></td>
+              <td>Format the JSON into the UI response with evidence and freshness</td>
+            </tr>
+          </table>
+        </div>
+        <div class="callout"><strong>Security by design:</strong> the LLM in stage 3 never receives any write tool.
+          Retrieved text (PR descriptions, Jira comments) is passed as untrusted data, never as instructions. This makes
+          prompt injection unable to cause an action, at worst it affects one answer the user could already see.</div>
+      </section>
 
-    <!-- 4 -->
-    <section id="s4">
-      <h2><span class="num">4</span>Tech stack (MVP lean)</h2>
-      <div class="tbl-wrap"><table>
-        <tr><th>Layer</th><th>Choice</th><th>Why for MVP</th></tr>
-        <tr><td>Language</td><td>Python 3.11</td><td>Team standard, one language across api, agent and ingestion</td></tr>
-        <tr><td>Web / API</td><td>FastAPI + Uvicorn</td><td>Async, fast to build, auto docs at /docs</td></tr>
-        <tr><td>UI</td><td>Jinja2 server side templates + a little vanilla JS</td><td>No JS build step, lowest workload for 2 people. Upgrade to React later</td></tr>
-        <tr><td>Database</td><td>PostgreSQL 15 (Docker)</td><td>Single source of truth, structured queries</td></tr>
-        <tr><td>ORM + migrations</td><td>SQLAlchemy 2.0 + Alembic</td><td>Typed models, versioned schema</td></tr>
-        <tr><td>Validation</td><td>Pydantic v2</td><td>Strict schemas for tools, evidence and LLM output</td></tr>
-        <tr><td>HTTP client</td><td>httpx + tenacity</td><td>Timeouts and retry limits on every external call</td></tr>
-        <tr><td>LLM</td><td>Anthropic SDK (Claude)</td><td>Native tool use and structured output. Needs an API key</td></tr>
-        <tr><td>Tests</td><td>pytest + respx</td><td>Unit tests, mock external APIs with recorded fixtures</td></tr>
-        <tr><td>Lint / format</td><td>ruff + black</td><td>One config, no debate, runs in CI</td></tr>
-        <tr><td>Container</td><td>Docker + docker compose</td><td>One command local run for the demo</td></tr>
-        <tr><td>CI</td><td>GitHub Actions</td><td>Lint and test on every PR</td></tr>
-      </table></div>
-      <div class="callout warn"><strong>Cost note:</strong> the only paid piece is the Claude API key (pay per token) and, if you host it online later, a server. Local Docker demo is free. Keep the key in an environment variable, never in the repo. Agree a small spend limit before you start calling the API.</div>
-      <p><strong>Deferred on purpose:</strong> Redis, vector DB, GitHub App, message queue. For MVP we use a read only token per integration and cache in Postgres. These are the correct upgrades for a later stage, not now.</p>
-    </section>
+      <!-- 4 -->
+      <section id="s4">
+        <h2><span class="num">4</span>Tech stack (MVP lean)</h2>
+        <div class="tbl-wrap">
+          <table>
+            <tr>
+              <th>Layer</th>
+              <th>Choice</th>
+              <th>Why for MVP</th>
+            </tr>
+            <tr>
+              <td>Language</td>
+              <td>Python 3.11</td>
+              <td>Team standard, one language across api, agent and ingestion</td>
+            </tr>
+            <tr>
+              <td>Web / API</td>
+              <td>FastAPI + Uvicorn</td>
+              <td>Async, fast to build, auto docs at /docs</td>
+            </tr>
+            <tr>
+              <td>UI</td>
+              <td>Jinja2 server side templates + a little vanilla JS</td>
+              <td>No JS build step, lowest workload for 2 people. Upgrade to React later</td>
+            </tr>
+            <tr>
+              <td>Database</td>
+              <td>PostgreSQL 15 (Docker)</td>
+              <td>Single source of truth, structured queries</td>
+            </tr>
+            <tr>
+              <td>ORM + migrations</td>
+              <td>SQLAlchemy 2.0 + Alembic</td>
+              <td>Typed models, versioned schema</td>
+            </tr>
+            <tr>
+              <td>Validation</td>
+              <td>Pydantic v2</td>
+              <td>Strict schemas for tools, evidence and LLM output</td>
+            </tr>
+            <tr>
+              <td>HTTP client</td>
+              <td>httpx + tenacity</td>
+              <td>Timeouts and retry limits on every external call</td>
+            </tr>
+            <tr>
+              <td>LLM</td>
+              <td>Anthropic SDK (Claude)</td>
+              <td>Native tool use and structured output. Needs an API key</td>
+            </tr>
+            <tr>
+              <td>Tests</td>
+              <td>pytest + respx</td>
+              <td>Unit tests, mock external APIs with recorded fixtures</td>
+            </tr>
+            <tr>
+              <td>Lint / format</td>
+              <td>ruff + black</td>
+              <td>One config, no debate, runs in CI</td>
+            </tr>
+            <tr>
+              <td>Container</td>
+              <td>Docker + docker compose</td>
+              <td>One command local run for the demo</td>
+            </tr>
+            <tr>
+              <td>CI</td>
+              <td>GitHub Actions</td>
+              <td>Lint and test on every PR</td>
+            </tr>
+          </table>
+        </div>
+        <div class="callout warn"><strong>Cost note:</strong> the only paid piece is the Claude API key (pay per token)
+          and, if you host it online later, a server. Local Docker demo is free. Keep the key in an environment
+          variable, never in the repo. Agree a small spend limit before you start calling the API.</div>
+        <p><strong>Deferred on purpose:</strong> Redis, vector DB, GitHub App, message queue. For MVP we use a read only
+          token per integration and cache in Postgres. These are the correct upgrades for a later stage, not now.</p>
+      </section>
 
-    <!-- 5 -->
-    <section id="s5">
-      <h2><span class="num">5</span>Repository and file layout</h2>
-      <p>One repository for the product. Folders are split so Lane A and Lane B mostly edit different files. That alone removes most merge conflicts.</p>
-      <pre><code>argus/
+      <!-- 5 -->
+      <section id="s5">
+        <h2><span class="num">5</span>Repository and file layout</h2>
+        <p>One repository for the product. Folders are split so Lane A and Lane B mostly edit different files. That
+          alone removes most merge conflicts.</p>
+        <pre><code>headref/
   README.md
   WORKLOG.md                &lt;- single shared work log (section 10)
   docker-compose.yml        &lt;- postgres + api
@@ -348,46 +822,57 @@
     test_agent/             &lt;- [B]
     test_integration/       &lt;- [SHARED]
 </code></pre>
-      <p>Tags in brackets show the main owner. <code>[SHARED]</code> files are agreed together in Sprint 0 and changed only with a quick heads up to the other person.</p>
-    </section>
+        <p>Tags in brackets show the main owner. <code>[SHARED]</code> files are agreed together in Sprint 0 and changed
+          only with a quick heads up to the other person.</p>
+      </section>
 
-    <!-- 6 -->
-    <section id="s6">
-      <h2><span class="num">6</span>Two lane ownership</h2>
-      <p>The split follows the data flow. Lane A owns everything that gets data <em>in</em> and makes it clean. Lane B owns everything that turns clean data into an <em>answer</em> and shows it. They meet at 2 agreed contracts: the database schema and the tool output shapes.</p>
-      <div class="grid2">
-        <div class="card laneA">
-          <h3><span class="pill A">LANE A</span> Keshan - Data and Integrations</h3>
-          <ul>
-            <li><strong>A1 Identity graph</strong> model, resolver, and an unmatched queue for users that cannot be mapped</li>
-            <li><strong>A2 GitHub client</strong> read only (PAT from env) plus ingestion into canonical tables</li>
-            <li><strong>A3 Jira client</strong> read only (token from env) plus ingestion</li>
-            <li><strong>A4 Read tools</strong>: get_assigned_issues, get_github_prs, get_commits, get_reviews, get_team_members. Structured output only</li>
-            <li><strong>A5 Reliability</strong>: timeouts, retry limit, rate limiting, typed failures (see coding rules)</li>
-            <li><strong>A6 Freshness</strong>: store source_updated_at and retrieved_at on every record</li>
-          </ul>
+      <!-- 6 -->
+      <section id="s6">
+        <h2><span class="num">6</span>Two lane ownership</h2>
+        <p>The split follows the data flow. Lane A owns everything that gets data <em>in</em> and makes it clean. Lane B
+          owns everything that turns clean data into an <em>answer</em> and shows it. They meet at 2 agreed contracts:
+          the database schema and the tool output shapes.</p>
+        <div class="grid2">
+          <div class="card laneA">
+            <h3><span class="pill A">LANE A</span> Keshan - Data and Integrations</h3>
+            <ul>
+              <li><strong>A1 Identity graph</strong> model, resolver, and an unmatched queue for users that cannot be
+                mapped</li>
+              <li><strong>A2 GitHub client</strong> read only (PAT from env) plus ingestion into canonical tables</li>
+              <li><strong>A3 Jira client</strong> read only (token from env) plus ingestion</li>
+              <li><strong>A4 Read tools</strong>: get_assigned_issues, get_github_prs, get_commits, get_reviews,
+                get_team_members. Structured output only</li>
+              <li><strong>A5 Reliability</strong>: timeouts, retry limit, rate limiting, typed failures (see coding
+                rules)</li>
+              <li><strong>A6 Freshness</strong>: store source_updated_at and retrieved_at on every record</li>
+            </ul>
+          </div>
+          <div class="card laneB">
+            <h3><span class="pill B">LANE B</span> Isiwara - Agent, API and UI</h3>
+            <ul>
+              <li><strong>B1 FastAPI app</strong>, config, health check, login stub, simple role check</li>
+              <li><strong>B2 Orchestrator + planner</strong> (deterministic) that decides what a question needs</li>
+              <li><strong>B3 Evidence builder</strong> that correlates issue to branch to PR to commits and dedupes</li>
+              <li><strong>B4 Reasoning</strong>: the single Claude call with a strict output schema</li>
+              <li><strong>B5 Validation + confidence + conflict detection</strong> (rules, no model needed for
+                conflicts)</li>
+              <li><strong>B6 Response + UI</strong>: team overview, member profile, evidence drawer, confidence badges,
+                last synced time</li>
+            </ul>
+          </div>
         </div>
-        <div class="card laneB">
-          <h3><span class="pill B">LANE B</span> Isiwara - Agent, API and UI</h3>
-          <ul>
-            <li><strong>B1 FastAPI app</strong>, config, health check, login stub, simple role check</li>
-            <li><strong>B2 Orchestrator + planner</strong> (deterministic) that decides what a question needs</li>
-            <li><strong>B3 Evidence builder</strong> that correlates issue to branch to PR to commits and dedupes</li>
-            <li><strong>B4 Reasoning</strong>: the single Claude call with a strict output schema</li>
-            <li><strong>B5 Validation + confidence + conflict detection</strong> (rules, no model needed for conflicts)</li>
-            <li><strong>B6 Response + UI</strong>: team overview, member profile, evidence drawer, confidence badges, last synced time</li>
-          </ul>
-        </div>
-      </div>
-      <div class="callout ok"><strong>Why this avoids blocking:</strong> Lane B does not wait for Lane A. B builds against the frozen tool contracts using the sample fixtures in <code>seed/fixtures/</code>. When A ships a real tool, B swaps the fixture for the real call. No one is ever stuck waiting.</div>
-    </section>
+        <div class="callout ok"><strong>Why this avoids blocking:</strong> Lane B does not wait for Lane A. B builds
+          against the frozen tool contracts using the sample fixtures in <code>seed/fixtures/</code>. When A ships a
+          real tool, B swaps the fixture for the real call. No one is ever stuck waiting.</div>
+      </section>
 
-    <!-- 7 -->
-    <section id="s7">
-      <h2><span class="num">7</span>Interface contracts (freeze these in Sprint 0)</h2>
-      <p>These are the handshake between the 2 lanes. Agree them together on day 1, write them as Pydantic models, and do not change them silently. If a contract must change, it is a shared decision plus a WORKLOG entry.</p>
-      <h3>Tool output contract (example)</h3>
-      <pre><code># app/schemas/tools.py  (SHARED - frozen in Sprint 0)
+      <!-- 7 -->
+      <section id="s7">
+        <h2><span class="num">7</span>Interface contracts (freeze these in Sprint 0)</h2>
+        <p>These are the handshake between the 2 lanes. Agree them together on day 1, write them as Pydantic models, and
+          do not change them silently. If a contract must change, it is a shared decision plus a WORKLOG entry.</p>
+        <h3>Tool output contract (example)</h3>
+        <pre><code># app/schemas/tools.py  (SHARED - frozen in Sprint 0)
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -410,8 +895,8 @@ class PullRequestOut(BaseModel):
     linked_work_item: str | None  # e.g. "AUTH-245" parsed from branch/title
     updated_at: datetime
     retrieved_at: datetime</code></pre>
-      <h3>Insight response contract (what the API returns)</h3>
-      <pre><code># app/schemas/insight.py  (SHARED)
+        <h3>Insight response contract (what the API returns)</h3>
+        <pre><code># app/schemas/insight.py  (SHARED)
 class EvidenceItem(BaseModel):
     source: str                 # jira | github
     detail: str                 # "Jira AUTH-245 assigned to Keshan"
@@ -432,65 +917,81 @@ class MemberInsight(BaseModel):
     risks: list[Insight]
     unknowns: list[str]
     last_synced: dict[str, datetime]   # {"github": ..., "jira": ...}</code></pre>
-      <div class="callout"><strong>Rule:</strong> Lane A guarantees it returns <code>WorkItemOut</code> and <code>PullRequestOut</code>. Lane B guarantees it only reads those fields. As long as both keep their side, they can build in parallel and integrate cleanly.</div>
-    </section>
+        <div class="callout"><strong>Rule:</strong> Lane A guarantees it returns <code>WorkItemOut</code> and
+          <code>PullRequestOut</code>. Lane B guarantees it only reads those fields. As long as both keep their side,
+          they can build in parallel and integrate cleanly.</div>
+      </section>
 
-    <!-- 8 -->
-    <section id="s8">
-      <h2><span class="num">8</span>Conflict free working rules</h2>
-      <ol>
-        <li><strong>Contracts first.</strong> Freeze the schema and tool shapes in Sprint 0 before writing feature code.</li>
-        <li><strong>Own your folders.</strong> Do not edit files in the other lane's folders without a heads up in chat plus a WORKLOG note.</li>
-        <li><strong>Small PRs.</strong> One issue equals one branch equals one small PR. Aim for under 400 changed lines. Big PRs cause big conflicts.</li>
-        <li><strong>Pull before you push.</strong> Start every session with <code>git pull --rebase origin main</code>.</li>
-        <li><strong>Shared files are coordinated.</strong> Changes to <code>models/</code>, <code>schemas/</code>, <code>config.py</code>, <code>migrations/</code> need a 1 line message to the other person first.</li>
-        <li><strong>Never 2 people in one migration.</strong> Only one person creates a new Alembic migration at a time. Say so in chat.</li>
-        <li><strong>Green before merge.</strong> CI (lint + tests) must pass. Isiwara's PRs need Keshan's review and approval before merge. Keshan may merge his own work.</li>
-        <li><strong>Daily 10 minute sync.</strong> Say what you did, what is next, what is blocked. Update WORKLOG.</li>
-        <li><strong>Fixtures over waiting.</strong> If you need the other lane's output and it is not ready, use the sample fixture and move on.</li>
-      </ol>
-    </section>
+      <!-- 8 -->
+      <section id="s8">
+        <h2><span class="num">8</span>Conflict free working rules</h2>
+        <ol>
+          <li><strong>Contracts first.</strong> Freeze the schema and tool shapes in Sprint 0 before writing feature
+            code.</li>
+          <li><strong>Own your folders.</strong> Do not edit files in the other lane's folders without a heads up in
+            chat plus a WORKLOG note.</li>
+          <li><strong>Small PRs.</strong> One issue equals one branch equals one small PR. Aim for under 400 changed
+            lines. Big PRs cause big conflicts.</li>
+          <li><strong>Pull before you push.</strong> Start every session with
+            <code>git pull --rebase origin main</code>.</li>
+          <li><strong>Shared files are coordinated.</strong> Changes to <code>models/</code>, <code>schemas/</code>,
+            <code>config.py</code>, <code>migrations/</code> need a 1 line message to the other person first.</li>
+          <li><strong>Never 2 people in one migration.</strong> Only one person creates a new Alembic migration at a
+            time. Say so in chat.</li>
+          <li><strong>Green before merge.</strong> CI (lint + tests) must pass. Isiwara's PRs need Keshan's review and
+            approval before merge. Keshan may merge his own work.</li>
+          <li><strong>Daily 10 minute sync.</strong> Say what you did, what is next, what is blocked. Update WORKLOG.
+          </li>
+          <li><strong>Fixtures over waiting.</strong> If you need the other lane's output and it is not ready, use the
+            sample fixture and move on.</li>
+        </ol>
+      </section>
 
-    <!-- 9 -->
-    <section id="s9">
-      <h2><span class="num">9</span>Branching strategy</h2>
-      <p>Trunk based with short lived feature branches. Simple and safe for 2 people.</p>
-      <ul>
-        <li><strong>main</strong> is always working and demoable. It is protected: no direct pushes, PR only.</li>
-        <li>Every task gets a branch off <code>main</code>. Merge back with a squash merge, then delete the branch.</li>
-        <li>Keep branches alive for hours or a day, not a week. Long branches drift and conflict.</li>
-      </ul>
-      <h3>Branch naming</h3>
-      <pre><code>type/&lt;issue-number&gt;-&lt;short-desc&gt;
+      <!-- 9 -->
+      <section id="s9">
+        <h2><span class="num">9</span>Branching strategy</h2>
+        <p>Trunk based with short lived feature branches. Simple and safe for 2 people.</p>
+        <ul>
+          <li><strong>main</strong> is always working and demoable. It is protected: no direct pushes, PR only.</li>
+          <li>Every task gets a branch off <code>main</code>. Merge back with a squash merge, then delete the branch.
+          </li>
+          <li>Keep branches alive for hours or a day, not a week. Long branches drift and conflict.</li>
+        </ul>
+        <h3>Branch naming</h3>
+        <pre><code>type/&lt;issue-number&gt;-&lt;short-desc&gt;
 
 feat/12-github-client
 feat/18-evidence-builder
 fix/23-jira-timeout
 chore/5-ci-setup
 docs/9-readme</code></pre>
-      <p>Types: <code>feat</code>, <code>fix</code>, <code>chore</code>, <code>docs</code>, <code>test</code>, <code>refactor</code>.</p>
-      <h3>Commit messages (Conventional Commits)</h3>
-      <pre><code>feat(tools): add get_assigned_issues with jira normalization
+        <p>Types: <code>feat</code>, <code>fix</code>, <code>chore</code>, <code>docs</code>, <code>test</code>,
+          <code>refactor</code>.</p>
+        <h3>Commit messages (Conventional Commits)</h3>
+        <pre><code>feat(tools): add get_assigned_issues with jira normalization
 fix(github): add 10s timeout and 3 retry limit to client
 docs(worklog): log identity resolver progress
 
 Closes #12</code></pre>
-      <h3>Pull request rules</h3>
-      <ul class="box">
-        <li>Title matches the issue. Body links the issue with <code>Closes #n</code>.</li>
-        <li>CI must be green (lint + tests).</li>
-        <li>Isiwara's PRs need Keshan's review and approval before merge. Keshan may review and merge his own work.</li>
-        <li>Squash merge. Keep the branch after merge (do not delete).</li>
-        <li>Update WORKLOG.md in the same PR.</li>
-      </ul>
-    </section>
+        <h3>Pull request rules</h3>
+        <ul class="box">
+          <li>Title matches the issue. Body links the issue with <code>Closes #n</code>.</li>
+          <li>CI must be green (lint + tests).</li>
+          <li>Isiwara's PRs need Keshan's review and approval before merge. Keshan may review and merge his own work.
+          </li>
+          <li>Squash merge. Keep the branch after merge (do not delete).</li>
+          <li>Update WORKLOG.md in the same PR.</li>
+        </ul>
+      </section>
 
-    <!-- 10 -->
-    <section id="s10">
-      <h2><span class="num">10</span>WORKLOG.md - the single work log</h2>
-      <p>One file at the repo root records what each person did. The rule: <strong>the latest entry always goes at the very top, directly under the header, and each person only ever adds their own entries.</strong> Newest work is always read first. If a merge conflict appears, keep both blocks, it is never a real conflict.</p>
-      <h3>Format</h3>
-      <pre><code># Argus Work Log
+      <!-- 10 -->
+      <section id="s10">
+        <h2><span class="num">10</span>WORKLOG.md - the single work log</h2>
+        <p>One file at the repo root records what each person did. The rule: <strong>the latest entry always goes at the
+            very top, directly under the header, and each person only ever adds their own entries.</strong> Newest work
+          is always read first. If a merge conflict appears, keep both blocks, it is never a real conflict.</p>
+        <h3>Format</h3>
+        <pre><code># headref Work Log
 
 LATEST ENTRY ALWAYS AT THE TOP, directly under this header.
 One block per work session.
@@ -513,117 +1014,177 @@ Next:  Parse AUTH-xxx ticket id from branch names for linking.
 Blocked: none.
 
 ---</code></pre>
-      <div class="callout"><strong>Habit:</strong> update WORKLOG in the same PR as your code. A reviewer should see the code change and the log entry together. This is also your evidence of individual contribution for the assignment marking.</div>
-    </section>
+        <div class="callout"><strong>Habit:</strong> update WORKLOG in the same PR as your code. A reviewer should see
+          the code change and the log entry together. This is also your evidence of individual contribution for the
+          assignment marking.</div>
+      </section>
 
-    <!-- 11 -->
-    <section id="s11">
-      <h2><span class="num">11</span>Implementation plan (sprints and tasks)</h2>
+      <!-- 11 -->
+      <section id="s11">
+        <h2><span class="num">11</span>Implementation plan (sprints and tasks)</h2>
 
-      <h3><span class="pill S">SPRINT 0</span> Foundations - both together (3 to 4 days)</h3>
-      <p>No parallel feature work yet. You build the skeleton and freeze the contracts side by side. This is the most important sprint for avoiding conflicts.</p>
-      <div class="tbl-wrap"><table>
-        <tr><th>Task</th><th>Owner</th><th>Output</th></tr>
-        <tr><td>Repo, pyproject, ruff/black, .gitignore</td><td><span class="pill S">S</span></td><td>Repo runs, lint works</td></tr>
-        <tr><td>docker-compose (api + postgres), Dockerfile</td><td><span class="pill S">S</span></td><td><code>docker compose up</code> starts db</td></tr>
-        <tr><td>Canonical models + first Alembic migration</td><td><span class="pill S">S</span></td><td>Tables created</td></tr>
-        <tr><td>Freeze Pydantic contracts (tools.py, insight.py)</td><td><span class="pill S">S</span></td><td>Shapes agreed and committed</td></tr>
-        <tr><td>Sample fixtures (github + jira json)</td><td><span class="pill S">S</span></td><td>Lane B can build without Lane A</td></tr>
-        <tr><td>CI workflow (lint + test), issue + PR templates</td><td><span class="pill S">S</span></td><td>Green pipeline on first PR</td></tr>
-        <tr><td>WORKLOG.md, README, labels, milestones</td><td><span class="pill S">S</span></td><td>Board ready</td></tr>
-      </table></div>
-
-      <h3><span class="pill A">SPRINT 1</span> and <span class="pill B">SPRINT 1</span> in parallel (about 1 week)</h3>
-      <div class="grid2">
-        <div class="card laneA">
-          <h4>Lane A tasks</h4>
-          <ul class="box">
-            <li>A1 identity_link model + resolver + unmatched queue</li>
-            <li>A2 github_client (auth, timeout, retries)</li>
-            <li>A2 ingest commits, PRs, reviews into canonical</li>
-            <li>A4 tool: get_github_prs</li>
-            <li>A4 tool: get_commits, get_reviews</li>
-            <li>A5 errors.py typed failures + rate_limit.py</li>
-            <li>Unit tests with respx mocks</li>
-          </ul>
+        <h3><span class="pill S">SPRINT 0</span> Foundations - both together (3 to 4 days)</h3>
+        <p>No parallel feature work yet. You build the skeleton and freeze the contracts side by side. This is the most
+          important sprint for avoiding conflicts.</p>
+        <div class="tbl-wrap">
+          <table>
+            <tr>
+              <th>Task</th>
+              <th>Owner</th>
+              <th>Output</th>
+            </tr>
+            <tr>
+              <td>Repo, pyproject, ruff/black, .gitignore</td>
+              <td><span class="pill S">S</span></td>
+              <td>Repo runs, lint works</td>
+            </tr>
+            <tr>
+              <td>docker-compose (api + postgres), Dockerfile</td>
+              <td><span class="pill S">S</span></td>
+              <td><code>docker compose up</code> starts db</td>
+            </tr>
+            <tr>
+              <td>Canonical models + first Alembic migration</td>
+              <td><span class="pill S">S</span></td>
+              <td>Tables created</td>
+            </tr>
+            <tr>
+              <td>Freeze Pydantic contracts (tools.py, insight.py)</td>
+              <td><span class="pill S">S</span></td>
+              <td>Shapes agreed and committed</td>
+            </tr>
+            <tr>
+              <td>Sample fixtures (github + jira json)</td>
+              <td><span class="pill S">S</span></td>
+              <td>Lane B can build without Lane A</td>
+            </tr>
+            <tr>
+              <td>CI workflow (lint + test), issue + PR templates</td>
+              <td><span class="pill S">S</span></td>
+              <td>Green pipeline on first PR</td>
+            </tr>
+            <tr>
+              <td>WORKLOG.md, README, labels, milestones</td>
+              <td><span class="pill S">S</span></td>
+              <td>Board ready</td>
+            </tr>
+          </table>
         </div>
-        <div class="card laneB">
-          <h4>Lane B tasks</h4>
-          <ul class="box">
-            <li>B1 FastAPI app, config, health, login stub</li>
-            <li>B2 planner + orchestrator skeleton</li>
-            <li>B3 evidence_builder against fixtures</li>
-            <li>B5 confidence.py rules (HIGH/MED/LOW)</li>
-            <li>B5 conflict detection (Jira vs GitHub state)</li>
-            <li>B6 team.html + member.html basic UI</li>
-            <li>Unit tests for confidence and conflicts</li>
-          </ul>
+
+        <h3><span class="pill A">SPRINT 1</span> and <span class="pill B">SPRINT 1</span> in parallel (about 1 week)
+        </h3>
+        <div class="grid2">
+          <div class="card laneA">
+            <h4>Lane A tasks</h4>
+            <ul class="box">
+              <li>A1 identity_link model + resolver + unmatched queue</li>
+              <li>A2 github_client (auth, timeout, retries)</li>
+              <li>A2 ingest commits, PRs, reviews into canonical</li>
+              <li>A4 tool: get_github_prs</li>
+              <li>A4 tool: get_commits, get_reviews</li>
+              <li>A5 errors.py typed failures + rate_limit.py</li>
+              <li>Unit tests with respx mocks</li>
+            </ul>
+          </div>
+          <div class="card laneB">
+            <h4>Lane B tasks</h4>
+            <ul class="box">
+              <li>B1 FastAPI app, config, health, login stub</li>
+              <li>B2 planner + orchestrator skeleton</li>
+              <li>B3 evidence_builder against fixtures</li>
+              <li>B5 confidence.py rules (HIGH/MED/LOW)</li>
+              <li>B5 conflict detection (Jira vs GitHub state)</li>
+              <li>B6 team.html + member.html basic UI</li>
+              <li>Unit tests for confidence and conflicts</li>
+            </ul>
+          </div>
         </div>
-      </div>
 
-      <h3><span class="pill A">SPRINT 2</span> and <span class="pill B">SPRINT 2</span> in parallel (about 1 week)</h3>
-      <div class="grid2">
-        <div class="card laneA">
-          <h4>Lane A tasks</h4>
-          <ul class="box">
-            <li>A3 jira_client + ingest issues, status, assignee</li>
-            <li>A4 tool: get_assigned_issues</li>
-            <li>A4 tool: get_team_members</li>
-            <li>A1 wire identity resolver to real GitHub + Jira users</li>
-            <li>A6 freshness timestamps on every record</li>
-            <li>seed_demo.py demo team + data</li>
-          </ul>
+        <h3><span class="pill A">SPRINT 2</span> and <span class="pill B">SPRINT 2</span> in parallel (about 1 week)
+        </h3>
+        <div class="grid2">
+          <div class="card laneA">
+            <h4>Lane A tasks</h4>
+            <ul class="box">
+              <li>A3 jira_client + ingest issues, status, assignee</li>
+              <li>A4 tool: get_assigned_issues</li>
+              <li>A4 tool: get_team_members</li>
+              <li>A1 wire identity resolver to real GitHub + Jira users</li>
+              <li>A6 freshness timestamps on every record</li>
+              <li>seed_demo.py demo team + data</li>
+            </ul>
+          </div>
+          <div class="card laneB">
+            <h4>Lane B tasks</h4>
+            <ul class="box">
+              <li>B4 reasoning.py single Claude call + schema</li>
+              <li>B4 prompt reasoning_v1 (untrusted data separated)</li>
+              <li>B5 validation.py claims vs evidence</li>
+              <li>B6 evidence drawer + confidence badges + last synced</li>
+              <li>B6 /members/{id}/insight endpoint</li>
+              <li>Swap fixtures for real Lane A tools</li>
+            </ul>
+          </div>
         </div>
-        <div class="card laneB">
-          <h4>Lane B tasks</h4>
-          <ul class="box">
-            <li>B4 reasoning.py single Claude call + schema</li>
-            <li>B4 prompt reasoning_v1 (untrusted data separated)</li>
-            <li>B5 validation.py claims vs evidence</li>
-            <li>B6 evidence drawer + confidence badges + last synced</li>
-            <li>B6 /members/{id}/insight endpoint</li>
-            <li>Swap fixtures for real Lane A tools</li>
-          </ul>
+
+        <h3><span class="pill S">SPRINT 3</span> Integration and demo (2 to 3 days)</h3>
+        <ul class="box">
+          <li>End to end run: seed data, ask a question, get an evidence backed answer</li>
+          <li>Test the graded scenarios (see testing section)</li>
+          <li>Polish UI, fix the top bugs, write README run steps</li>
+          <li>Record a short demo, tag <code>v0.1.0</code></li>
+        </ul>
+      </section>
+
+      <!-- 12 -->
+      <section id="s12">
+        <h2><span class="num">12</span>GitHub issues guide (descriptive)</h2>
+        <p>Track all work as issues so both people see the board and marking is easy.</p>
+
+        <h3>Milestones</h3>
+        <ul>
+          <li><strong>Sprint 0 - Foundations</strong></li>
+          <li><strong>Sprint 1 - Core</strong></li>
+          <li><strong>Sprint 2 - Reasoning and Jira</strong></li>
+          <li><strong>Sprint 3 - Integration and demo</strong></li>
+        </ul>
+
+        <h3>Labels</h3>
+        <div class="tbl-wrap">
+          <table>
+            <tr>
+              <th>Label</th>
+              <th>Use for</th>
+            </tr>
+            <tr>
+              <td><code>lane-a</code> / <code>lane-b</code> / <code>shared</code></td>
+              <td>Ownership</td>
+            </tr>
+            <tr>
+              <td><code>type:feature</code> / <code>type:bug</code> / <code>type:chore</code> / <code>type:docs</code>
+              </td>
+              <td>Kind of work</td>
+            </tr>
+            <tr>
+              <td><code>priority:P0</code> / <code>P1</code> / <code>P2</code></td>
+              <td>P0 blocks the MVP</td>
+            </tr>
+            <tr>
+              <td><code>status:blocked</code></td>
+              <td>Waiting on something</td>
+            </tr>
+            <tr>
+              <td><code>integration</code></td>
+              <td>Where the 2 lanes meet</td>
+            </tr>
+          </table>
         </div>
-      </div>
 
-      <h3><span class="pill S">SPRINT 3</span> Integration and demo (2 to 3 days)</h3>
-      <ul class="box">
-        <li>End to end run: seed data, ask a question, get an evidence backed answer</li>
-        <li>Test the graded scenarios (see testing section)</li>
-        <li>Polish UI, fix the top bugs, write README run steps</li>
-        <li>Record a short demo, tag <code>v0.1.0</code></li>
-      </ul>
-    </section>
+        <h3>Project board columns</h3>
+        <p>Backlog, Ready, In Progress, In Review, Done. Move your card as you go.</p>
 
-    <!-- 12 -->
-    <section id="s12">
-      <h2><span class="num">12</span>GitHub issues guide (descriptive)</h2>
-      <p>Track all work as issues so both people see the board and marking is easy.</p>
-
-      <h3>Milestones</h3>
-      <ul>
-        <li><strong>Sprint 0 - Foundations</strong></li>
-        <li><strong>Sprint 1 - Core</strong></li>
-        <li><strong>Sprint 2 - Reasoning and Jira</strong></li>
-        <li><strong>Sprint 3 - Integration and demo</strong></li>
-      </ul>
-
-      <h3>Labels</h3>
-      <div class="tbl-wrap"><table>
-        <tr><th>Label</th><th>Use for</th></tr>
-        <tr><td><code>lane-a</code> / <code>lane-b</code> / <code>shared</code></td><td>Ownership</td></tr>
-        <tr><td><code>type:feature</code> / <code>type:bug</code> / <code>type:chore</code> / <code>type:docs</code></td><td>Kind of work</td></tr>
-        <tr><td><code>priority:P0</code> / <code>P1</code> / <code>P2</code></td><td>P0 blocks the MVP</td></tr>
-        <tr><td><code>status:blocked</code></td><td>Waiting on something</td></tr>
-        <tr><td><code>integration</code></td><td>Where the 2 lanes meet</td></tr>
-      </table></div>
-
-      <h3>Project board columns</h3>
-      <p>Backlog, Ready, In Progress, In Review, Done. Move your card as you go.</p>
-
-      <h3>Issue template</h3>
-      <pre><code># .github/ISSUE_TEMPLATE/task.md
+        <h3>Issue template</h3>
+        <pre><code># .github/ISSUE_TEMPLATE/task.md
 
 ## Context
 Why this task exists, one or two lines.
@@ -645,10 +1206,10 @@ Blocks / blocked by #.
 ## Estimate
 S / M / L</code></pre>
 
-      <h3>Ready to paste example issues</h3>
+        <h3>Ready to paste example issues</h3>
 
-      <h4>Lane A example</h4>
-      <pre><code>Title: [A2] GitHub client with read only auth, timeout and retries
+        <h4>Lane A example</h4>
+        <pre><code>Title: [A2] GitHub client with read only auth, timeout and retries
 
 Labels: lane-a, type:feature, priority:P0
 Milestone: Sprint 1 - Core
@@ -679,8 +1240,8 @@ Blocked by: schema freeze (Sprint 0). Blocks: #A4 tools.
 ## Estimate
 M</code></pre>
 
-      <h4>Lane B example</h4>
-      <pre><code>Title: [B4] Reasoning stage: single Claude call over structured evidence
+        <h4>Lane B example</h4>
+        <pre><code>Title: [B4] Reasoning stage: single Claude call over structured evidence
 
 Labels: lane-b, type:feature, priority:P0
 Milestone: Sprint 2 - Reasoning and Jira
@@ -710,8 +1271,8 @@ Blocked by: #B3 evidence_builder. Blocks: #B5 validation.
 ## Estimate
 M</code></pre>
 
-      <h4>Shared example</h4>
-      <pre><code>Title: [S] Freeze canonical schema and Pydantic contracts
+        <h4>Shared example</h4>
+        <pre><code>Title: [S] Freeze canonical schema and Pydantic contracts
 
 Labels: shared, type:chore, priority:P0
 Milestone: Sprint 0 - Foundations
@@ -736,71 +1297,80 @@ before any feature work starts.
 
 ## Estimate
 M</code></pre>
-    </section>
+      </section>
 
-    <!-- 13 -->
-    <section id="s13">
-      <h2><span class="num">13</span>Definition of Done</h2>
+      <!-- 13 -->
+      <section id="s13">
+        <h2><span class="num">13</span>Definition of Done</h2>
 
-      <h3>Architecture DoD (Sprint 0 exit)</h3>
-      <ul class="check">
-        <li>Architecture diagram and data flow agreed by both</li>
-        <li>Canonical schema created, first migration runs on a fresh database</li>
-        <li>Pydantic contracts frozen and merged</li>
-        <li>Sample fixtures exist so Lane B can build without Lane A</li>
-        <li>Both can run <code>docker compose up</code> and reach the health endpoint</li>
-        <li>CI runs lint and tests on every PR</li>
-      </ul>
+        <h3>Architecture DoD (Sprint 0 exit)</h3>
+        <ul class="check">
+          <li>Architecture diagram and data flow agreed by both</li>
+          <li>Canonical schema created, first migration runs on a fresh database</li>
+          <li>Pydantic contracts frozen and merged</li>
+          <li>Sample fixtures exist so Lane B can build without Lane A</li>
+          <li>Both can run <code>docker compose up</code> and reach the health endpoint</li>
+          <li>CI runs lint and tests on every PR</li>
+        </ul>
 
-      <h3>Implementation DoD (every task)</h3>
-      <ul class="check">
-        <li>Code plus at least one unit test</li>
-        <li>ruff and black clean, CI green</li>
-        <li>Public functions have a docstring and type hints</li>
-        <li>No secrets in code, all read from environment</li>
-        <li>Every network call has a timeout and a retry limit, and logs attempted, returned, skipped</li>
-        <li>WORKLOG entry added in the same PR</li>
-        <li>Isiwara's PRs reviewed and approved by Keshan before merge; Keshan may merge his own work. Issue closed with <code>Closes #n</code></li>
-      </ul>
+        <h3>Implementation DoD (every task)</h3>
+        <ul class="check">
+          <li>Code plus at least one unit test</li>
+          <li>ruff and black clean, CI green</li>
+          <li>Public functions have a docstring and type hints</li>
+          <li>No secrets in code, all read from environment</li>
+          <li>Every network call has a timeout and a retry limit, and logs attempted, returned, skipped</li>
+          <li>WORKLOG entry added in the same PR</li>
+          <li>Isiwara's PRs reviewed and approved by Keshan before merge; Keshan may merge his own work. Issue closed
+            with <code>Closes #n</code></li>
+        </ul>
 
-      <h3>MVP DoD (the release gate)</h3>
-      <ul class="check">
-        <li>For a seeded demo team, Argus answers "what is X working on and is anything blocking" with facts, one inference layer, evidence, and confidence</li>
-        <li>Conflict detection works (Jira status vs GitHub PR state)</li>
-        <li>Unknown is returned honestly when evidence is missing</li>
-        <li>A failed source is reported as unavailable, never as "nothing found"</li>
-        <li>Runs end to end via <code>docker compose up</code> and is demoable</li>
-        <li>The graded test scenarios pass (see section 17)</li>
-        <li>README explains setup and run in under 10 minutes</li>
-      </ul>
-    </section>
+        <h3>MVP DoD (the release gate)</h3>
+        <ul class="check">
+          <li>For a seeded demo team, headref answers "what is X working on and is anything blocking" with facts, one
+            inference layer, evidence, and confidence</li>
+          <li>Conflict detection works (Jira status vs GitHub PR state)</li>
+          <li>Unknown is returned honestly when evidence is missing</li>
+          <li>A failed source is reported as unavailable, never as "nothing found"</li>
+          <li>Runs end to end via <code>docker compose up</code> and is demoable</li>
+          <li>The graded test scenarios pass (see section 17)</li>
+          <li>README explains setup and run in under 10 minutes</li>
+        </ul>
+      </section>
 
-    <!-- 14 -->
-    <section id="s14">
-      <h2><span class="num">14</span>Coding rules we maintain</h2>
-      <ol>
-        <li><strong>Small readable functions</strong> over clever ones. If a function does 3 things, split it.</li>
-        <li><strong>Every network call has a timeout and a retry limit.</strong> Log what was attempted, what came back, and what was skipped.</li>
-        <li><strong>Never commit secrets.</strong> API keys and tokens come from environment variables only. Check with a secret scanner in CI.</li>
-        <li><strong>Tools return structured data</strong> (Pydantic), never giant raw text blobs.</li>
-        <li><strong>The LLM never gets a write tool</strong> and never gets to change permissions, identity or policy.</li>
-        <li><strong>Retrieved content is untrusted.</strong> Jira comments, PR text and commit messages are data, not instructions.</li>
-        <li><strong>Deterministic software enforces</strong> auth, validation and filtering. The LLM only interprets and summarizes.</li>
-        <li><strong>Type everything</strong> and validate all inputs and outputs with Pydantic.</li>
-        <li><strong>Typed failures.</strong> Use error types like <code>RATE_LIMITED</code>, <code>TIMEOUT</code>, <code>NOT_FOUND</code>, <code>UPSTREAM_ERROR</code> so the agent can reason about missing data.</li>
-        <li><strong>Prompts are code.</strong> Store them as versioned files (<code>reasoning_v1.txt</code>), do not edit prompts loosely.</li>
-        <li><strong>Plain direct language</strong> in UI and docs. Numerals, no filler, no marketing tone.</li>
-      </ol>
-    </section>
+      <!-- 14 -->
+      <section id="s14">
+        <h2><span class="num">14</span>Coding rules we maintain</h2>
+        <ol>
+          <li><strong>Small readable functions</strong> over clever ones. If a function does 3 things, split it.</li>
+          <li><strong>Every network call has a timeout and a retry limit.</strong> Log what was attempted, what came
+            back, and what was skipped.</li>
+          <li><strong>Never commit secrets.</strong> API keys and tokens come from environment variables only. Check
+            with a secret scanner in CI.</li>
+          <li><strong>Tools return structured data</strong> (Pydantic), never giant raw text blobs.</li>
+          <li><strong>The LLM never gets a write tool</strong> and never gets to change permissions, identity or policy.
+          </li>
+          <li><strong>Retrieved content is untrusted.</strong> Jira comments, PR text and commit messages are data, not
+            instructions.</li>
+          <li><strong>Deterministic software enforces</strong> auth, validation and filtering. The LLM only interprets
+            and summarizes.</li>
+          <li><strong>Type everything</strong> and validate all inputs and outputs with Pydantic.</li>
+          <li><strong>Typed failures.</strong> Use error types like <code>RATE_LIMITED</code>, <code>TIMEOUT</code>,
+            <code>NOT_FOUND</code>, <code>UPSTREAM_ERROR</code> so the agent can reason about missing data.</li>
+          <li><strong>Prompts are code.</strong> Store them as versioned files (<code>reasoning_v1.txt</code>), do not
+            edit prompts loosely.</li>
+          <li><strong>Plain direct language</strong> in UI and docs. Numerals, no filler, no marketing tone.</li>
+        </ol>
+      </section>
 
-    <!-- 15 -->
-    <section id="s15">
-      <h2><span class="num">15</span>Environment and secrets</h2>
-      <p>Commit a template, never real values. Add <code>.env</code> to <code>.gitignore</code>.</p>
-      <pre><code># .env.example  (commit this, no real values)
+      <!-- 15 -->
+      <section id="s15">
+        <h2><span class="num">15</span>Environment and secrets</h2>
+        <p>Commit a template, never real values. Add <code>.env</code> to <code>.gitignore</code>.</p>
+        <pre><code># .env.example  (commit this, no real values)
 
 # Database
-DATABASE_URL=postgresql+psycopg://argus:argus@db:5432/argus
+DATABASE_URL=postgresql+psycopg://headref:headref@db:5432/headref
 
 # GitHub (fine grained, read only, only the repos you need)
 GITHUB_TOKEN=
@@ -816,14 +1386,16 @@ ANTHROPIC_API_KEY=
 # App
 APP_ENV=development
 LOG_LEVEL=INFO</code></pre>
-      <div class="callout warn"><strong>Before you commit:</strong> confirm <code>.env</code> is ignored, and never paste a token into code, a prompt, a log or an issue. Each person uses their own read only tokens during development.</div>
-    </section>
+        <div class="callout warn"><strong>Before you commit:</strong> confirm <code>.env</code> is ignored, and never
+          paste a token into code, a prompt, a log or an issue. Each person uses their own read only tokens during
+          development.</div>
+      </section>
 
-    <!-- 16 -->
-    <section id="s16">
-      <h2><span class="num">16</span>Deployment plan</h2>
-      <h3>Local (primary for the assignment demo)</h3>
-      <pre><code># one command brings up postgres + api
+      <!-- 16 -->
+      <section id="s16">
+        <h2><span class="num">16</span>Deployment plan</h2>
+        <h3>Local (primary for the assignment demo)</h3>
+        <pre><code># one command brings up postgres + api
 docker compose up --build
 
 # apply migrations
@@ -834,16 +1406,16 @@ docker compose exec api python seed/seed_demo.py
 
 # open the ui
 http://localhost:8000</code></pre>
-      <p>This is enough to demo and to grade. Keep it working on <code>main</code> at all times.</p>
+        <p>This is enough to demo and to grade. Keep it working on <code>main</code> at all times.</p>
 
-      <h3>docker-compose sketch</h3>
-      <pre><code>services:
+        <h3>docker-compose sketch</h3>
+        <pre><code>services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_USER: argus
-      POSTGRES_PASSWORD: argus
-      POSTGRES_DB: argus
+      POSTGRES_USER: headref
+      POSTGRES_PASSWORD: headref
+      POSTGRES_DB: headref
     ports: ["5432:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
   api:
@@ -855,84 +1427,171 @@ http://localhost:8000</code></pre>
 volumes:
   pgdata:</code></pre>
 
-      <h3>Optional hosted demo (later, needs budget approval)</h3>
-      <p>If you want a public link, one small container plus a managed Postgres on a low cost host is enough. This costs money, so agree it first. Not required for the MVP grade.</p>
-    </section>
+        <h3>Optional hosted demo (later, needs budget approval)</h3>
+        <p>If you want a public link, one small container plus a managed Postgres on a low cost host is enough. This
+          costs money, so agree it first. Not required for the MVP grade.</p>
+      </section>
 
-    <!-- 17 -->
-    <section id="s17">
-      <h2><span class="num">17</span>Testing (small but real)</h2>
-      <p>Do not over test for an MVP, but cover the parts that decide correctness. Mock all external APIs with recorded fixtures so tests are deterministic.</p>
-      <h3>What to test</h3>
-      <ul>
-        <li><strong>Tools:</strong> success, timeout, 403 denied, 429 rate limited return the right typed result.</li>
-        <li><strong>Evidence builder:</strong> issue links to the right PR and commits, duplicates are removed.</li>
-        <li><strong>Confidence rules:</strong> 3 sources give HIGH, 1 weak source gives LOW.</li>
-        <li><strong>Conflict detection:</strong> Jira In Progress plus merged PR raises a conflict note.</li>
-      </ul>
-      <h3>Graded scenarios to keep as a small test set</h3>
-      <div class="tbl-wrap"><table>
-        <tr><th>#</th><th>Scenario</th><th>Correct behavior</th></tr>
-        <tr><td>1</td><td>Clear in progress task with branch and open PR</td><td>Likely current work, HIGH confidence, evidence listed</td></tr>
-        <tr><td>2</td><td>Jira In Progress but linked PR merged</td><td>Conflict reported, not silently resolved</td></tr>
-        <tr><td>3</td><td>No GitHub activity but a Jira assignment</td><td>Report Jira facts, mark code evidence as unknown</td></tr>
-        <tr><td>4</td><td>Injection text in a PR description</td><td>Treated as data, no action taken, ignored as instruction</td></tr>
-        <tr><td>5</td><td>Jira source down</td><td>"Jira unavailable", lower confidence, not "no blockers"</td></tr>
-      </table></div>
-    </section>
+      <!-- 17 -->
+      <section id="s17">
+        <h2><span class="num">17</span>Testing (small but real)</h2>
+        <p>Do not over test for an MVP, but cover the parts that decide correctness. Mock all external APIs with
+          recorded fixtures so tests are deterministic.</p>
+        <h3>What to test</h3>
+        <ul>
+          <li><strong>Tools:</strong> success, timeout, 403 denied, 429 rate limited return the right typed result.</li>
+          <li><strong>Evidence builder:</strong> issue links to the right PR and commits, duplicates are removed.</li>
+          <li><strong>Confidence rules:</strong> 3 sources give HIGH, 1 weak source gives LOW.</li>
+          <li><strong>Conflict detection:</strong> Jira In Progress plus merged PR raises a conflict note.</li>
+        </ul>
+        <h3>Graded scenarios to keep as a small test set</h3>
+        <div class="tbl-wrap">
+          <table>
+            <tr>
+              <th>#</th>
+              <th>Scenario</th>
+              <th>Correct behavior</th>
+            </tr>
+            <tr>
+              <td>1</td>
+              <td>Clear in progress task with branch and open PR</td>
+              <td>Likely current work, HIGH confidence, evidence listed</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>Jira In Progress but linked PR merged</td>
+              <td>Conflict reported, not silently resolved</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>No GitHub activity but a Jira assignment</td>
+              <td>Report Jira facts, mark code evidence as unknown</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>Injection text in a PR description</td>
+              <td>Treated as data, no action taken, ignored as instruction</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>Jira source down</td>
+              <td>"Jira unavailable", lower confidence, not "no blockers"</td>
+            </tr>
+          </table>
+        </div>
+      </section>
 
-    <!-- 18 -->
-    <section id="s18">
-      <h2><span class="num">18</span>Timeline</h2>
-      <div class="tbl-wrap"><table>
-        <tr><th>Week</th><th>Focus</th><th>Exit state</th></tr>
-        <tr><td>Week 1 (days 1 to 4)</td><td>Sprint 0 foundations, both together</td><td>Skeleton runs, contracts frozen, CI green</td></tr>
-        <tr><td>Week 1 to 2</td><td>Sprint 1 in parallel</td><td>GitHub ingest + tools; api, evidence, confidence, conflicts</td></tr>
-        <tr><td>Week 2 to 3</td><td>Sprint 2 in parallel</td><td>Jira ingest + tools; reasoning + validation + UI</td></tr>
-        <tr><td>Week 3 to 4</td><td>Sprint 3 integrate and demo</td><td>End to end, scenarios pass, tagged v0.1.0</td></tr>
-      </table></div>
-      <p>Adjust to your real availability. The order matters more than the exact dates: foundations first, then parallel lanes, then integrate.</p>
-    </section>
+      <!-- 18 -->
+      <section id="s18">
+        <h2><span class="num">18</span>Timeline</h2>
+        <div class="tbl-wrap">
+          <table>
+            <tr>
+              <th>Week</th>
+              <th>Focus</th>
+              <th>Exit state</th>
+            </tr>
+            <tr>
+              <td>Week 1 (days 1 to 4)</td>
+              <td>Sprint 0 foundations, both together</td>
+              <td>Skeleton runs, contracts frozen, CI green</td>
+            </tr>
+            <tr>
+              <td>Week 1 to 2</td>
+              <td>Sprint 1 in parallel</td>
+              <td>GitHub ingest + tools; api, evidence, confidence, conflicts</td>
+            </tr>
+            <tr>
+              <td>Week 2 to 3</td>
+              <td>Sprint 2 in parallel</td>
+              <td>Jira ingest + tools; reasoning + validation + UI</td>
+            </tr>
+            <tr>
+              <td>Week 3 to 4</td>
+              <td>Sprint 3 integrate and demo</td>
+              <td>End to end, scenarios pass, tagged v0.1.0</td>
+            </tr>
+          </table>
+        </div>
+        <p>Adjust to your real availability. The order matters more than the exact dates: foundations first, then
+          parallel lanes, then integrate.</p>
+      </section>
 
-    <!-- 19 -->
-    <section id="s19">
-      <h2><span class="num">19</span>Top risks and how we handle them</h2>
-      <div class="tbl-wrap"><table>
-        <tr><th>Risk</th><th>Impact</th><th>How we handle it</th></tr>
-        <tr><td>Identity mapping wrong</td><td>Work attributed to wrong person</td><td>Identity graph + unmatched queue + never map by name alone</td></tr>
-        <tr><td>API rate limits</td><td>Ingestion fails during demo</td><td>Timeouts, retry limit, small cached demo dataset, seed data ready</td></tr>
-        <tr><td>LLM cost creep</td><td>Bill grows</td><td>One reasoning call per request, small prompts, a spend limit, temperature 0</td></tr>
-        <tr><td>Scope creep</td><td>MVP never ships</td><td>Out of scope list is fixed, Slack and calendar are later</td></tr>
-        <tr><td>Merge conflicts</td><td>Lost time</td><td>Folder ownership, small PRs, contracts first, single log append rule</td></tr>
-        <tr><td>Uneven contribution</td><td>Grading and fairness</td><td>WORKLOG per PR shows who did what</td></tr>
-      </table></div>
-    </section>
+      <!-- 19 -->
+      <section id="s19">
+        <h2><span class="num">19</span>Top risks and how we handle them</h2>
+        <div class="tbl-wrap">
+          <table>
+            <tr>
+              <th>Risk</th>
+              <th>Impact</th>
+              <th>How we handle it</th>
+            </tr>
+            <tr>
+              <td>Identity mapping wrong</td>
+              <td>Work attributed to wrong person</td>
+              <td>Identity graph + unmatched queue + never map by name alone</td>
+            </tr>
+            <tr>
+              <td>API rate limits</td>
+              <td>Ingestion fails during demo</td>
+              <td>Timeouts, retry limit, small cached demo dataset, seed data ready</td>
+            </tr>
+            <tr>
+              <td>LLM cost creep</td>
+              <td>Bill grows</td>
+              <td>One reasoning call per request, small prompts, a spend limit, temperature 0</td>
+            </tr>
+            <tr>
+              <td>Scope creep</td>
+              <td>MVP never ships</td>
+              <td>Out of scope list is fixed, Slack and calendar are later</td>
+            </tr>
+            <tr>
+              <td>Merge conflicts</td>
+              <td>Lost time</td>
+              <td>Folder ownership, small PRs, contracts first, single log append rule</td>
+            </tr>
+            <tr>
+              <td>Uneven contribution</td>
+              <td>Grading and fairness</td>
+              <td>WORKLOG per PR shows who did what</td>
+            </tr>
+          </table>
+        </div>
+      </section>
 
-    <!-- 20 -->
-    <section id="s20">
-      <h2><span class="num">20</span>Quick start checklist</h2>
-      <h3>Day 1 together</h3>
-      <ul class="box">
-        <li>Create the GitHub repo, add both as collaborators, make Keshan the admin</li>
-        <li>Protect <code>main</code>: PR required, no direct pushes. Isiwara's PRs require Keshan's approval; Keshan (admin) can merge his own. Keep branches after merge</li>
-        <li>Add labels, 4 milestones, project board</li>
-        <li>Commit skeleton: pyproject, docker-compose, .env.example, README, WORKLOG</li>
-        <li>Create the Sprint 0 shared issues</li>
-      </ul>
-      <h3>Then split</h3>
-      <ul class="box">
-        <li>Freeze canonical schema and Pydantic contracts (shared)</li>
-        <li>Add sample fixtures so Lane B is never blocked</li>
-        <li>Open Sprint 1 issues for both lanes and start</li>
-        <li>Daily 10 minute sync, update WORKLOG every session</li>
-      </ul>
-      <div class="callout ok"><strong>Definition of success for the MVP:</strong> a lead asks about a team member, and Argus replies with labelled facts, one careful inference, listed evidence, a confidence level, and any conflicts, running locally in one command. That is a genuinely industry shaped agent, and it is small enough for 2 people to finish.</div>
-    </section>
+      <!-- 20 -->
+      <section id="s20">
+        <h2><span class="num">20</span>Quick start checklist</h2>
+        <h3>Day 1 together</h3>
+        <ul class="box">
+          <li>Create the GitHub repo, add both as collaborators, make Keshan the admin</li>
+          <li>Protect <code>main</code>: PR required, no direct pushes. Isiwara's PRs require Keshan's approval; Keshan
+            (admin) can merge his own. Keep branches after merge</li>
+          <li>Add labels, 4 milestones, project board</li>
+          <li>Commit skeleton: pyproject, docker-compose, .env.example, README, WORKLOG</li>
+          <li>Create the Sprint 0 shared issues</li>
+        </ul>
+        <h3>Then split</h3>
+        <ul class="box">
+          <li>Freeze canonical schema and Pydantic contracts (shared)</li>
+          <li>Add sample fixtures so Lane B is never blocked</li>
+          <li>Open Sprint 1 issues for both lanes and start</li>
+          <li>Daily 10 minute sync, update WORKLOG every session</li>
+        </ul>
+        <div class="callout ok"><strong>Definition of success for the MVP:</strong> a lead asks about a team member, and
+          headref replies with labelled facts, one careful inference, listed evidence, a confidence level, and any
+          conflicts, running locally in one command. That is a genuinely industry shaped agent, and it is small enough
+          for 2 people to finish.</div>
+      </section>
 
-    <footer>
-      Argus MVP build plan. Companion to the production readiness checklist. Keep this file in the repo at docs/ and update it as decisions change.
-    </footer>
-  </main>
-</div>
+      <footer>
+        headref MVP build plan. Companion to the production readiness checklist. Keep this file in the repo at docs/ and
+        update it as decisions change.
+      </footer>
+    </main>
+  </div>
 </body>
+
 </html>

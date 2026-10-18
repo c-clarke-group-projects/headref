@@ -1,0 +1,81 @@
+{#
+  Every badge in Headref. Each badge contains its text; colour and shape
+  only support it. Usage:
+    {% import "partials/badges.html" as b %}
+    {{ b.confidence(insight.confidence) }}
+  Filters used here (registered by app/web/ui_format.py):
+    iso_utc, utc_title, fmt_utc, status_label
+  Global used here: confidence_rules
+#}
+
+{# Member state. Team overview only (DESIGN.md 6.2). #}
+{% macro member_state(state, size="lg") -%}
+{%- set m = {
+  "blocked": ("Blocked", "badge--blocked"),
+  "needs_attention": ("Needs attention", "badge--needs-attention"),
+  "on_track": ("On track", "badge--on-track"),
+  "unknown": ("Unknown", "badge--unknown"),
+} -%}
+{%- set label, cls = m.get(state, m["unknown"]) -%}
+<span class="badge badge--{{ size }} {{ cls }}">{{ label }}</span>
+{%- endmacro %}
+
+{# Claim class: Fact, Inference, Unknown. #}
+{% macro claim_class(classification, size="") -%}
+{%- set m = {"fact": "Fact", "inference": "Inference", "unknown": "Unknown"} -%}
+{%- set key = classification if classification in m else "unknown" -%}
+<span class="badge badge--outline{% if size %} badge--{{ size }}{% endif %}"{% if key == "unknown" %} style="color: var(--slate)"{% endif %}><span class="marker marker--{{ key }}" aria-hidden="true"></span>{{ m[key] }}</span>
+{%- endmacro %}
+
+{#
+  Confidence. Never a number, never traffic lights (DEC-006).
+  Tooltip text comes from confidence_rules, filled from docs/AI_BEHAVIOR.md 5.4.
+#}
+{% macro confidence(level, size="", short=false) -%}
+{%- set m = {
+  "HIGH": ("High confidence", "High", "badge--conf-high"),
+  "MEDIUM": ("Medium confidence", "Medium", "badge--conf-medium"),
+  "LOW": ("Low confidence", "Low", "badge--conf-low"),
+  "UNKNOWN": ("Confidence unknown", "Unknown", "badge--conf-unknown"),
+} -%}
+{%- set key = level if level in m else "UNKNOWN" -%}
+{%- set long_label, short_label, cls = m[key] -%}
+<span class="badge {{ cls }}{% if size %} badge--{{ size }}{% endif %}" title="{{ confidence_rules.get(key, '') }}">{{ short_label if short else long_label }}</span>
+{%- endmacro %}
+
+{# Work item status. Raw Jira status goes in the tooltip. #}
+{% macro work_status(status, raw_status="", size="sm") -%}
+{%- set cls = {"blocked": "badge--status-blocked", "in_progress": "badge--status-progress"}.get(status, "badge--outline") -%}
+<span class="badge badge--{{ size }} {{ cls }}" title="{{ raw_status }}">{{ status|status_label }}</span>
+{%- endmacro %}
+
+{# Pull request state, review state and checks. Plain outline pills. #}
+{% macro pill(text, size="sm") -%}
+<span class="badge badge--{{ size }} badge--outline">{{ text }}</span>
+{%- endmacro %}
+
+{# Attention item tag on the team overview. #}
+{% macro attention_tag(kind) -%}
+{%- if kind == "blocker" -%}
+<span class="badge badge--sm badge--blocker">Blocker</span>
+{%- else -%}
+<span class="badge badge--sm badge--outline">Risk</span>
+{%- endif -%}
+{%- endmacro %}
+
+{# Evidence marker, the citation between a claim and its record. #}
+{% macro ev_marker(ev_id) -%}
+<span class="ev-marker">{{ ev_id }}</span>
+{%- endmacro %}
+
+{#
+  Timestamp. Rendered in UTC on the server; app.js rewrites the visible
+  text to local time and keeps the UTC value in the title.
+#}
+{% macro ts(dt) -%}
+{%- if dt -%}
+<time datetime="{{ dt|iso_utc }}" title="{{ dt|utc_title }}" data-local>{{ dt|fmt_utc }}</time>
+{%- else -%}
+<span class="muted">Not recorded</span>
+{%- endif -%}
+{%- endmacro %}

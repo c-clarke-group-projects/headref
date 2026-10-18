@@ -2,15 +2,15 @@
   {
     "id": 850123456,
     "node_id": "R_kgDOM12345",
-    "name": "argus",
-    "full_name": "keshan-dev/argus",
+    "name": "headref",
+    "full_name": "keshan-dev/headref",
     "private": false,
     "owner": {
       "login": "keshan-dev",
       "id": 219891474,
       "type": "User"
     },
-    "html_url": "https://github.com/keshan-dev/argus",
+    "html_url": "https://github.com/keshan-dev/headref",
     "description": "Evidence-based engineering team intelligence agent",
     "fork": false,
     "default_branch": "main",

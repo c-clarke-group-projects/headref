@@ -102,7 +102,7 @@ def test_get_remote_links_from_fixture(jira_client: JiraClient) -> None:
 
     links = jira_client.get_remote_links("AUTH-245")
     assert len(links) == 1
-    assert links[0]["object"]["url"] == "https://github.com/keshan-dev/argus/pull/1"
+    assert links[0]["object"]["url"] == "https://github.com/keshan-dev/headref/pull/1"
 
 
 @respx.mock

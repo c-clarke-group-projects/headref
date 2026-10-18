@@ -1,6 +1,6 @@
-# ARGUS AI Behavior Specification
+# headref AI Behavior Specification
 
-How ARGUS must behave as an AI system. This document is normative. Where it uses MUST or
+How headref must behave as an AI system. This document is normative. Where it uses MUST or
 MUST NOT, the behaviour is enforced by application code, not by a prompt.
 
 Read with `AGENT_ARCHITECTURE.md` (how the stages work) and `AGENT_TOOLS.md` (what can be
@@ -91,11 +91,11 @@ a fact.
 
 An evidence item is valid only if **all** of the following are true:
 
-1. It corresponds to a real row in the ARGUS database, ingested from Jira or GitHub.
+1. It corresponds to a real row in the headref database, ingested from Jira or GitHub.
 2. It has a stable ID assigned by application code in stage S3 (`ev_1` .. `ev_n`).
 3. It has a source URL that resolves to the original record.
 4. It has both `observed_at` (when the event happened at the source) and `retrieved_at`
-   (when ARGUS fetched it).
+   (when headref fetched it).
 5. Its actor, where it has one, is a confirmed identity mapping. Activity from an
    unmatched account is **excluded from the evidence set entirely** (DEC-008).
 
@@ -212,7 +212,7 @@ evidence does not support. This is measured in `TESTING_AND_EVALUATION.md` 11.3.
 
 ### The threat
 
-ARGUS reads text written by people who may not be the user, and who may be hostile:
+headref reads text written by people who may not be the user, and who may be hostile:
 
 - Pull request titles and descriptions
 - Commit messages
@@ -347,7 +347,7 @@ When the agent cannot determine something, the response MUST state:
 | Situation | Correct | Forbidden |
 |---|---|---|
 | Jira unreachable, asked about blockers | "Jira data is unavailable, last successful sync 2026-09-11. Blockers cannot be determined. GitHub shows pull request 182 with changes requested 4 days ago." | "No blockers found." |
-| No activity at all in the window | "No Jira or GitHub activity is recorded for this person in the last 14 days. This does not mean no work occurred; work not tracked in these tools is not visible to ARGUS." | "This person has not been working." |
+| No activity at all in the window | "No Jira or GitHub activity is recorded for this person in the last 14 days. This does not mean no work occurred; work not tracked in these tools is not visible to headref." | "This person has not been working." |
 | Pull request with no ticket reference | "Pull request 182 is not linked to any Jira work item." | "Pull request 182 is probably for AUTH-245." |
 | Activity from an unmapped account | "1 GitHub account is not mapped to a team member. Its activity is excluded." | Attributing it to the closest-matching name |
 
@@ -355,7 +355,7 @@ When the agent cannot determine something, the response MUST state:
 
 ## 5.9 Privacy boundaries
 
-ARGUS reports work evidence. It MUST NOT report or infer anything about a person beyond
+headref reports work evidence. It MUST NOT report or infer anything about a person beyond
 what the engineering records state about the work.
 
 ### MUST NOT infer or expose

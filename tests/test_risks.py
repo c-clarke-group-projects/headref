@@ -132,11 +132,11 @@ def test_rk3_high_priority_inactive_negative() -> None:
     commit = CommitOut(
         commit_id=1,
         sha="c1",
-        repo_full_name="keshan-dev/argus",
+        repo_full_name="keshan-dev/headref",
         message_excerpt="commit on AUTH-250",
         branch_name="feature/AUTH-250",
         committed_at=now - timedelta(days=2),
-        source_url="https://github.com/keshan-dev/argus/commit/c1",
+        source_url="https://github.com/keshan-dev/headref/commit/c1",
         retrieved_at=now,
     )
 

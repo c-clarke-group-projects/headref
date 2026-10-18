@@ -1,0 +1,45 @@
+{#
+  S5 Error pages: 403, 404, 422, 500. Header only, no freshness tiles.
+  401 on a page route never renders this; it redirects to /login?next=...
+  Context: base context plus
+    code: int
+    kind: "member" | "page" | "question" | "server" (picks the copy)
+    member_id: optional, for the 422 tab links
+  An LLM failure is never an error page; it degrades to the fallback.
+#}
+{% extends "base.html" %}
+{% import "partials/icons.html" as i %}
+
+
+
+{% block title %}Error {{ code }}, Headref{% endblock %}
+
+{% block content %}
+{% set copy = {
+  "403": ("You cannot view this member", "Headref shows members of your own team only."),
+  "404member": ("Member not found", "There is no team member with this ID."),
+  "404page": ("Page not found", "Check the address."),
+  "422question": ("Unknown question type", "Choose Current work, Blockers or Risks."),
+  "500": ("Something failed on the server", "The error was logged. Recorded data is unchanged. Try again, or check the logs."),
+} %}
+{% set key = (code|string) ~ (kind if code in [404, 422] else "") %}
+{% set heading, body = copy.get(key, copy["404page"]) %}
+<section class="hero" style="grid-template-columns: minmax(0, 1fr)">
+  <div>
+    <p class="hero__meta"><span class="hero__dot" aria-hidden="true"></span>Error {{ code }}</p>
+    <h1 class="hero__title">{{ heading }}</h1>
+    <p class="hero__lead">{{ body }}</p>
+    <div style="margin-top: var(--s-6); display: flex; flex-wrap: wrap; gap: var(--s-3)">
+      {% if code == 422 and member_id %}
+        <a class="btn btn--mint" href="/members/{{ member_id }}?question=current_work">Current work</a>
+        <a class="btn btn--mint" href="/members/{{ member_id }}?question=blockers">Blockers</a>
+        <a class="btn btn--mint" href="/members/{{ member_id }}?question=risks">Risks</a>
+      {% elif code == 500 %}
+        <a class="btn btn--mint" href="">Reload</a>
+      {% else %}
+        <a class="btn btn--mint" href="/">Back to your team{{ i.icon("arrow-right") }}</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -84,6 +84,11 @@ class AppUser(Base):
         "IdentityLink", back_populates="app_user"
     )
 
+    @property
+    def user_id(self) -> int:
+        """Alias id to user_id for template and schema compatibility."""
+        return self.id
+
 
 class Repository(Base):
     """A configured GitHub repository."""

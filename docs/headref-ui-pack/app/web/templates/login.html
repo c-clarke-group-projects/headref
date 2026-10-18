@@ -1,0 +1,49 @@
+{#
+  S0 Login stub. Not authentication; real login is Stage 2.
+  Context: request, users (active users, PROPOSED: confirm listing them on
+  an unauthenticated page is acceptable, else use a numeric User ID input),
+  next (safe relative path), error (optional str)
+  No JS: the form posts to a page route that sets the cookie and redirects.
+#}
+{% import "partials/icons.html" as i %}
+{% import "partials/badges.html" as b %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in, Headref</title>
+  <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+</head>
+<body>
+  <main class="login">
+    <section class="login__intro">
+      <p class="brand" style="align-self: flex-start">{{ i.glyph(18) }}Headref</p>
+      <h1 class="login__tagline">The current state of your team's work, with the evidence.</h1>
+      <div class="login__promises" style="margin-top: var(--s-8)">
+        <span class="pill-dark">{{ i.icon("check", 14) }}Every statement cites its records</span>
+        <span class="pill-dark">{{ i.icon("check", 14) }}Read only for Jira and GitHub</span>
+        <span class="pill-dark">{{ i.icon("check", 14) }}No rankings, no scores</span>
+      </div>
+    </section>
+    <section class="login__form">
+      <span class="login__badge">Demo sign in</span>
+      <h2 class="page-title" style="margin-top: 20px; font-size: 56px">Sign in</h2>
+      <p class="muted" style="margin-top: 14px">This is a login stub for the MVP. It does not check a password.</p>
+      <form method="post" action="/login">
+        <input type="hidden" name="next" value="{{ next or '/' }}">
+        <div class="field">
+          <label for="user_id">Person</label>
+          <select id="user_id" name="user_id" required>
+            {% for u in users %}<option value="{{ u.user_id }}">{{ u.display_name }}</option>{% endfor %}
+          </select>
+        </div>
+        {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+        <button type="submit" class="btn btn--primary btn--block" style="margin-top: 20px">Sign in{{ i.icon("arrow-right") }}</button>
+      </form>
+      <p class="caption" style="margin-top: 20px">Real sign in arrives in Stage 2.</p>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,71 @@
+{#
+  S4 Unmatched accounts (P5-005). Read only.
+  Context: base context plus
+    rows: unmatched_entity rows where resolved_app_user_id is null,
+          sorted by last_seen_at, newest first
+    source_health, team_id, now
+#}
+{% extends "base.html" %}
+{% import "partials/icons.html" as i %}
+{% import "partials/badges.html" as b %}
+{% import "partials/notices.html" as n %}
+
+{% block title %}Unmatched accounts, Headref{% endblock %}
+
+{% block hero %}
+<section class="hero" style="align-items: end">
+  <div>
+    <a class="hero__back" href="/teams/{{ team_id }}">{{ i.icon("arrow-left") }}Back to team</a>
+    <h1 class="hero__title" style="font-size: clamp(56px, 8vw, 112px); line-height: 0.86">Unmatched accounts</h1>
+    <p class="hero__lead">These accounts appear in Jira or GitHub but are not mapped to a team member. Their activity is stored but excluded from every answer. Headref never guesses who an account belongs to.</p>
+  </div>
+  <div class="stack" style="gap: var(--s-3)">
+    <div class="count-card">
+      <p class="count-card__num">{{ rows|length }}</p>
+      <p style="margin-top: var(--s-3); font-size: 18px; font-weight: 500">account{{ "s" if rows|length != 1 }} not mapped</p>
+    </div>
+    {% with show_note = false %}{% include "partials/freshness.html" %}{% endwith %}
+  </div>
+</section>
+{% endblock %}
+
+{% block banners %}{{ n.banners(source_health, 0) }}{% endblock %}
+
+{% block content %}
+<section class="card section" style="padding: var(--s-6) var(--s-5) var(--s-4)">
+  <div class="card__head" style="padding: 0 var(--s-4)">
+    <h2 class="card__title">Seen but not attributed</h2>
+    <span class="caption">Newest first by last seen. Handles are shown exactly as recorded.</span>
+  </div>
+  {% if not rows %}
+    <p class="empty-note" style="padding: var(--s-4)">Every account seen in Jira and GitHub is mapped to a team member.</p>
+  {% else %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th scope="col">Source</th><th scope="col">Handle</th><th scope="col">External ID</th><th scope="col">Seen</th><th scope="col">First seen</th><th scope="col">Last seen</th></tr></thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td><span class="badge badge--lg" style="background: var(--mist)">{{ i.source_icon(r.integration, 14) }}{{ r.integration|source_label }}</span></td>
+          <td style="font-weight: 500">{{ r.external_handle or "no handle recorded" }}</td>
+          <td class="num">{{ r.external_id }}</td>
+          <td class="num">{{ r.occurrence_count }} time{{ "s" if r.occurrence_count != 1 }}</td>
+          <td class="num">{{ b.ts(r.first_seen_at) }}</td>
+          <td class="num">{{ b.ts(r.last_seen_at) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+
+<section class="section--loose">
+  <h2 class="page-title" style="font-size: 56px">How to fix a mapping</h2>
+  <ol class="steps">
+    <li class="step"><span class="step__num">1</span><span class="step__title">Add it to the identity map</span><span class="step__body">Add the account to seed/identity_map.yml under the right person, using the external ID, not the handle.</span></li>
+    <li class="step"><span class="step__num">2</span><span class="step__title">Run the identity loader</span><span class="step__body">The loader reads the map and links the account to the person.</span></li>
+    <li class="step"><span class="step__num">3</span><span class="step__title">Run a sync</span><span class="step__body">Run a sync, or press Refresh. The activity is then attributed.</span></li>
+  </ol>
+</section>
+{% endblock %}
