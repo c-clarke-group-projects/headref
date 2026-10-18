@@ -137,11 +137,24 @@ def test_a_user_installation_attaches_only_for_its_owner():
     ],
 )
 def test_an_org_installation_attaches_only_for_an_active_admin(status_code, body, expected):
+    respx.get(f"{API}/user").mock(return_value=Response(200, json={"id": 101}))
     respx.get(f"{API}/user/memberships/orgs/acme").mock(
         return_value=Response(status_code, json=body)
     )
 
     assert user_can_attach(_installation("Organization"), "user-token", 101) is expected
+
+
+@respx.mock
+def test_an_org_admin_token_of_another_person_is_refused():
+    """A token that is not the signed-in account's own cannot vouch for an org."""
+    respx.get(f"{API}/user").mock(return_value=Response(200, json={"id": 999}))
+    membership = respx.get(f"{API}/user/memberships/orgs/acme").mock(
+        return_value=Response(200, json={"state": "active", "role": "admin"})
+    )
+
+    assert not user_can_attach(_installation("Organization"), "someone-elses-token", 101)
+    assert membership.call_count == 0
 
 
 def test_an_unknown_account_type_never_attaches():

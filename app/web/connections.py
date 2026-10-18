@@ -287,10 +287,15 @@ async def save_github_repos(request: Request, access: OwnerAccess, db: DbDep) ->
     workspace = access.workspace
     form = parse_qs((await request.body()).decode("utf-8"))
     wanted: dict[int, set[int]] = {}
+    seen_repo_ids: set[int] = set()
     for value in form.get("repo", []):
         inst_part, _, repo_part = value.partition(":")
         if not (inst_part.isdecimal() and repo_part.isdecimal()):
             return _to_picker(workspace.id, "invalid_selection")
+        if int(repo_part) in seen_repo_ids:
+            # The same repository through 2 installations: keep 1, never both.
+            continue
+        seen_repo_ids.add(int(repo_part))
         wanted.setdefault(int(inst_part), set()).add(int(repo_part))
 
     installations = {inst.id: inst for inst in _installations(db, workspace.id)}

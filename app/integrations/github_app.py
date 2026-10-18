@@ -176,6 +176,12 @@ def user_can_attach(installation: Installation, user_token: str, github_user_id:
         headers={**_API_HEADERS, "Authorization": f"Bearer {user_token}"},
     ) as http:
         try:
+            # The cookie token must belong to the signed-in account, or a token taken
+            # from an org admin would let someone else attach that org.
+            token_user = http.get("/user").json()
+            if int(token_user.get("id") or 0) != github_user_id:
+                logger.warning("org attach refused: token does not belong to the signed-in account")
+                return False
             membership = http.get(f"/user/memberships/orgs/{installation.account_login}").json()
         except IntegrationError as exc:
             # Not a member, or the token lacks read:org: either way, do not attach.
