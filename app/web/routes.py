@@ -836,7 +836,8 @@ async def github_callback(
         account.id,
         gh_login,
     )
-    dest_url = "/repos" if next_url == "/" else next_url
+    # Home after sign-in is the portfolio of workspaces (DEC-021).
+    dest_url = "/workspaces" if next_url == "/" else next_url
     redirect = RedirectResponse(url=dest_url, status_code=status.HTTP_303_SEE_OTHER)
     redirect.set_cookie(
         SESSION_COOKIE,

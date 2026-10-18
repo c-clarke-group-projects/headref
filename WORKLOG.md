@@ -60,6 +60,31 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-19 | Keshan | Workspaces W2: portfolio home and workspace shell
+Status: IN_PROGRESS
+
+### Completed
+1. `GET /workspaces`: portfolio home, 1 card per workspace with the caller's role and an
+   honest "Not synced yet" state. Empty state for a first-time account.
+2. `GET /workspaces/new` and `POST /workspaces`: create form; the caller becomes owner and
+   lands on the new workspace. A blank or long name re-renders with fixed error copy (422).
+3. `GET /w/{workspace_id}`: workspace shell with Connections, Sync, Members, Analysis and
+   What changed sections. Each says what is not set up yet. Connect and Sync buttons are
+   shown disabled with the reason, owners and managers only. Switcher when the account has
+   more than 1 workspace.
+4. Sign-in now lands on `/workspaces` instead of `/repos`. "Workspaces" added to the top
+   navigation; the existing pages stay until W7.
+5. `tests/test_workspace_pages.py`: 10 page tests, including hostile name escaping, 404 for
+   another account's workspace, and role-dependent buttons.
+
+### Problems
+Not checked in a browser: layout at 375, 768 and 1280 px, the switcher menu, dark theme.
+
+### Next Step
+W3, the GitHub App connection. Needs the GitHub App registered first (W0 external setup).
+
+---
+
 ## 2026-10-19 | Keshan | Workspaces W1: accounts, workspaces, isolation core
 Status: IN_PROGRESS
 

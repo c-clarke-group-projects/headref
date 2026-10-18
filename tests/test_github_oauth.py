@@ -183,7 +183,7 @@ def test_github_callback_auto_provisions_unmapped_user(
     )
 
     assert response.status_code == status.HTTP_303_SEE_OTHER
-    assert response.headers["location"] == "/repos"
+    assert response.headers["location"] == "/workspaces"
     assert auth.SESSION_COOKIE in response.cookies
     assert routes.GITHUB_TOKEN_COOKIE in response.cookies
     assert response.cookies[routes.GITHUB_TOKEN_COOKIE] == "gho_test_token_123"

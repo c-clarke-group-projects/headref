@@ -469,6 +469,23 @@ body.drawer-open { overflow: hidden; }
 .field select, .field input { min-height: 56px; padding: 0 18px; border: 0; border-radius: var(--r-sm); background: var(--mist); font-size: var(--fs-lead); }
 .form-error { margin-top: var(--s-3); padding: var(--s-3) var(--s-4); border-radius: var(--r-sm); background: var(--block-tint); color: var(--block); font-size: var(--fs-small); }
 
+/* 23b. Workspaces */
+.ws-card { display: flex; flex-direction: column; gap: var(--s-3); color: inherit; text-decoration: none; box-shadow: inset 0 0 0 1.5px var(--ash); transition: box-shadow 0.15s ease; }
+.ws-card:hover { box-shadow: inset 0 0 0 1.5px var(--ink); }
+.ws-card__desc { overflow-wrap: anywhere; }
+.ws-card__status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); margin-top: auto; }
+.ws-switcher { position: relative; }
+.ws-switcher > summary { list-style: none; }
+.ws-switcher > summary::-webkit-details-marker { display: none; }
+.ws-switcher__list { position: absolute; right: 0; z-index: 5; margin-top: var(--s-2); min-width: 240px; max-height: 320px; overflow-y: auto; padding: var(--s-2); border-radius: var(--r-lg); background: var(--card); color: var(--ink); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18); list-style: none; }
+.ws-switcher__list a { display: block; padding: 10px 12px; border-radius: var(--r-sm); color: inherit; text-decoration: none; overflow-wrap: anywhere; }
+.ws-switcher__list a:hover, .ws-switcher__list a[aria-current="page"] { background: var(--mist); }
+.ws-conn { margin-top: var(--s-4); display: flex; flex-direction: column; gap: var(--s-3); }
+.ws-conn__row { display: grid; grid-template-columns: 140px auto minmax(0, 1fr) auto; align-items: center; gap: var(--s-3); padding: var(--s-3) 0; border-top: 1px solid var(--ash); }
+.ws-conn__name { display: inline-flex; align-items: center; gap: var(--s-2); font-weight: 500; }
+.ws-sync { margin-top: var(--s-5); display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
+.ws-form { max-width: 720px; }
+
 /* 24. Responsive */
 @media (max-width: 1023px) {
   .hero { grid-template-columns: minmax(0, 1fr); gap: var(--s-6); padding: var(--s-7); }
@@ -481,6 +498,8 @@ body.drawer-open { overflow: hidden; }
 }
 .priority-inline { display: none; margin-top: var(--s-1); font-size: var(--fs-micro); color: var(--slate); }
 @media (max-width: 719px) {
+  .ws-conn__row { grid-template-columns: minmax(0, 1fr) auto; }
+  .ws-conn__row .caption { grid-column: 1 / -1; }
   .page { padding: var(--s-3) var(--s-3) var(--s-7); }
   .topnav { flex-wrap: wrap; }
   .userchip span:not(.avatar) { display: none; }

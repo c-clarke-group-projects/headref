@@ -2,7 +2,7 @@
   Page shell for every authenticated page.
   Context (all pages):
     request, actor (ActorInfo), team_name, unmatched_count
-    nav_current: "team" | "unmatched" | "member"
+    nav_current: "workspaces" | "team" | "repos" | "jira" | "unmatched" | "member"
   Blocks: title, hero, banners, content
 #}
 {% import "partials/icons.html" as i %}
@@ -23,6 +23,7 @@
     <header class="topnav">
       <nav class="pillbar" aria-label="Main">
         <a class="brand" href="/">{{ i.glyph() }}Headref</a>
+        <a class="navlink" href="/workspaces"{% if nav_current == "workspaces" %} aria-current="page"{% endif %}>Workspaces</a>
         <a class="navlink" href="/"{% if nav_current == "team" %} aria-current="page"{% endif %}>Team Updates</a>
         <a class="navlink" href="/repos"{% if nav_current == "repos" %} aria-current="page"{% endif %}>Repositories</a>
         <a class="navlink" href="/jira"{% if nav_current == "jira" %} aria-current="page"{% endif %}>Connect Jira</a>

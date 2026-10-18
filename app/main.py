@@ -21,6 +21,7 @@ from app.scheduler import start_scheduler_task, stop_scheduler_task
 from app.web.auth import auth_router
 from app.web.routes import router as api_router
 from app.web.ui_format import templates
+from app.web.workspace_pages import workspace_pages
 from app.web.workspaces import workspace_api
 
 
@@ -51,6 +52,7 @@ static_dir = Path(__file__).resolve().parent / "web" / "static"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 app.include_router(auth_router)
 app.include_router(workspace_api)
+app.include_router(workspace_pages)
 app.include_router(api_router)
 
 

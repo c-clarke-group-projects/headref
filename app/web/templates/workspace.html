@@ -1,0 +1,98 @@
+{#
+  Workspace page (W2 shell, DEC-021). Sections fill in later phases:
+    Connections and Sync (W3 to W5), Members (W6), Analysis and member panel (W7),
+    What changed (W8).
+  Context: base context plus
+    workspace (Workspace), role ("owner" | "manager" | "viewer"),
+    can_manage (bool), is_owner (bool), my_workspaces (list[WorkspaceOut])
+  Nothing here is invented: a section that has no data yet says why.
+#}
+{% extends "base.html" %}
+{% import "partials/icons.html" as i %}
+
+{% block title %}{{ workspace.name }}, Headref{% endblock %}
+
+{% block hero %}
+<section class="hero">
+  <div>
+    <a class="hero__back" href="/workspaces">{{ i.icon("arrow-left") }}All workspaces</a>
+    <h1 class="hero__title">{{ workspace.name }}</h1>
+    {% if workspace.description %}<p class="hero__lead">{{ workspace.description }}</p>{% endif %}
+    <div class="hero__pills">
+      <span class="badge badge--sm badge--on-dark">You are {{ "an" if role == "owner" else "a" }} {{ role }}</span>
+    </div>
+  </div>
+  {% if my_workspaces|length > 1 %}
+  <div class="stack" style="justify-content: flex-end">
+    <details class="ws-switcher">
+      <summary class="btn btn--quiet">Switch workspace</summary>
+      <ul class="ws-switcher__list">
+        {% for w in my_workspaces %}
+          <li><a href="/w/{{ w.workspace_id }}"{% if w.workspace_id == workspace.id %} aria-current="page"{% endif %}>{{ w.name }}</a></li>
+        {% endfor %}
+      </ul>
+    </details>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block content %}
+<section class="section" aria-labelledby="connections-title">
+  <div class="card card--pad-md">
+    <div class="card__head">
+      <h2 class="card__title" id="connections-title">Connections</h2>
+      <span class="caption">Read only. Headref never writes to GitHub or Jira.</span>
+    </div>
+    <div class="ws-conn">
+      <div class="ws-conn__row">
+        <span class="ws-conn__name">{{ i.source_icon("github", 18) }} GitHub</span>
+        <span class="badge badge--sm badge--unknown">Not connected</span>
+        <span class="caption">No repositories in this workspace yet.</span>
+        {% if is_owner %}<button type="button" class="btn btn--quiet btn--sm" disabled aria-describedby="conn-soon">Connect GitHub</button>{% endif %}
+      </div>
+      <div class="ws-conn__row">
+        <span class="ws-conn__name">{{ i.source_icon("jira", 18) }} Jira</span>
+        <span class="badge badge--sm badge--unknown">Not connected</span>
+        <span class="caption">No Jira projects in this workspace yet.</span>
+        {% if is_owner %}<button type="button" class="btn btn--quiet btn--sm" disabled aria-describedby="conn-soon">Connect Jira</button>{% endif %}
+      </div>
+    </div>
+    <p class="caption" id="conn-soon" style="margin-top: var(--s-4)">
+      {% if is_owner %}Connecting repositories and Jira projects to a workspace is not available yet.
+      {% else %}The workspace owner connects repositories and Jira projects.{% endif %}
+    </p>
+    <div class="ws-sync">
+      {% if can_manage %}<button type="button" class="btn btn--primary" disabled aria-describedby="sync-reason">Sync now</button>{% endif %}
+      <span class="caption" id="sync-reason">Nothing to sync: connect a repository or a Jira project first.</span>
+    </div>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="members-title">
+  <div class="card card--pad-md">
+    <div class="card__head">
+      <h2 class="card__title" id="members-title">Members</h2>
+      <span class="caption">Alphabetical. Headref does not rank or compare people.</span>
+    </div>
+    <p class="empty-note" style="margin-top: var(--s-3)">People appear after the first sync.
+      Each one is confirmed by a manager before any work is attributed to them.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="grid-2">
+    <div class="card card--pad-md" aria-labelledby="analysis-title">
+      <h2 class="card__title" id="analysis-title">Analysis</h2>
+      <p class="empty-note" style="margin-top: var(--s-3)">No analysis yet. After a sync, blockers,
+        conflicts between Jira and GitHub, risks and likely current work appear here, each with
+        its evidence.</p>
+    </div>
+    <div class="card card--pad-md" aria-labelledby="feed-title">
+      <h2 class="card__title" id="feed-title">What changed</h2>
+      <p class="empty-note" style="margin-top: var(--s-3)">No updates yet. Changes between syncs
+        appear here: new or cleared blockers, merged pull requests, moved issues.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}
