@@ -4,6 +4,7 @@ import os
 from collections.abc import Generator
 
 import pytest
+from fastapi.testclient import TestClient
 
 # Ensure dummy configuration secrets exist so app.config can load in test environments.
 # An empty value counts as unset: docker compose passes the blank lines of .env through
@@ -32,3 +33,16 @@ def _restore_configuration() -> Generator[None, None, None]:
     os.environ.clear()
     os.environ.update(saved_env)
     app.config.settings = saved_settings
+
+
+def log_in(client: TestClient, user_id: int) -> None:
+    """Sign a test client in as user_id, as GitHub OAuth does after a real sign-in.
+
+    Sets the signed session cookie directly. There is no login route to call: the
+    P3-001 stub that trusted any user id was removed.
+    """
+    from app.web.auth import SESSION_COOKIE, sign_session
+
+    # TestClient serves http://testserver, which the cookie jar files under
+    # "testserver.local". Using that domain lets the app's logout delete this cookie.
+    client.cookies.set(SESSION_COOKIE, sign_session(user_id), domain="testserver.local")

@@ -18,9 +18,11 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from app.config import Settings
 from app.main import app
 from app.web import auth, routes
 from app.web.routes import safe_next
+from tests.conftest import log_in
 
 ROOT = Path(__file__).resolve().parents[1]
 STATIC = ROOT / "app" / "web" / "static"
@@ -48,7 +50,6 @@ USERS = {
 @pytest.fixture
 def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setattr(auth, "load_user", lambda db, user_id: USERS.get(user_id))
-    monkeypatch.setattr(routes, "load_user", lambda db, user_id: USERS.get(user_id))
 
     def fake_db() -> Iterator[None]:
         yield None
@@ -88,15 +89,22 @@ def test_safe_next_keeps_a_same_site_path(allowed):
     assert safe_next(allowed) == allowed
 
 
-def test_login_form_cannot_redirect_off_site(client: TestClient):
-    response = client.post(
-        "/login",
-        data={"user_id": "1", "next": "https://evil.example/"},
-        headers={"content-type": "application/x-www-form-urlencoded"},
-        follow_redirects=False,
+def test_github_sign_in_cannot_carry_an_off_site_next(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+):
+    """next now enters only through the GitHub OAuth start; it must be cleaned there."""
+    cfg = Settings(
+        database_url="sqlite:///:memory:",
+        github_oauth_client_id="test-client-id",
+        github_oauth_client_secret="test-client-secret",
+        _env_file=None,
     )
+    monkeypatch.setattr(routes, "get_settings", lambda: cfg)
+
+    response = client.get("/auth/github/login?next=https://evil.example/", follow_redirects=False)
+
     assert response.status_code == 303
-    assert response.headers["location"] == "/"
+    assert response.cookies[routes.OAUTH_NEXT_COOKIE].strip('"') == "/"
 
 
 def test_login_page_does_not_echo_a_hostile_next(client: TestClient):
@@ -111,7 +119,7 @@ def test_error_handler_survives_a_non_decimal_member_id(client: TestClient):
     The 404 handler parses the member id out of the path, so a path like
     /members/<superscript 2>/x would have raised inside the exception handler.
     """
-    client.post("/api/auth/login", json={"user_id": 1})
+    log_in(client, 1)
     response = client.get("/members/²/panel", headers={"accept": "text/html"})
 
     # FastAPI rejects the path parameter first, so this is a 422. What matters is
@@ -151,7 +159,7 @@ def test_every_font_the_stylesheet_references_exists():
 
 
 def test_page_route_renders_the_html_error_page(client: TestClient):
-    client.post("/api/auth/login", json={"user_id": 3})  # Carol is on team 20
+    log_in(client, 3)  # Carol is on team 20
     response = client.get("/teams/10", headers={"accept": "text/html"})
 
     assert response.status_code == 403
@@ -165,7 +173,7 @@ def test_page_route_renders_the_html_error_page(client: TestClient):
 
 
 def test_member_403_keeps_the_member_copy(client: TestClient):
-    client.post("/api/auth/login", json={"user_id": 3})  # Carol is on team 20
+    log_in(client, 3)  # Carol is on team 20
     response = client.get("/members/1", headers={"accept": "text/html"})
 
     assert response.status_code == 403
@@ -173,7 +181,7 @@ def test_member_403_keeps_the_member_copy(client: TestClient):
 
 
 def test_api_route_still_returns_json(client: TestClient):
-    client.post("/api/auth/login", json={"user_id": 3})
+    log_in(client, 3)
     response = client.get("/api/teams/10/overview", headers={"accept": "text/html"})
 
     assert response.status_code == 403
