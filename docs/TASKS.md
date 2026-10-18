@@ -1720,7 +1720,7 @@ blockers, risks, conflicts, activity, last synced.
 **Out of scope:** The evidence drawer (P5-003).
 **Owner:** Developer 2
 **Priority:** P0
-**Status:** IN_PROGRESS
+**Status:** IN_REVIEW
 **Dependencies:** P5-001
 **Parallelizable:** YES, alongside P5-004.
 **Components:** UI
@@ -1738,7 +1738,7 @@ blockers, risks, conflicts, activity, last synced.
 - [x] The 3 question types are selectable.
 - [x] Every claim shows class and confidence.
 - [x] No numeric confidence appears anywhere.
-- [ ] Activity counts carry the context note.
+- [x] Activity counts carry the context note.
 - [x] Last synced per source is visible.
 - [x] No `|safe` on source-derived fields, asserted by a template test or review.
 - [x] A member with no data renders a clear empty state.
@@ -1825,7 +1825,8 @@ the unmatched identity count.
 - [x] All 4 states render.
 - [x] Every attention item is backed by evidence.
 - [x] No ranking or comparison appears anywhere.
-- [x] The unmatched count is visible.
+- [ ] The unmatched count is visible. (The team page card was removed on 2026-10-17. See
+      WORKLOG.md, Decisions Needed.)
 - [x] Per-source freshness is visible.
 - [x] An unavailable source shows members as Unknown.
 
@@ -1889,7 +1890,7 @@ account.
 **Out of scope:** New endpoints.
 **Owner:** Developer 2
 **Priority:** P1
-**Status:** IN_PROGRESS
+**Status:** IN_REVIEW
 **Dependencies:** P5-002, P5-004
 **Parallelizable:** NO.
 **Components:** UI
@@ -1907,7 +1908,7 @@ account.
 - [x] All 3 source states are visually distinct.
 - [x] An unavailable source shows the last successful sync time and the error type.
 - [x] The fallback shows its notice.
-- [ ] Truncation is disclosed.
+- [x] Truncation is disclosed.
 - [x] Times show local with UTC on hover.
 
 **Testing required:** Rendering tests for fresh, stale, unavailable, fallback and truncated.

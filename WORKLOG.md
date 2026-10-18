@@ -60,6 +60,63 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-18 | Keshan | Phase 5 completion: suite repair, Jira credentials, fallback honesty, activity
+Status: IN_REVIEW
+
+### Completed
+1. Suite repaired: was 35 failed, 5 errors on `feat/phase-05` at `f09f363`, now 391 passed,
+   1 skipped. Causes: in-memory SQLite without `StaticPool` in 2 TestClient fixtures; a Jira
+   route mutating `os.environ` and the settings singleton, which failed 18 orchestrator tests
+   whenever they ran after it; empty compose variables overriding the test defaults; tests
+   left behind by the 2026-10-17 UI changes. An autouse fixture now restores the
+   environment and settings after every test.
+2. Jira credentials come from the environment only. `POST /jira/connect` and
+   `/jira/disconnect` are removed: any signed-in user could write an API token into
+   `os.environ` and rewrite `.env` on disk. `/jira` is a status page with the steps to
+   configure it. Error redirects carry a fixed code, never exception text.
+3. Fallback honesty: `MemberInsight.fallback_used` was never set, so a code-built summary
+   was labelled "Written by the local model". A model timeout raised instead of falling
+   back (EV-12 B). `agent_run` now records a typed `error_type` and the configured model.
+4. Activity counts (G3) and truncation disclosure (G4) on `MemberInsight`, counted by code,
+   this member only, window rows only, withheld when a tool they need failed.
+5. Page-level tests for unavailable, never synced, conflict, hostile excerpt, empty member.
+6. Committed the pending changes: pull request blocker evidence keys (fixes the UNKNOWN
+   confidence noted on 2026-10-17), and the empty-window fallback in T-002 to T-005.
+7. `ruff check .` and `black --check .` clean over the whole tree.
+
+### Changed
+`app/web/routes.py`, `app/web/templates/jira.html`, `login.html`, `question_panel.html`,
+`app/agent/narrative.py`, `orchestrator.py`, `blockers.py`, `app/schemas/insight.py`,
+`app/tools/get_*.py`, `tests/conftest.py` and 8 test modules, `pyproject.toml`.
+
+### Problems
+1. Running the suite inside the `project-api` container rewrote the developer's `.env`
+   through the old Jira routes. Jira values in `.env` were blanked and need re-entering if
+   they were set. Fixed by item 2; tests can no longer write outside `tmp_path`.
+2. Not verified in a browser: evidence links opening the right record (P5-003), the refresh
+   progress and reload (P5-007), widths and contrast (WP8). No screenshots attached.
+
+### Decisions Needed
+1. The empty-window fallback in T-002 to T-005 returns old rows unmarked. EV-03 expects
+   UNKNOWN with `NO_EVIDENCE` for an empty window, and DEC-020 says such a member still
+   gets "no activity recorded". Merged by choice of Developer 1; needs an `outside_window`
+   flag and a DEC-020 amendment, or a revert, before P6-004 writes EV-03.
+2. The team page unmatched card was removed on 2026-10-17. P5-004 and FR-003 require the
+   unmatched count to be visible. The criterion is unticked until this is agreed.
+3. DEC-020 is still Proposed. Phase 6 scenarios EV-01b, EV-03 and EV-04 B depend on it.
+4. This work sits in the Developer 2 lane (DEC-019). Developer 2 to review.
+
+### Next Step
+Phase 6, after this pull request is merged: settle the spec drift in
+`TESTING_AND_EVALUATION.md` 11.2, expand the fixtures, then the harness (P6-003).
+
+### AI Assistance
+Implemented with an AI assistant, verified in the `project-api` image on Python 3.11.17
+against a copy of the tree without `.env`. Check the new `/jira` page copy and the
+activity card in a real browser.
+
+---
+
 ## 2026-10-18 | Keshan | Fix Source Health and Repository Analysis for Authenticated GitHub Users
 Status: DONE
 
