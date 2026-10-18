@@ -267,3 +267,91 @@ def test_member_page_discloses_truncation(client: TestClient):
         html = client.get("/members/2?question=current_work").text
 
     assert "Showing the most recent 100 commits." in html
+
+
+def _get_member_page(client: TestClient, insight: MemberInsight, question: str) -> str:
+    with patch("app.web.routes.run_agent", new_callable=AsyncMock) as mock_agent:
+        mock_agent.return_value = insight
+        response = client.get(f"/members/2?question={question}")
+    assert response.status_code == 200
+    return response.text
+
+
+def test_member_page_unavailable_source_never_reads_as_no_blockers(client: TestClient):
+    """Rule 9 and EV-04 at page level: unavailable is Unknown, not an empty success."""
+    _log_in(client, 1)
+    insight = MemberInsight(
+        user_id=2,
+        source_health=[
+            SourceHealthOut(
+                source="github",  # type: ignore[arg-type]
+                state="unavailable",  # type: ignore[arg-type]
+                last_success_at=NOW - timedelta(hours=30),
+                last_error_type="AUTH_FAILED",
+            ),
+        ],
+        blockers=[
+            Insight(
+                claim="Blockers cannot be determined.",
+                classification="unknown",
+                confidence="UNKNOWN",
+                evidence=[],
+            )
+        ],
+        unknowns=["github is unavailable (last error: AUTH_FAILED)"],
+    )
+
+    html = _get_member_page(client, insight, "blockers")
+
+    assert "GitHub data is unavailable, so blockers cannot be determined." in html
+    assert "No blockers detected" not in html
+    assert "source-tile__state--unavailable" in html
+
+
+def test_member_page_never_synced_source_invents_no_time(client: TestClient):
+    _log_in(client, 1)
+    insight = MemberInsight(
+        user_id=2,
+        source_health=[
+            SourceHealthOut(
+                source="github",  # type: ignore[arg-type]
+                state="unavailable",  # type: ignore[arg-type]
+                last_success_at=None,
+            ),
+        ],
+    )
+
+    html = _get_member_page(client, insight, "current_work")
+
+    assert "has never synced" in html
+
+
+def test_member_page_conflict_is_shown_and_not_resolved(client: TestClient):
+    _log_in(client, 1)
+    insight = _sample_insight("current_work")
+    assert insight.likely_current_work is not None
+    insight.likely_current_work.conflicts = ["Jira AUTH-245 is In Progress but PR #182 is merged"]
+
+    html = _get_member_page(client, insight, "current_work")
+
+    assert "Jira AUTH-245 is In Progress but PR #182 is merged" in html
+    assert "Headref does not choose" in html
+
+
+def test_member_page_escapes_a_hostile_excerpt(client: TestClient):
+    _log_in(client, 1)
+    insight = _sample_insight("current_work")
+    assert insight.likely_current_work is not None
+    insight.likely_current_work.evidence[0].excerpt = "<img src=x onerror=alert(1)>"
+
+    html = _get_member_page(client, insight, "current_work")
+
+    assert "<img src=x onerror=alert(1)>" not in html
+    assert "&lt;img src=x onerror=alert(1)&gt;" in html
+
+
+def test_member_page_with_no_data_renders_an_honest_empty_state(client: TestClient):
+    _log_in(client, 1)
+    html = _get_member_page(client, MemberInsight(user_id=2), "current_work")
+
+    assert "This does not mean no work occurred." in html
