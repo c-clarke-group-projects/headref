@@ -16,6 +16,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
 from app.config import Settings
 from app.db import Base
@@ -26,8 +27,16 @@ from app.web import auth, routes
 
 @pytest.fixture
 def db_session() -> Generator[Session, None, None]:
-    """Provide an isolated in-memory SQLite database session."""
-    engine = create_engine("sqlite:///:memory:")
+    """Provide an isolated in-memory SQLite database session.
+
+    StaticPool and check_same_thread=False keep 1 connection, so the TestClient thread
+    sees the same database as the test instead of a new empty one.
+    """
+    engine = create_engine(
+        "sqlite:///:memory:",
+        poolclass=StaticPool,
+        connect_args={"check_same_thread": False},
+    )
     Base.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
@@ -75,8 +84,17 @@ def setup_user_and_repos(db_session: Session) -> tuple[AppUser, list[Repository]
     return user, [r1, r2]
 
 
-def test_login_page_no_select_person_dropdown(client: TestClient) -> None:
+def test_login_page_no_select_person_dropdown(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Login page must NOT show 'Select Person' or stub fallback dropdown."""
+    cfg = Settings(
+        database_url="sqlite:///:memory:",
+        github_oauth_client_id="test-client-id",
+        github_oauth_client_secret="test-client-secret",
+        _env_file=None,
+    )
+    monkeypatch.setattr(routes, "get_settings", lambda: cfg)
     response = client.get("/login")
     assert response.status_code == 200
     html = response.text

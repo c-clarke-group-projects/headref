@@ -334,11 +334,16 @@ def test_generate_team_overview_filters_by_repository_name() -> None:
     session.scalar.return_value = mock_repo
 
     # User 1 has commits in repo 42, User 2 has no commits in repo 42
+    def _rows(values: list[int]) -> MagicMock:
+        result = MagicMock()
+        result.all.return_value = values
+        return result
+
     session.scalars.side_effect = [
-        [1],  # commit_user_ids
-        [],   # pr_user_ids
-        [],   # review_user_ids
-        [],   # owner_user_ids
+        _rows([1]),  # commit_user_ids
+        _rows([]),  # pr_user_ids
+        _rows([]),  # review_user_ids
+        _rows([]),  # owner_user_ids
     ]
 
     tools = ReadTools(

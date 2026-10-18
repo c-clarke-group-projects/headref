@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from httpx import Response
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
 from app.config import Settings
 from app.db import Base
@@ -21,8 +22,16 @@ from app.web import auth, routes
 
 @pytest.fixture
 def db_session() -> Generator[Session, None, None]:
-    """Provide an isolated in-memory SQLite database session."""
-    engine = create_engine("sqlite:///:memory:")
+    """Provide an isolated in-memory SQLite database session.
+
+    StaticPool and check_same_thread=False keep 1 connection, so the TestClient thread
+    sees the same database as the test instead of a new empty one.
+    """
+    engine = create_engine(
+        "sqlite:///:memory:",
+        poolclass=StaticPool,
+        connect_args={"check_same_thread": False},
+    )
     Base.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
@@ -105,7 +114,8 @@ def test_github_login_redirects_to_github(client: TestClient, oauth_settings: Se
     cookies = response.cookies
     assert "headref_oauth_state" in cookies
     assert "headref_oauth_next" in cookies
-    assert cookies["headref_oauth_next"] == "/teams/1"
+    # Starlette quotes a cookie value containing "/" and unquotes it again on read.
+    assert cookies["headref_oauth_next"].strip('"') == "/teams/1"
 
 
 

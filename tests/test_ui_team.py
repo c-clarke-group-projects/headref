@@ -20,6 +20,7 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
+from app.config import Settings
 from app.main import app
 from app.schemas.insight import AttentionItem, EvidenceItem, TeamMemberOverview, TeamOverview
 from app.schemas.tools import SourceHealthOut
@@ -197,9 +198,9 @@ def test_team_overview_renders_all_states_and_attention(client: TestClient):
     assert "/members/2?question=blockers" in html
     assert "/members/4?question=risks" in html
 
-    # Unmatched accounts banner
-    assert "3 unmatched accounts" in html
-    assert "/admin/unmatched" in html
+    # The unmatched accounts card was removed from the team page on 2026-10-17, which
+    # leaves P5-004 "the unmatched count is visible" open. Raised in WORKLOG.md under
+    # Decisions Needed; test_headref_ux_and_jira.py asserts the current behaviour.
 
     # No ranking and no comparison (AI_BEHAVIOR 5.11). A substring ban on "rank" is
     # wrong here: the page carries the disclaimer "Headref does not rank or compare
@@ -236,16 +237,24 @@ def test_team_overview_empty_team_renders_clean_state(client: TestClient):
         response = client.get("/teams/10")
 
     assert response.status_code == 200
-    assert "This team has no active members" in response.text
+    assert "No active members found" in response.text
 
 
-def test_login_page_renders_cleanly(client: TestClient):
+def test_login_page_renders_cleanly(client: TestClient, monkeypatch: pytest.MonkeyPatch):
+    cfg = Settings(
+        database_url="sqlite:///:memory:",
+        github_oauth_client_id="test-client-id",
+        github_oauth_client_secret="test-client-secret",
+        _env_file=None,
+    )
+    monkeypatch.setattr(routes, "get_settings", lambda: cfg)
     response = client.get("/login?next=/admin/unmatched")
     assert response.status_code == 200
     html = response.text
     assert "Sign in" in html
-    assert 'value="/admin/unmatched"' in html
-    assert "Demo sign in" in html
+    # The demo stub form was removed on 2026-10-17. next now rides on the OAuth link.
+    assert 'href="/auth/github/login?next=/admin/unmatched"' in html
+    assert "Demo sign in" not in html
 
 
 def test_login_page_form_submit_invalid_user_renders_401(client: TestClient):

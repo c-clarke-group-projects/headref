@@ -35,7 +35,7 @@
 
       <div style="margin-top: 32px">
         {% if oauth_enabled %}
-          <a href="/auth/github/login?next={{ next or '/' }}" class="btn btn--primary btn--block" style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; min-height: 54px;">
+          <a href="/auth/github/login?next={{ (next or '/')|urlencode }}" class="btn btn--primary btn--block" style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; min-height: 54px;">
             {{ i.icon("github", 20) }}
             <span>Sign in with GitHub</span>
           </a>
