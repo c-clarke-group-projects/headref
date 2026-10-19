@@ -96,6 +96,7 @@ def resolve_actor(
             display_name=display_name,
             role_label="Contributor",
             is_active=True,
+            status=_new_person_status(integration, external_handle, organization_id),
         )
         session.add(new_user)
         session.flush()
@@ -125,6 +126,19 @@ def resolve_actor(
         organization_id=org_id,
     )
     return None
+
+
+def _new_person_status(
+    integration: str, external_handle: str | None, organization_id: int | None
+) -> str:
+    """A person a workspace sync discovers is suggested until a manager confirms them
+    (DEC-024); GitHub App and bot accounts ("name[bot]") are bots. The legacy path keeps
+    confirming at once, as before."""
+    if organization_id is None:
+        return "confirmed"
+    if integration == "github" and (external_handle or "").lower().endswith("[bot]"):
+        return "bot"
+    return "suggested"
 
 
 def _in_organization(column: Any, org_id: int | None, strict: bool) -> Any:
@@ -319,6 +333,7 @@ def attribute_work_items(
     raw_payloads: list[dict[str, Any]],
     now: datetime | None = None,
     organization_id: int | None = None,
+    auto_create: bool = False,
 ) -> int:
     """Resolve and assign assignee_app_user_id for Jira issues."""
     attributed = 0
@@ -335,6 +350,7 @@ def attribute_work_items(
                 external_handle=display_name,
                 now=now,
                 organization_id=organization_id,
+                auto_create=auto_create,
             )
             item.assignee_app_user_id = user_id
             if user_id is not None:

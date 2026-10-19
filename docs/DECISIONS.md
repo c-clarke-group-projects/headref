@@ -1397,12 +1397,19 @@ several workspaces and cannot be done by a manager.
 
 ### Decision
 
-- Accounts found in a workspace's repositories and Jira projects become **suggested**
-  people. A suggestion joining a GitHub and a Jira account is made only from an exact,
-  case-insensitive handle or verified email match, never from a display name.
-- A manager confirms, merges, splits, ignores or marks as a bot. Only confirmed people are
-  attributed work. Everything else stays in the unmatched queue, visible and counted.
+- Each account found in a workspace's repositories and Jira projects becomes a
+  **suggested** person holding exactly that 1 account (exact numeric GitHub id or Jira
+  accountId). Its activity is attached to it at once: that is not a guess, and rows store
+  only the person, so attribution deferred until confirmation could never be recovered
+  for commits already synced.
+- Joining accounts is the judgement call, and only a manager makes it: merge moves 1
+  person's accounts and activity into another. No suggestion to join accounts is made from
+  a display name. Split reverses a merge where the activity can be told apart.
+- A manager confirms, ignores or marks as a bot. **Only confirmed people appear in the
+  workspace's analysis and member list.** Accounts named `*[bot]` start as bots.
 - The YAML file remains for seeding tests and the demo.
+- Amended 2026-10-19 during W6, while still Proposed: the first draft said only confirmed
+  people are attributed work, which the stored data cannot support.
 
 ### Reason
 

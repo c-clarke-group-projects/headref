@@ -9,7 +9,8 @@
     github_message, jira_message (fixed copy or None),
     jira (JiraConnection or None), jira_project_count (int),
     sync_runs (latest SyncRun per repository and project), sync_running (bool),
-    has_sources (bool), sync_message (fixed copy or None), now
+    has_sources (bool), sync_message (fixed copy or None), now,
+    team (confirmed AppUser rows, alphabetical), waiting (count of suggested people)
   Nothing here is invented: a section that has no data yet says why.
 #}
 {% extends "base.html" %}
@@ -145,8 +146,20 @@
       <h2 class="card__title" id="members-title">Members</h2>
       <span class="caption">Alphabetical. Headref does not rank or compare people.</span>
     </div>
-    <p class="empty-note" style="margin-top: var(--s-3)">People appear after the first sync.
-      Each one is confirmed by a manager before any work is attributed to them.</p>
+    {% if team %}
+      <ul class="ws-people">
+        {% for person in team %}
+          <li><span class="badge badge--lg badge--outline"><span class="avatar avatar--xs {{ person.id|avatar_tint }}" aria-hidden="true">{{ person.display_name|initials }}</span>{{ person.display_name }}</span></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="empty-note" style="margin-top: var(--s-3)">Nobody is confirmed yet. People appear
+        after a sync; a manager confirms who is on the team.</p>
+    {% endif %}
+    <p style="margin-top: var(--s-4)">
+      {% if waiting %}<strong>{{ waiting }} {{ "person is" if waiting == 1 else "people are" }} waiting for confirmation.</strong>{% endif %}
+      <a href="/w/{{ workspace.id }}/people">{{ "Review people" if waiting else "People" }}</a>
+    </p>
   </div>
 </section>
 

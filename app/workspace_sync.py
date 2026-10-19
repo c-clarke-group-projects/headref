@@ -153,6 +153,7 @@ def sync_workspace(
                         jira_client=jira,
                         organization_id=org_id,
                         workspace_id=workspace_id,
+                        auto_create_people=True,
                     )
                 )
             except IntegrationError as exc:

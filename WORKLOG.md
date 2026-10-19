@@ -60,6 +60,35 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-19 | Keshan | Workspaces W6: People screen
+Status: IN_PROGRESS
+
+### Completed
+1. Migration `0006_person_status`: `app_user.status` (suggested, confirmed, ignored, bot),
+   existing rows confirmed. Verified up, down, up on a copy of the real data; applied.
+2. Workspace syncs create a suggested person per GitHub and per Jira account (Jira too
+   now), each holding exactly 1 account; `*[bot]` GitHub accounts start as bots. The
+   legacy path is unchanged.
+3. `app/people.py`: list with accounts and context counts, confirm, ignore, bot, restore,
+   merge (accounts and activity move, source removed), split (refused when the activity
+   cannot be told apart, or on the only account). Every id is checked against the
+   workspace's organization.
+4. `/w/{id}/people`: any member sees it; managers act. The workspace page lists confirmed
+   people alphabetically and says how many are waiting.
+5. DEC-024 amended while Proposed: a suggested person holds 1 exact account and is
+   attributed at once; only confirmed people appear in analysis. Reason in the record.
+6. Real sync after the change: "Keshan" (Jira, 9 items) suggested, "keshan-dev" (GitHub,
+   7 pull requests) confirmed. Merging them on the People screen joins both.
+7. 16 tests.
+
+### Decisions Needed
+DEC-024 as amended needs Developer 2 agreement with the other W0 records.
+
+### Next Step
+W7, the analysis view and the member panel, built on confirmed people.
+
+---
+
 ## 2026-10-19 | Keshan | Workspaces W5: per-workspace sync and status
 Status: IN_PROGRESS
 

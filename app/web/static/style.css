@@ -485,6 +485,17 @@ body.drawer-open { overflow: hidden; }
 .ws-conn__name { display: inline-flex; align-items: center; gap: var(--s-2); font-weight: 500; }
 .ws-sync { margin-top: var(--s-5); display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
 .ws-form { max-width: 720px; }
+.person { display: flex; flex-direction: column; gap: var(--s-3); }
+.person__accounts { list-style: none; display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.person__accounts li { display: inline-flex; align-items: center; gap: var(--s-2); }
+.person__actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.person__merge { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+.person__merge select { min-height: 40px; padding: 0 12px; border: 0; border-radius: var(--r-sm); background: var(--mist); max-width: 100%; }
+.person__hidden { margin-top: var(--s-4); list-style: none; display: flex; flex-direction: column; gap: var(--s-2); }
+.person__hidden li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
+.inline-form { display: inline; margin: 0; }
+.linklike { border: 0; background: none; padding: 0; color: var(--slate); text-decoration: underline; cursor: pointer; font-size: var(--fs-caption); }
+.ws-people { margin-top: var(--s-4); display: flex; flex-wrap: wrap; gap: var(--s-2); list-style: none; }
 .ws-runs { margin-top: var(--s-4); list-style: none; display: flex; flex-direction: column; }
 .ws-runs__row { display: grid; grid-template-columns: minmax(0, 1.2fr) auto minmax(0, 2fr); align-items: center; gap: var(--s-3); padding: var(--s-2) 0; border-top: 1px solid var(--ash); overflow-wrap: anywhere; }
 .repo-pick { margin-top: var(--s-4); list-style: none; display: flex; flex-direction: column; }

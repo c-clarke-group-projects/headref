@@ -354,6 +354,7 @@ def sync_jira(
     jira_client: JiraClient | None = None,
     organization_id: int | None = None,
     workspace_id: int | None = None,
+    auto_create_people: bool = False,
 ) -> SyncRun:
     """Run end-to-end Jira ingestion, normalization, dependencies and remote links.
 
@@ -432,7 +433,11 @@ def sync_jira(
 
         # Attribute work items
         attribute_work_items(
-            session, all_persisted_items, raw_issues, organization_id=organization_id
+            session,
+            all_persisted_items,
+            raw_issues,
+            organization_id=organization_id,
+            auto_create=auto_create_people,
         )
 
         # Ingest blocking dependencies

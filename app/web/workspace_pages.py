@@ -23,6 +23,7 @@ from app.models.connections import (
     WorkspaceRepository,
 )
 from app.models.workspace import Account
+from app.people import confirmed_people, waiting_count
 from app.schemas.workspace import WorkspaceCreate
 from app.web.auth import DbDep
 from app.web.ui_format import templates
@@ -34,6 +35,7 @@ from app.web.workspaces import (
     list_workspaces_for,
 )
 from app.workspace_sync import (
+    ensure_organization,
     has_sources,
     is_running,
     latest_runs,
@@ -149,6 +151,8 @@ async def submit_new_workspace(request: Request, account: AccountDep, db: DbDep)
 @workspace_pages.get("/w/{workspace_id}", response_class=HTMLResponse)
 def workspace_page(request: Request, access: ViewerAccess, db: DbDep) -> HTMLResponse:
     """The workspace shell: connections, sync, members, analysis and feed sections."""
+    org_id = ensure_organization(db, access.workspace)
+    db.commit()
     context = _base_context(request, db, access.account, "workspaces")
     context.update(
         {
@@ -176,6 +180,8 @@ def workspace_page(request: Request, access: ViewerAccess, db: DbDep) -> HTMLRes
                 select(JiraConnection).where(JiraConnection.workspace_id == access.workspace.id)
             ),
             "sync_runs": latest_runs(db, access.workspace.id),
+            "team": confirmed_people(db, org_id),
+            "waiting": waiting_count(db, org_id),
             "sync_running": is_running(db, access.workspace.id),
             "now": datetime.now(UTC),
             "has_sources": has_sources(db, access.workspace.id),
