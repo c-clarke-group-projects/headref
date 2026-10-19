@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.models.canonical import AppUser
 from app.models.identity import IdentityLink, UnmatchedEntity
-from app.models.work import Commit, PullRequest, Review, WorkItem
+from app.models.work import Commit, PullRequest, Review, ReviewRequest, WorkItem
 
 logger = logging.getLogger("headref.people")
 
@@ -30,6 +30,7 @@ _ROWS_BY_INTEGRATION = {
         (PullRequest, PullRequest.author_app_user_id),
         (Commit, Commit.author_app_user_id),
         (Review, Review.reviewer_app_user_id),
+        (ReviewRequest, ReviewRequest.reviewer_app_user_id),
     ],
 }
 

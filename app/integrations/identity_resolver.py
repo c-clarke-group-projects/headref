@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.models.canonical import AppUser, Organization, Team
 from app.models.identity import IdentityLink, UnmatchedEntity
-from app.models.work import Commit, PullRequest, Review, WorkItem
+from app.models.work import Commit, PullRequest, Review, ReviewRequest, WorkItem
 
 # external_id prefix of an unmatched git commit author who has no GitHub account.
 COMMIT_AUTHOR_PREFIX = "commit-author:"
@@ -333,6 +333,66 @@ def _record_commit_author(
             organization_id if organization_id is not None else _legacy_org_id(session, team_id)
         ),
     )
+
+
+def record_review_requests(
+    session: Session,
+    pull_requests: list[PullRequest],
+    raw_payloads: list[dict[str, Any]],
+    now: datetime | None = None,
+    auto_create: bool = False,
+    team_id: int | None = None,
+    organization_id: int | None = None,
+) -> int:
+    """Make each pull request's review_request rows match GitHub's requested_reviewers.
+
+    Only open pull requests keep requests. A requested team (requested_teams) names no
+    person and is not recorded. Returns how many requests are pending after the sync.
+    """
+    moment = now or datetime.now(UTC)
+    pending = 0
+    for pr, raw in zip(pull_requests, raw_payloads, strict=False):
+        wanted: dict[str, dict[str, Any]] = {}
+        if raw.get("state") == "open":
+            for reviewer in raw.get("requested_reviewers") or []:
+                if reviewer.get("id"):
+                    wanted[str(reviewer["id"])] = reviewer
+        existing = {
+            r.reviewer_external_id: r
+            for r in session.scalars(
+                select(ReviewRequest).where(ReviewRequest.pull_request_id == pr.id)
+            )
+        }
+        for external_id, row in existing.items():
+            if external_id not in wanted:
+                session.delete(row)
+        for external_id, reviewer in wanted.items():
+            person_id = resolve_actor(
+                session=session,
+                integration="github",
+                external_id=external_id,
+                external_handle=reviewer.get("login"),
+                now=moment,
+                auto_create=auto_create,
+                team_id=team_id,
+                organization_id=organization_id,
+            )
+            row = existing.get(external_id)
+            if row is None:
+                session.add(
+                    ReviewRequest(
+                        pull_request_id=pr.id,
+                        reviewer_external_id=external_id,
+                        reviewer_app_user_id=person_id,
+                        retrieved_at=moment,
+                    )
+                )
+            else:
+                row.reviewer_app_user_id = person_id
+                row.retrieved_at = moment
+            pending += 1
+    session.flush()
+    return pending
 
 
 def attribute_reviews(

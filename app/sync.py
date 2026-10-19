@@ -32,6 +32,7 @@ from app.integrations.identity_resolver import (
     attribute_pull_requests,
     attribute_reviews,
     attribute_work_items,
+    record_review_requests,
 )
 from app.integrations.jira import JiraClient
 from app.integrations.jira_normalizer import (
@@ -294,6 +295,14 @@ def sync_github(
             session,
             commits,
             raw_commits,
+            auto_create=auto_create_contributors,
+            team_id=team_id,
+            organization_id=organization_id,
+        )
+        record_review_requests(
+            session,
+            prs,
+            raw_prs,
             auto_create=auto_create_contributors,
             team_id=team_id,
             organization_id=organization_id,

@@ -182,6 +182,35 @@ class Review(Base):
     pull_request: Mapped["PullRequest"] = relationship("PullRequest", back_populates="reviews")
 
 
+class ReviewRequest(Base):
+    """A review requested on a pull request and not given yet (W11, DEC-025).
+
+    Mirrors GitHub's requested_reviewers at the last sync: GitHub drops a reviewer from
+    that list once they review, so a row means the request is still waiting.
+    """
+
+    __tablename__ = "review_request"
+    __table_args__ = (
+        UniqueConstraint(
+            "pull_request_id", "reviewer_external_id", name="uq_review_request_reviewer"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    pull_request_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("pull_request.id", ondelete="CASCADE"), nullable=False
+    )
+    reviewer_external_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    reviewer_app_user_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("app_user.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    retrieved_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+
+
 class WorkItemLink(Base):
     """Correlation between planned work (Jira) and code (GitHub).
 

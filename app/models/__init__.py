@@ -19,6 +19,7 @@ from app.models.work import (
     Commit,
     PullRequest,
     Review,
+    ReviewRequest,
     WorkItem,
     WorkItemDependency,
     WorkItemLink,
@@ -54,4 +55,5 @@ __all__ = [
     "FindingSnapshot",
     "WorkspaceEvent",
     "WorkspaceInvite",
+    "ReviewRequest",
 ]

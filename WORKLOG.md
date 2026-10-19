@@ -60,6 +60,53 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-20 | Keshan | Workspaces W11: real-data verification (part 2)
+Status: IN_PROGRESS
+
+### Sandbox data added
+- Jira HRS: HRS-10 "Add rate limit to member export endpoint" (To Do, Highest, due
+  2026-10-27) and HRS-11 "Update onboarding checklist", moved To Do to Done with no code.
+- `IsiwaraKumarage8` invited to `keshan-dev/headref-sandbox` with write access (GitHub
+  invite, agreed 2026-10-20) and to workspace "dev team" as a manager (headref invite,
+  stored by GitHub id 221026807, expires 2026-11-02).
+
+### Checked on real data
+| Case | Result |
+|---|---|
+| Feed, Jira | "HRS-10 added", "HRS-11 added", then "HRS-11 moved from To Do to Done" |
+| Assigned not started, Highest | Likely next: HRS-10 first, then HRS-6, then draft PR #7 |
+| Done with no code | HRS-11 in no blocker, risk or conflict |
+| RK-1 boundary | HRS-10 is due in 7 days, outside `DUE_SOON_DAYS=3`: no risk yet; expected from 2026-10-24 |
+
+### Added
+- Pending review requests (DEC-025 had them in Likely next, never built). Migration
+  `0009_review_request`, additive; upgrade, downgrade and upgrade verified on a copy of the
+  local database, then applied. Each sync mirrors GitHub's `requested_reviewers` for open
+  pull requests; a request leaves when the review is given. Likely next lists them
+  between assigned work and draft pull requests. Merge and split move them. 3 tests.
+- Full suite: 563 passed, 1 skipped, 1 failed (`test_parse_valid_identity_map_file`, the
+  local uncommitted `seed/identity_map.yml` edit).
+
+### Discovered
+- The app reloads on every file change in development and its scheduler pass starts at
+  once. Applying the new model before the migration made 1 sync fail
+  (`ProgrammingError`), shown on the feed; the next one succeeded.
+- A reload also kills a running sync's thread, leaving its `sync_run` at `running`. The
+  workspace counts as syncing until the 15 minute window passes (run 718).
+- Jira project HRS has unusual status categories: "Done" is in the In Progress category
+  and "Blocked" in Done. headref maps by status name first, so both read correctly.
+
+### Waiting on Isiwara
+- Accept the GitHub invite to `headref-sandbox`.
+- On PR #6, request changes (BL-4: changes requested, no commit since).
+- On PR #4, approve (CF-4: approved pull request on a Blocked issue, HRS-4).
+- Open a pull request from a branch named `feature/HRS-10-rate-limit` and request a review
+  from keshan-dev (Likely next for Keshan; links to HRS-10).
+- Accept the headref invite: headref runs on this machine only, so by signing in with their
+  GitHub account in a browser here.
+
+---
+
 ## 2026-10-20 | Keshan | Workspaces W11: real-data verification (part 1)
 Status: IN_PROGRESS
 

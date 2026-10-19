@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
@@ -112,6 +112,75 @@ def test_next_up_orders_by_priority_then_due_date_and_adds_drafts(db_session):
 
     assert [i.evidence.entity_key for i in items] == ["HRS-12", "HRS-11", "HRS-10", "o/r#7"]
     assert all(i.evidence.source_url.startswith("https://") for i in items)
+
+
+def _open_pr(db: Session, repo: Repository, number: int, author_id: int | None) -> PullRequest:
+    pr = PullRequest(
+        repository_id=repo.id,
+        number=number,
+        title=f"Change {number}",
+        state="open",
+        is_draft=False,
+        branch_name=f"b{number}",
+        author_app_user_id=author_id,
+        created_at_source=NOW,
+        source_url=f"https://github.com/o/r/pull/{number}",
+        source_updated_at=NOW,
+        retrieved_at=NOW,
+    )
+    db.add(pr)
+    db.flush()
+    return pr
+
+
+def test_a_pending_review_request_is_in_likely_next_until_given(db_session):
+    from app.integrations.identity_resolver import record_review_requests
+    from app.models.work import ReviewRequest
+
+    org = Organization(name="W")
+    db_session.add(org)
+    db_session.flush()
+    me = _person(db_session, org.id, "101", "keshan-dev")
+    other = _person(db_session, org.id, "202", "isiwara")
+    repo = Repository(organization_id=org.id, full_name="o/r")
+    db_session.add(repo)
+    db_session.flush()
+    pr = _open_pr(db_session, repo, 9, other)
+    raw = {"state": "open", "requested_reviewers": [{"id": 101, "login": "keshan-dev"}]}
+
+    record_review_requests(db_session, [pr], [raw], organization_id=org.id)
+    db_session.commit()
+
+    assert [i.text for i in next_up(db_session, me, [], NOW)] == [
+        "Review requested on pull request #9 Change 9"
+    ]
+    assert next_up(db_session, other, [], NOW) == []
+
+    # GitHub drops the reviewer once they review; the request goes with it.
+    record_review_requests(
+        db_session, [pr], [{"state": "open", "requested_reviewers": []}], organization_id=org.id
+    )
+    db_session.commit()
+    assert db_session.scalar(select(ReviewRequest)) is None
+    assert next_up(db_session, me, [], NOW) == []
+
+
+def test_a_closed_pull_request_keeps_no_review_request(db_session):
+    from app.integrations.identity_resolver import record_review_requests
+    from app.models.work import ReviewRequest
+
+    org = Organization(name="W")
+    db_session.add(org)
+    db_session.flush()
+    repo = Repository(organization_id=org.id, full_name="o/r")
+    db_session.add(repo)
+    db_session.flush()
+    pr = _open_pr(db_session, repo, 3, None)
+    raw = {"state": "closed", "requested_reviewers": [{"id": 101, "login": "keshan-dev"}]}
+
+    record_review_requests(db_session, [pr], [raw], organization_id=org.id)
+
+    assert db_session.scalar(select(ReviewRequest)) is None
 
 
 def test_next_up_is_empty_when_nothing_waits(db_session):

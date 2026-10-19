@@ -17,8 +17,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.agent.orchestrator import run_agent
-from app.models.canonical import AppUser
+from app.models.canonical import AppUser, Repository
 from app.models.connections import JiraConnection
+from app.models.work import PullRequest, ReviewRequest
 from app.models.workspace import Workspace
 from app.people import confirmed_people
 from app.schemas.errors import ToolFailure
@@ -108,7 +109,8 @@ def _source_state(health: list[SourceHealthOut], source: str) -> str:
 def next_up(
     db: Session, person_id: int, health: list[SourceHealthOut], now: datetime
 ) -> list[NextUpItem]:
-    """Assigned work not started (by priority, then due date) and draft pull requests."""
+    """Assigned work not started (by priority, then due date), reviews requested from the
+    person and still waiting, then their draft pull requests."""
     items: list[NextUpItem] = []
     work = get_assigned_work_items(
         db,
@@ -147,6 +149,33 @@ def next_up(
                     ),
                 )
             )
+    for pr, repo_name in db.execute(
+        select(PullRequest, Repository.full_name)
+        .join(ReviewRequest, ReviewRequest.pull_request_id == PullRequest.id)
+        .join(Repository, Repository.id == PullRequest.repository_id)
+        .where(
+            ReviewRequest.reviewer_app_user_id == person_id,
+            PullRequest.state == "open",
+            PullRequest.is_draft.is_(False),
+        )
+        .order_by(PullRequest.created_at_source, PullRequest.id)
+    ):
+        items.append(
+            NextUpItem(
+                text=f"Review requested on pull request #{pr.number} {pr.title}",
+                evidence=EvidenceItem(
+                    id=f"next_{len(items) + 1}",
+                    source="github",
+                    entity_type="pull_request",
+                    entity_key=f"{repo_name}#{pr.number}",
+                    source_url=pr.source_url,
+                    summary=f"Review requested from this person on pull request #{pr.number}",
+                    observed_at=pr.source_updated_at,
+                    retrieved_at=pr.retrieved_at,
+                    source_state=_source_state(health, "github"),
+                ),
+            )
+        )
     prs = get_pull_requests(
         db,
         GetPullRequestsInput(
