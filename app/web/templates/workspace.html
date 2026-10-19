@@ -10,7 +10,8 @@
     jira (JiraConnection or None), jira_project_count (int),
     sync_runs (latest SyncRun per repository and project), sync_running (bool),
     has_sources (bool), sync_message (fixed copy or None), now,
-    team (confirmed AppUser rows, alphabetical), waiting (count of suggested people)
+    team (confirmed AppUser rows, alphabetical), waiting (count of suggested people),
+    selected (AppUser or None), analysis (WorkspaceAnalysis: members, health)
   Nothing here is invented: a section that has no data yet says why.
 #}
 {% extends "base.html" %}
@@ -147,11 +148,14 @@
       <span class="caption">Alphabetical. Headref does not rank or compare people.</span>
     </div>
     {% if team %}
+      <nav aria-label="Filter by member">
       <ul class="ws-people">
+        <li><a class="badge badge--lg {{ 'badge--on-dark' if not selected else 'badge--outline' }}" href="/w/{{ workspace.id }}"{% if not selected %} aria-current="page"{% endif %}>All</a></li>
         {% for person in team %}
-          <li><span class="badge badge--lg badge--outline"><span class="avatar avatar--xs {{ person.id|avatar_tint }}" aria-hidden="true">{{ person.display_name|initials }}</span>{{ person.display_name }}</span></li>
+          <li><a class="badge badge--lg {{ 'badge--on-dark' if selected and selected.id == person.id else 'badge--outline' }}" href="/w/{{ workspace.id }}?member={{ person.id }}"{% if selected and selected.id == person.id %} aria-current="page"{% endif %}><span class="avatar avatar--xs {{ person.id|avatar_tint }}" aria-hidden="true">{{ person.display_name|initials }}</span>{{ person.display_name }}</a></li>
         {% endfor %}
       </ul>
+      </nav>
     {% else %}
       <p class="empty-note" style="margin-top: var(--s-3)">Nobody is confirmed yet. People appear
         after a sync; a manager confirms who is on the team.</p>
@@ -163,19 +167,123 @@
   </div>
 </section>
 
-<section class="section">
+{% macro claims(items, label, prefix) -%}
+  {% for owner, insight in items %}
+    {% with insight = insight, claim_id = prefix ~ "-" ~ loop.index0, label = label ~ ": " ~ owner.display_name %}{% include "partials/claim.html" %}{% endwith %}
+  {% endfor %}
+{%- endmacro %}
+
+{% if selected and analysis.members %}
+{% set m = analysis.members[0] %}
+<section class="section--loose" aria-labelledby="member-title">
+  <div class="card__head">
+    <h2 class="page-title" id="member-title">{{ m.display_name }}</h2>
+    <a class="caption" href="/w/{{ workspace.id }}">Back to the whole team</a>
+  </div>
+
+  <div class="card card--pad-md section" data-summary-src="/w/{{ workspace.id }}/members/{{ m.person_id }}/summary">
+    <h3 class="card__title">Summary</h3>
+    <p class="caption" data-summary-status role="status">Writing a short summary with the local model. The findings below are already complete.</p>
+  </div>
+
+  <div class="section">
+    {% if m.current_work %}
+      {% with insight = m.current_work, claim_id = "current-0", label = "Likely current work" %}{% include "partials/claim.html" %}{% endwith %}
+    {% else %}
+      <section class="unknown-claim"><p class="claim__label">Likely current work</p>
+        <p class="claim__text">No recent Jira or GitHub activity is recorded. Work not tracked in these tools is not visible to Headref.</p></section>
+    {% endif %}
+  </div>
+
+  <div class="card card--pad-md section">
+    <h3 class="card__title">Likely next</h3>
+    <p class="caption">Assigned and not started, by priority then due date, and draft pull requests. Headref cannot know what someone will pick up next.</p>
+    {% if m.next_up %}
+      <ul class="next-up">
+        {% for item in m.next_up %}
+          <li><a href="{{ item.evidence.source_url|external_url }}" target="_blank" rel="noopener noreferrer">{{ i.source_icon(item.evidence.source, 14) }} {{ item.text }}</a></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="empty-note">Nothing assigned and waiting, and no draft pull requests.</p>
+    {% endif %}
+  </div>
+
+  <h3 class="card__title section">Blockers</h3>
+  {% for b in m.blockers %}{% with insight = b, claim_id = "blocker-" ~ loop.index0, label = "Blocker" %}{% include "partials/claim.html" %}{% endwith %}
+  {% else %}<p class="empty-note">No blockers detected.</p>{% endfor %}
+
+  <h3 class="card__title section">Risks</h3>
+  {% for r in m.risks %}{% with insight = r, claim_id = "risk-" ~ loop.index0, label = "Risk" %}{% include "partials/claim.html" %}{% endwith %}
+  {% else %}<p class="empty-note">No delivery risks detected.</p>{% endfor %}
+
+  {% if m.conflicts %}
+    <div class="card card--pad-md section">
+      <h3 class="card__title">Jira and GitHub disagree</h3>
+      <ul>{% for c in m.conflicts %}<li class="empty-note">{{ c }}</li>{% endfor %}</ul>
+      <p class="conflict__note">Headref does not choose. Check which one is out of date.</p>
+    </div>
+  {% endif %}
+
+  {% if m.unknowns %}
+    <section class="card card--dashed card--pad-md section">
+      <h3 class="card__title">Not determined</h3>
+      <ul>{% for u in m.unknowns %}<li class="empty-note">{{ u }}</li>{% endfor %}</ul>
+    </section>
+  {% endif %}
+</section>
+
+{% elif analysis.members %}
+<section class="section--loose" aria-labelledby="analysis-title">
+  <div class="card__head">
+    <h2 class="page-title" id="analysis-title">Analysis</h2>
+    <span class="caption">Built by code from the latest sync. Every item links to its evidence.</span>
+  </div>
+
+  <h3 class="card__title section">Blockers ({{ analysis.blockers()|length }})</h3>
+  {{ claims(analysis.blockers(), "Blocker", "blocker") }}
+  {% if not analysis.blockers() %}<p class="empty-note">No blockers detected for confirmed people.</p>{% endif %}
+
+  <h3 class="card__title section">Jira and GitHub disagree ({{ analysis.conflicts()|length }})</h3>
+  {% if analysis.conflicts() %}
+    <ul class="card card--pad-md">
+      {% for owner, c in analysis.conflicts() %}<li class="empty-note"><strong>{{ owner.display_name }}:</strong> {{ c }}</li>{% endfor %}
+    </ul>
+    <p class="conflict__note">Headref does not choose. Check which one is out of date.</p>
+  {% else %}<p class="empty-note">No conflicts detected.</p>{% endif %}
+
+  <h3 class="card__title section">Risks ({{ analysis.risks()|length }})</h3>
+  {{ claims(analysis.risks(), "Risk", "risk") }}
+  {% if not analysis.risks() %}<p class="empty-note">No delivery risks detected.</p>{% endif %}
+
+  <h3 class="card__title section">Likely current work</h3>
   <div class="grid-2">
-    <div class="card card--pad-md" aria-labelledby="analysis-title">
-      <h2 class="card__title" id="analysis-title">Analysis</h2>
-      <p class="empty-note" style="margin-top: var(--s-3)">No analysis yet. After a sync, blockers,
-        conflicts between Jira and GitHub, risks and likely current work appear here, each with
-        its evidence.</p>
-    </div>
-    <div class="card card--pad-md" aria-labelledby="feed-title">
-      <h2 class="card__title" id="feed-title">What changed</h2>
-      <p class="empty-note" style="margin-top: var(--s-3)">No updates yet. Changes between syncs
-        appear here: new or cleared blockers, merged pull requests, moved issues.</p>
-    </div>
+    {% for m in analysis.members %}
+      {% if m.current_work %}
+        {% with insight = m.current_work, claim_id = "current-" ~ loop.index0, label = m.display_name %}{% include "partials/claim.html" %}{% endwith %}
+      {% else %}
+        <section class="unknown-claim"><p class="claim__label">{{ m.display_name }}</p>
+          <p class="claim__text">No recent Jira or GitHub activity is recorded.</p></section>
+      {% endif %}
+    {% endfor %}
+  </div>
+</section>
+
+{% else %}
+<section class="section">
+  <div class="card card--pad-md" aria-labelledby="analysis-title">
+    <h2 class="card__title" id="analysis-title">Analysis</h2>
+    <p class="empty-note" style="margin-top: var(--s-3)">No analysis yet. It covers confirmed people:
+      sync, then confirm who is on the team on the People screen.</p>
+  </div>
+</section>
+{% endif %}
+
+<section class="section">
+  <div class="card card--pad-md" aria-labelledby="feed-title">
+    <h2 class="card__title" id="feed-title">What changed</h2>
+    <p class="empty-note" style="margin-top: var(--s-3)">No updates yet. Changes between syncs
+      appear here: new or cleared blockers, merged pull requests, moved issues.</p>
   </div>
 </section>
 {% endblock %}

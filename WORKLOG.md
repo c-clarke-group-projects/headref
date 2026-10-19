@@ -60,6 +60,46 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-19 | Keshan | Workspaces W7: analysis and member panel
+Status: IN_PROGRESS
+
+### Completed
+1. The agent runs per workspace: `run_agent` and `run_s1_s2` take `workspace_id` and
+   `jira_in_use`; T-007 reads that workspace's sync runs (the legacy path now ignores
+   workspace runs); Jira counts as in use when the workspace has an active connection.
+2. `app/workspace_analysis.py`: for each confirmed person, the 3 questions run code-only
+   (`skip_llm`); blockers, risks, conflicts and current work are collected. Likely next work
+   is shown as facts with a stated order (assigned and not started, by priority then due
+   date; draft pull requests), because an inference needs 2 or more evidence items.
+3. Workspace page: team view with blockers, conflicts and risks naming the person, and
+   current work per person; member filter; member view with current work, likely next,
+   blockers, risks, conflicts, not determined. The summary is the only model call, fetched
+   after the page from `/w/{id}/members/{pid}/summary` (404 for unconfirmed or foreign
+   people), labelled when it is the code-built fallback.
+4. `MemberInsight.conflicts` (optional): the detected CF-1 to CF-4 statements. Before,
+   conflicts reached the page only inside RK-4 risk text.
+5. Real data, workspace "dev team": 4 blockers (BL-1 HRS-4, BL-2 HRS-5, BL-3 HRS-6, BL-7 PR
+   #5), 3 conflicts (CF-1 HRS-1, CF-2 HRS-2, CF-3 HRS-3), 4 risks (RK-1 HRS-8 plus 3 RK-4),
+   next up HRS-6 and draft PR #7. Team view 0.7 s; summary 44.7 s on a cold model, written
+   by the model.
+6. 12 tests.
+
+### Discovered
+- Current work with 1 evidence item was classified `fact` but worded "Likely working on",
+  which 6.6 and EV-01 forbid. It is now worded as what the record shows ("HRS-7 is assigned
+  and In Progress"); "Likely working on" stays for 2 or more items, as an inference.
+- A code-only run cached its deterministic text under the same evidence hash the summary
+  uses, so opening a member would have served that text instead of calling the model.
+  Code-only runs are no longer cached.
+- The page's request limit (40 s) was shorter than a cold model (45 s); the summary now has
+  120 s.
+- T-007 crashed on SQLite's naive timestamps; it now treats them as UTC.
+
+### Next Step
+W8, the feed: findings diffed between syncs.
+
+---
+
 ## 2026-10-19 | Keshan | Workspaces W6: People screen
 Status: IN_PROGRESS
 

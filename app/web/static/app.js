@@ -14,6 +14,9 @@ const SYNC_POLL_TIMEOUT_MS = 5 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 10000;
 const REQUEST_MAX_RETRIES = 2;
 const ANSWER_SLOW_MS = 20000;
+// The member summary is the 1 model call. A cold local model measured 45 s on this
+// machine (W7), so it gets a longer limit than other requests.
+const SUMMARY_TIMEOUT_MS = 120000;
 const DRAWER_ANIMATION_MS = 150;
 
 const ERROR_LABELS = {
@@ -69,9 +72,9 @@ async function requestJSON(url, options = {}) {
   throw lastError || new Error("request failed");
 }
 
-async function requestText(url) {
+async function requestText(url, timeoutMs = ANSWER_SLOW_MS * 2) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ANSWER_SLOW_MS * 2);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, { credentials: "same-origin", signal: controller.signal });
     return { status: res.status, ok: res.ok, text: await res.text() };
@@ -430,9 +433,26 @@ async function pollWorkspaceSync() {
   if (note) note.textContent = "The sync is taking longer than expected. Reload the page to check again.";
 }
 
+// Member summary (W7): the only model call, fetched after the page so the findings,
+// already complete, never wait for it.
+async function loadMemberSummary() {
+  const box = document.querySelector("[data-summary-src]");
+  if (!box) return;
+  const status = box.querySelector("[data-summary-status]");
+  try {
+    const res = await requestText(box.getAttribute("data-summary-src"), SUMMARY_TIMEOUT_MS);
+    if (!res.ok) throw new Error(`summary ${res.status}`);
+    const doc = new DOMParser().parseFromString(res.text, "text/html");
+    box.replaceChildren(...doc.body.childNodes);
+  } catch (err) {
+    if (status) status.textContent = "The summary could not be loaded. The findings below are complete without it.";
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   localizeTimes();
   pollWorkspaceSync();
+  loadMemberSummary();
   drawer.init();
   tabs.init();
   refresh.init();

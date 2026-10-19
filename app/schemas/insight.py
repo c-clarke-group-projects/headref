@@ -162,6 +162,10 @@ class MemberInsight(BaseModel):
         default=None,
         description="Activity counts, or None when a tool they need failed or was not run",
     )
+    conflicts: list[str] = Field(
+        default_factory=list,
+        description="Jira and GitHub disagreements found by code (CF-1 to CF-4), unresolved",
+    )
     truncated: dict[str, int] | None = Field(
         default=None,
         description="What a read tool capped, mapped to the cap applied, e.g. {'commits': 100}",

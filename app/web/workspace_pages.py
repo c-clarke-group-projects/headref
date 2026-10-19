@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import parse_qs
 
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import ValidationError
 from sqlalchemy import func, select
@@ -34,6 +34,7 @@ from app.web.workspaces import (
     create_workspace,
     list_workspaces_for,
 )
+from app.workspace_analysis import analyze_workspace, member_summary
 from app.workspace_sync import (
     ensure_organization,
     has_sources,
@@ -149,10 +150,19 @@ async def submit_new_workspace(request: Request, account: AccountDep, db: DbDep)
 
 
 @workspace_pages.get("/w/{workspace_id}", response_class=HTMLResponse)
-def workspace_page(request: Request, access: ViewerAccess, db: DbDep) -> HTMLResponse:
-    """The workspace shell: connections, sync, members, analysis and feed sections."""
+async def workspace_page(request: Request, access: ViewerAccess, db: DbDep) -> HTMLResponse:
+    """The workspace: connections, sync, members, analysis and the selected member.
+
+    ?member=<id> selects 1 confirmed person; anything else shows the whole team.
+    """
     org_id = ensure_organization(db, access.workspace)
     db.commit()
+    team = confirmed_people(db, org_id)
+    member_raw = request.query_params.get("member", "")
+    selected = next((p for p in team if member_raw.isdecimal() and p.id == int(member_raw)), None)
+    analysis = await analyze_workspace(
+        db, access.workspace, only_person_id=selected.id if selected else None
+    )
     context = _base_context(request, db, access.account, "workspaces")
     context.update(
         {
@@ -180,7 +190,9 @@ def workspace_page(request: Request, access: ViewerAccess, db: DbDep) -> HTMLRes
                 select(JiraConnection).where(JiraConnection.workspace_id == access.workspace.id)
             ),
             "sync_runs": latest_runs(db, access.workspace.id),
-            "team": confirmed_people(db, org_id),
+            "team": team,
+            "selected": selected,
+            "analysis": analysis,
             "waiting": waiting_count(db, org_id),
             "sync_running": is_running(db, access.workspace.id),
             "now": datetime.now(UTC),
@@ -236,3 +248,22 @@ def sync_history_page(request: Request, access: ViewerAccess, db: DbDep) -> HTML
         }
     )
     return templates.TemplateResponse(request=request, name="sync_history.html", context=context)
+
+
+@workspace_pages.get("/w/{workspace_id}/members/{person_id}/summary", response_class=HTMLResponse)
+async def member_summary_fragment(
+    person_id: int, request: Request, access: ViewerAccess, db: DbDep
+) -> HTMLResponse:
+    """The 2 sentence summary for 1 confirmed person, loaded after the page (W7).
+
+    The only model call. A fragment, so the page never waits for the model.
+    """
+    org_id = ensure_organization(db, access.workspace)
+    if person_id not in {p.id for p in confirmed_people(db, org_id)}:
+        raise HTTPException(status_code=404, detail="Not found")
+    insight = await member_summary(db, access.workspace, person_id)
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/member_summary.html",
+        context={"request": request, "insight": insight},
+    )

@@ -1,0 +1,13 @@
+{#
+  The summary fragment for 1 member (W7), loaded after the workspace page.
+  Context: insight (MemberInsight). The model wrote the summary unless fallback_used,
+  in which case it is the code-built text and says so (FR-022).
+#}
+{% import "partials/notices.html" as n %}
+<h3 class="card__title">Summary</h3>
+{% if insight.summary %}<p class="summary__text">{{ insight.summary }}</p>{% endif %}
+{% if insight.fallback_used %}
+  <p class="caption">{{ n.fallback_notice() }} Built by code from the findings below, without the local model.</p>
+{% else %}
+  <p class="caption">Written by the local model from the findings below.</p>
+{% endif %}

@@ -485,6 +485,9 @@ body.drawer-open { overflow: hidden; }
 .ws-conn__name { display: inline-flex; align-items: center; gap: var(--s-2); font-weight: 500; }
 .ws-sync { margin-top: var(--s-5); display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
 .ws-form { max-width: 720px; }
+.ws-people a { text-decoration: none; }
+.next-up { margin-top: var(--s-3); list-style: none; display: flex; flex-direction: column; gap: var(--s-2); }
+.next-up a { display: inline-flex; align-items: center; gap: var(--s-2); overflow-wrap: anywhere; }
 .person { display: flex; flex-direction: column; gap: var(--s-3); }
 .person__accounts { list-style: none; display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .person__accounts li { display: inline-flex; align-items: center; gap: var(--s-2); }

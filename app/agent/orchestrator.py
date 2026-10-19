@@ -119,8 +119,12 @@ class AgentRunContext(BaseModel):
     """Carries everything between stages: plan, retrieval, health and failures."""
 
     subject_user_id: int
-    team_id: int
+    team_id: int | None
     question_type: QuestionType
+    # W7: a workspace run reads that workspace's sync history, and Jira counts as in use
+    # when the workspace has a Jira connection. None keeps the legacy behaviour.
+    workspace_id: int | None = None
+    jira_in_use: bool | None = None
     plan: RetrievalPlan
     started_at: datetime
     window_start: datetime
@@ -143,13 +147,20 @@ def _call(context: AgentRunContext, tool_id: str, call: Callable[[], Any]) -> An
     return result
 
 
+def _jira_in_use(context: AgentRunContext) -> bool:
+    """Whether Jira is part of this run: the workspace's connection, else the environment."""
+    if context.jira_in_use is not None:
+        return context.jira_in_use
+    settings = get_settings()
+    return bool(settings and settings.jira_enabled)
+
+
 def _check_health(session: Session, context: AgentRunContext, tools: ReadTools) -> set[Source]:
     """Call T-007 and return the sources that are safe to read from.
 
     If T-007 itself fails, nothing is usable: fail closed, never assume healthy.
     """
-    settings = get_settings()
-    jira_is_active = bool(settings and settings.jira_enabled)
+    jira_is_active = _jira_in_use(context)
 
     sources = [
         s
@@ -158,7 +169,9 @@ def _check_health(session: Session, context: AgentRunContext, tools: ReadTools) 
     ]
     if not sources:
         sources = ["github"]
-    data = GetSourceHealthInput(team_id=context.team_id, sources=sources)
+    data = GetSourceHealthInput(
+        team_id=context.team_id, workspace_id=context.workspace_id, sources=sources
+    )
     output = _call(context, "T-007", lambda: tools.source_health(session, data))
     if output is None:
         return set()
@@ -277,8 +290,7 @@ def _evaluate_gate(context: AgentRunContext, usable: set[Source]) -> None:
                 reasons.append(_unavailable_reason(source, by_source.get(source)))
         for source in plan.optional_sources:
             if source not in usable:
-                _settings = get_settings()
-                if _settings and not _settings.jira_enabled and source == "jira":
+                if source == "jira" and not _jira_in_use(context):
                     continue
                 context.notes.append(
                     f"{source} is unavailable and optional for {plan.question_type}; "
@@ -308,10 +320,12 @@ def run_s1_s2(
     session: Session,
     *,
     subject_user_id: int,
-    team_id: int,
+    team_id: int | None,
     question_type: str,
     tools: ReadTools | None = None,
     now: datetime | None = None,
+    workspace_id: int | None = None,
+    jira_in_use: bool | None = None,
 ) -> AgentRunContext:
     """Run stages S1 (plan) and S2 (retrieve), and return the filled AgentRunContext.
 
@@ -329,6 +343,8 @@ def run_s1_s2(
         started_at=moment,
         window_start=moment - timedelta(days=plan.window_days),
         window_end=moment,
+        workspace_id=workspace_id,
+        jira_in_use=jira_in_use,
     )
 
     usable = _check_health(session, context, tools)
@@ -489,7 +505,7 @@ async def run_agent(
     session: Session,
     *,
     subject_user_id: int,
-    team_id: int,
+    team_id: int | None,
     question_type: str,
     actor_user_id: int | None = None,
     tools: ReadTools | None = None,
@@ -497,6 +513,8 @@ async def run_agent(
     client: httpx.AsyncClient | None = None,
     skip_llm: bool = False,
     repository_name: str | None = None,
+    workspace_id: int | None = None,
+    jira_in_use: bool | None = None,
 ) -> MemberInsight:
     """Execute end-to-end agent pipeline stages S1 through S6 (DEC-018, FR-014, FR-024).
 
@@ -516,6 +534,8 @@ async def run_agent(
         question_type=question_type,
         tools=tools,
         now=now,
+        workspace_id=workspace_id,
+        jira_in_use=jira_in_use,
     )
 
     if repository_name:
@@ -649,9 +669,20 @@ async def run_agent(
             is_truncated=evidence_set.truncated,
             as_of=context.started_at,
         )
+        # Current work is an inference only with 2 or more evidence items (11.6). With 1,
+        # say only what that record shows, as a fact, not "likely working on" (6.6).
+        if len(target_ev) >= 2:
+            claim = f"Likely working on {target_item.external_id}: {target_item.title}."
+            classification = "inference"
+        else:
+            claim = (
+                f"{target_item.external_id} is assigned and {target_item.raw_status}: "
+                f"{target_item.title}."
+            )
+            classification = "fact"
         likely_current_work = Insight(
-            claim=f"Likely working on {target_item.external_id}: {target_item.title}.",
-            classification="inference" if len(target_ev) >= 2 else "fact",
+            claim=claim,
+            classification=classification,
             confidence=conf,
             evidence=target_ev,
         )
@@ -757,6 +788,7 @@ async def run_agent(
         source_health=list(context.health),
         summary=validated.summary,
         fallback_used=narrative_res.fallback_used or validated.fallback_used,
+        conflicts=[c.description for c in conflicts],
         activity=build_activity(context, subject_user_id),
         truncated=build_truncated(context),
     )
@@ -767,13 +799,17 @@ async def run_agent(
     if narrative_error_type is None and validated.dropped_claims:
         narrative_error_type = validated.dropped_claims[0].get("reason")
 
-    save_cached_insight(
-        session=session,
-        subject_user_id=subject_user_id,
-        question_type=question_type,
-        evidence_hash=ev_hash,
-        insight=final_insight,
-    )
+    # A code-only run (skip_llm) is not cached: its summary is the deterministic text,
+    # and caching it under the same evidence hash would serve that text in place of the
+    # model's summary when the member is opened (W7).
+    if not skip_llm:
+        save_cached_insight(
+            session=session,
+            subject_user_id=subject_user_id,
+            question_type=question_type,
+            evidence_hash=ev_hash,
+            insight=final_insight,
+        )
 
     persist_agent_run(
         session=session,
