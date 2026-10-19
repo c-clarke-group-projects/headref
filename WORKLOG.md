@@ -60,6 +60,61 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-19 | Keshan | Workspaces W10: hardening
+Status: IN_PROGRESS
+
+### Completed
+1. Found and closed a cross-workspace leak (reproduced first): a synced person who signed in
+   became that workspace's person row in the legacy team, and any other signed-in GitHub
+   user could then read their findings through `GET /api/members/{id}/insight` (200).
+2. Removed the team pages, the team API and their templates, script code and tests
+   (agreed 2026-10-19). `/` redirects to `/workspaces`. DEC-026 records it.
+3. Sign-in asks GitHub for no scopes and drops its token after reading the profile: no
+   token cookie, no process-wide token. Each account gets its own `app_user` in an
+   accounts organization no workspace uses; an account bound to a workspace person is
+   moved at its next sign-in.
+4. Connect GitHub without the old token: an installation on the owner's account is attached
+   on the owner id check; an organization installation asks GitHub once for `read:org`,
+   checks the admin role and drops the token (`/auth/github/callback/org`, its own signed
+   single-use state).
+5. Cookies are `Secure` outside `APP_ENV=local`, closing the 2026-10-08 item. Sign-out is
+   POST only.
+6. Portfolio cards from the feed snapshots: health (Blocked, Needs Attention, On Track,
+   Unknown with the reason), counts for the workspace as a whole, top 3 attention items,
+   last sync per source. No per-person numbers.
+7. `tests/test_isolation.py`: 2 workspaces sync the same repository; people, analysis, feed,
+   summary, invites and every `/w/{workspace_id}` route with every method answer 404 or
+   "not in this workspace" from the other workspace.
+8. Security review of the whole branch: no finding at confidence 0.7 or more. 2 below that
+   were fixed: the accounts organization was found by a name a workspace could take, and
+   the legacy scheduled sync read every workspace's repositories with `GITHUB_TOKEN`.
+9. Full suite: 556 passed, 1 skipped, 1 failed (`test_parse_valid_identity_map_file`, only
+   because of the local uncommitted edit to `seed/identity_map.yml`).
+10. Real data: sign-in asks for no scope; Connect GitHub on "dev team" with installation
+    172832446 (User) went through and the picker lists `headref-sandbox`.
+
+### Discovered
+- The connect flow still read the sign-in token cookie after step 3, so every Connect GitHub
+  would have ended in "sign in again". Fixed by item 4 before committing.
+- The organization check needs the GitHub OAuth app's callback URL to be
+  `<host>/auth/github/callback`: GitHub accepts `/auth/github/callback/org` only as a
+  subdirectory of it.
+
+### Not verified
+- An organization installation end to end (no organization install to test with).
+- A sign-in in the browser after this change, and browser layout of the cards.
+
+### Decisions Needed
+- DEC-026 needs Developer 2. With it, the `CLAUDE.md` enforcement row for FR-028 should name
+  the workspace route test and the isolation sweep instead (its own pull request).
+- `PROJECT_REQUIREMENTS.md`, `TASKS.md`, `BUILD_ORDER.md` and `TESTING_AND_EVALUATION.md`
+  still name the removed endpoints; rewrite with the Phase 6 evaluation per workspace.
+
+### Next Step
+W11: real-data verification with Isiwara (invite, BL-4, CF-4, review request), then Phase 6.
+
+---
+
 ## 2026-10-19 | Keshan | Workspaces W9: settings, invites, roles, archive
 Status: IN_PROGRESS
 

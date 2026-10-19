@@ -27,6 +27,7 @@ from app.workspace_feed import (
     feed,
     mark_seen,
     person_findings,
+    portfolio_card,
     record_changes,
 )
 from app.workspace_sync import ensure_organization
@@ -338,3 +339,102 @@ def test_the_page_says_when_nothing_changed_yet(client, db_session, monkeypatch)
     log_in(client, user.id)
 
     assert "No changes recorded yet" in client.get(f"/w/{workspace.id}").text
+
+
+# ---------------------------------------------------------------------------
+# Portfolio cards (W10)
+# ---------------------------------------------------------------------------
+
+
+def _snapshot(db: Session, workspace_id: int, subject: str, data: dict) -> None:
+    db.add(FindingSnapshot(workspace_id=workspace_id, subject=subject, data=data, created_at=NOW))
+    db.commit()
+
+
+def test_a_card_before_any_sync_is_unknown(db_session):
+    _, _, workspace, _, _ = _setup(db_session)
+
+    card = portfolio_card(db_session, workspace, [])
+
+    assert (card.health, card.unknown_reason) == ("Unknown", "Not synced yet.")
+
+
+def test_a_card_counts_each_finding_once_and_only_for_confirmed_people(db_session):
+    _, _, workspace, person_id, _ = _setup(db_session)
+    other = resolve_actor(
+        db_session,
+        "github",
+        "888",
+        "waiting",
+        auto_create=True,
+        organization_id=workspace.organization_id,
+    )
+    db_session.commit()
+    shared = {"kind": "conflict", "text": "HRS-2 is Done, PR #2 open.", "url": None}
+    _snapshot(db_session, workspace.id, WORK_STATE, {"items": {}, "prs": {}, "syncs": {}})
+    _snapshot(
+        db_session,
+        workspace.id,
+        f"person:{person_id}",
+        {
+            "findings": {
+                "blocker:BL-1:HRS-4": {"kind": "blocker", "text": "HRS-4 is Blocked.", "url": None},
+                "conflict:CF-2:HRS-2:#2": shared,
+            }
+        },
+    )
+    _snapshot(
+        db_session,
+        workspace.id,
+        f"person:{other}",
+        {"findings": {"risk:RK-1:HRS-9": {"kind": "risk", "text": "unconfirmed", "url": None}}},
+    )
+    run = _run("github", "success", workspace.id)
+
+    card = portfolio_card(db_session, workspace, [run])
+
+    assert (card.health, card.blockers, card.conflicts, card.risks) == ("Blocked", 1, 1, 0)
+    assert card.attention == ["HRS-4 is Blocked.", "HRS-2 is Done, PR #2 open."]
+    assert "github" in card.last_sync
+
+
+def test_a_failed_source_makes_the_card_unknown_but_keeps_the_counts(db_session):
+    _, _, workspace, person_id, _ = _setup(db_session)
+    _snapshot(db_session, workspace.id, WORK_STATE, {"items": {}, "prs": {}, "syncs": {}})
+    _snapshot(
+        db_session,
+        workspace.id,
+        f"person:{person_id}",
+        {"findings": {"risk:RK-1:HRS-8": {"kind": "risk", "text": "HRS-8 due", "url": None}}},
+    )
+
+    card = portfolio_card(
+        db_session, workspace, [_run("jira", "failed", workspace.id, "AUTH_FAILED")]
+    )
+
+    assert card.health == "Unknown"
+    assert card.unknown_reason == "Jira could not be synced."
+    assert card.risks == 1
+
+
+def test_the_portfolio_shows_the_card_without_naming_people(client, db_session):
+    user, _, workspace, person_id, _ = _setup(db_session)
+    _snapshot(db_session, workspace.id, WORK_STATE, {"items": {}, "prs": {}, "syncs": {}})
+    _snapshot(
+        db_session,
+        workspace.id,
+        f"person:{person_id}",
+        {
+            "findings": {
+                "blocker:BL-1:HRS-4": {"kind": "blocker", "text": "HRS-4 is Blocked.", "url": None}
+            }
+        },
+    )
+    log_in(client, user.id)
+
+    html = client.get("/workspaces").text
+
+    assert "Blocked</span>" in html
+    assert "1 blocker, 0 Jira and GitHub conflicts, 0 risks" in html
+    assert "HRS-4 is Blocked." in html
+    assert "zara" not in html

@@ -67,6 +67,8 @@ def fake_app(monkeypatch: pytest.MonkeyPatch) -> FakeAppClient:
         github_app_id="123",
         github_app_slug="headref-test",
         github_app_private_key_b64="eA==",
+        github_oauth_client_id="oauth-client",
+        github_oauth_client_secret="oauth-secret",
         _env_file=None,
     )
     monkeypatch.setattr(connections, "get_settings", lambda: cfg)
@@ -103,7 +105,6 @@ def _start(client: TestClient, workspace_id: int) -> str:
 
 
 def _setup(client: TestClient, state: str, installation_id: int = 55) -> Any:
-    client.cookies.set(connections.USER_TOKEN_COOKIE, "gho_user", domain="testserver.local")
     return client.get(
         f"/connections/github/setup?installation_id={installation_id}"
         f"&setup_action=install&state={state}",
@@ -180,21 +181,131 @@ def test_someone_elses_installation_is_refused(client, db_session, fake_app):
     assert db_session.scalar(select(GitHubInstallation)) is None
 
 
-def test_an_org_installation_needs_an_org_admin(client, db_session, fake_app, monkeypatch):
+def _org_installation() -> Installation:
+    return Installation(55, 5000, "acme", "Organization", "all", False)
+
+
+def test_an_org_installation_asks_github_for_read_org_once(client, db_session, fake_app):
+    """Sign-in has no scopes, so an org install sends the owner to approve read:org."""
     _, workspace = _owner_with_workspace(db_session, client)
-    fake_app.installations[55] = Installation(55, 5000, "acme", "Organization", "all", False)
-    seen: dict[str, Any] = {}
-
-    def fake_attach(installation, user_token, github_user_id):
-        seen.update(token=user_token, user=github_user_id)
-        return False
-
-    monkeypatch.setattr(connections, "user_can_attach", fake_attach)
+    fake_app.installations[55] = _org_installation()
 
     response = _setup(client, _start(client, workspace.id))
 
-    assert seen == {"token": "gho_user", "user": 101}
+    location = urlparse(response.headers["location"])
+    query = parse_qs(location.query)
+    assert (location.netloc, location.path) == ("github.com", "/login/oauth/authorize")
+    assert query["scope"] == ["read:org"]
+    assert query["redirect_uri"][0].endswith("/auth/github/callback/org")
+    assert connections.ORG_CHECK_COOKIE in response.cookies
+    assert db_session.scalar(select(GitHubInstallation)) is None
+
+
+def test_an_org_installation_without_oauth_configured_says_so(
+    client, db_session, fake_app, monkeypatch
+):
+    _, workspace = _owner_with_workspace(db_session, client)
+    fake_app.installations[55] = _org_installation()
+    state = _start(client, workspace.id)
+    cfg = Settings(database_url="sqlite:///:memory:", _env_file=None)
+    monkeypatch.setattr(connections, "get_settings", lambda: cfg)
+
+    response = _setup(client, state)
+
+    assert "github=org_check_unavailable" in response.headers["location"]
+
+
+def _org_check_state(client: TestClient, workspace_id: int) -> str:
+    """Run the setup step for an org install; return the state GitHub sends back."""
+    response = _setup(client, _start(client, workspace_id))
+    return parse_qs(urlparse(response.headers["location"]).query)["state"][0]
+
+
+def _org_callback(client: TestClient, state: str, extra: str = "&code=good") -> Any:
+    return client.get(f"/auth/github/callback/org?state={state}{extra}", follow_redirects=False)
+
+
+@pytest.fixture
+def org_check(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+    """Fake the code exchange and the admin check; record what they were given."""
+    seen: dict[str, Any] = {"admin": True}
+
+    def exchange(code, redirect_uri, client_id, client_secret):
+        seen.update(code=code, redirect_uri=redirect_uri, client_id=client_id)
+        return "gho_org_check"
+
+    def attach(installation, user_token, github_user_id):
+        seen.update(token=user_token, user=github_user_id)
+        return seen["admin"]
+
+    monkeypatch.setattr(connections, "exchange_oauth_code", exchange)
+    monkeypatch.setattr(connections, "user_can_attach", attach)
+    return seen
+
+
+def test_an_org_admin_is_attached_after_the_check(client, db_session, fake_app, org_check):
+    account, workspace = _owner_with_workspace(db_session, client)
+    fake_app.installations[55] = _org_installation()
+
+    response = _org_callback(client, _org_check_state(client, workspace.id))
+
+    assert response.headers["location"].startswith(f"/w/{workspace.id}/connections/github")
+    assert (org_check["code"], org_check["token"], org_check["user"]) == (
+        "good",
+        "gho_org_check",
+        101,
+    )
+    assert org_check["redirect_uri"].endswith("/auth/github/callback/org")
+    row = db_session.scalar(select(GitHubInstallation))
+    assert (row.installation_id, row.account_type) == (55, "Organization")
+    # The token is used once and never stored: no cookie and no column carries it.
+    assert "gho_org_check" not in response.headers.get("set-cookie", "")
+
+
+def test_an_org_member_who_is_not_admin_is_refused(client, db_session, fake_app, org_check):
+    _, workspace = _owner_with_workspace(db_session, client)
+    fake_app.installations[55] = _org_installation()
+    org_check["admin"] = False
+
+    response = _org_callback(client, _org_check_state(client, workspace.id))
+
     assert "github=not_allowed" in response.headers["location"]
+    assert db_session.scalar(select(GitHubInstallation)) is None
+
+
+def test_declining_on_github_attaches_nothing(client, db_session, fake_app, org_check):
+    _, workspace = _owner_with_workspace(db_session, client)
+    fake_app.installations[55] = _org_installation()
+
+    response = _org_callback(client, _org_check_state(client, workspace.id), "&error=access_denied")
+
+    assert "github=org_check_failed" in response.headers["location"]
+    assert "code" not in org_check
+    assert db_session.scalar(select(GitHubInstallation)) is None
+
+
+@pytest.mark.parametrize("tamper", ["no_cookie", "install_state", "other_account", "reused"])
+def test_a_bad_org_check_state_attaches_nothing(client, db_session, fake_app, org_check, tamper):
+    account, workspace = _owner_with_workspace(db_session, client)
+    fake_app.installations[55] = _org_installation()
+    state = _org_check_state(client, workspace.id)
+    if tamper == "no_cookie":
+        client.cookies.delete(connections.ORG_CHECK_COOKIE)
+    elif tamper == "install_state":
+        # A valid install state (4 parts) is not an org-check state (6 parts).
+        state = auth.sign_value(f"{workspace.id}.{account.id}.{int(time.time())}.n")
+        client.cookies.set(connections.ORG_CHECK_COOKIE, state, domain="testserver.local")
+    elif tamper == "other_account":
+        state = auth.sign_value(f"org.{workspace.id}.999.55.{int(time.time())}.n")
+        client.cookies.set(connections.ORG_CHECK_COOKIE, state, domain="testserver.local")
+    elif tamper == "reused":
+        _org_callback(client, state)
+        db_session.query(GitHubInstallation).delete()
+        db_session.commit()
+
+    response = _org_callback(client, state)
+
+    assert "github=bad_state" in response.headers["location"]
     assert db_session.scalar(select(GitHubInstallation)) is None
 
 
@@ -254,17 +365,15 @@ def test_an_installation_github_does_not_know_is_not_found(client, db_session):
     assert "github=not_found" in response.headers["location"]
 
 
-def test_without_a_github_sign_in_token_the_user_must_sign_in_again(client, db_session, fake_app):
+def test_a_personal_installation_needs_no_github_token(client, db_session, fake_app):
+    """Sign-in keeps no GitHub token (DEC-026); the owner id check is enough."""
     _, workspace = _owner_with_workspace(db_session, client)
     fake_app.installations[55] = _user_installation(account_id=101)
-    state = _start(client, workspace.id)
 
-    response = client.get(
-        f"/connections/github/setup?installation_id=55&setup_action=install&state={state}",
-        follow_redirects=False,
-    )
+    response = _setup(client, _start(client, workspace.id))
 
-    assert "github=sign_in_again" in response.headers["location"]
+    assert response.headers["location"].startswith(f"/w/{workspace.id}/connections/github")
+    assert db_session.scalar(select(GitHubInstallation)) is not None
 
 
 # ---------------------------------------------------------------------------

@@ -1471,3 +1471,62 @@ Owner: Developer 1 for the diff and the rules, Developer 2 for the screen
 ### Related documents
 
 DEC-005, DEC-017, DEC-018, DEC-020.
+
+---
+
+## DEC-026: Team pages and team API removed; sign-in is identity only
+
+Date: 2026-10-19
+Status: Proposed
+Owner: Developer 1, needs Developer 2 agreement
+
+### Context
+
+W10 found that the single-team MVP routes leaked data across workspaces. A GitHub user
+whose work was synced into a workspace, on signing in, was bound to that workspace's
+person row and put in the legacy team; any other GitHub user who signed in joined the same
+team, and `GET /api/members/{id}/insight` then answered 200 with findings built from the
+first workspace's data (reproduced in a test). Sign-in also asked GitHub for `repo` and
+`read:org`, kept the user's token in a cookie for 8 hours, and the legacy routes copied it
+into a process-wide value that other requests could use.
+
+### Decision
+
+- The team pages (`/`, `/teams/{id}`, `/members/{id}` and its panel, `/admin/unmatched`,
+  `/repos`, `/jira`) and the team API (`/api/members/*`, `/api/teams/*`) are removed. `/`
+  redirects to `/workspaces`. Every page that shows people's work lives under
+  `/w/{workspace_id}` and its membership check (DEC-021). `can_view_member` and
+  `MemberGuard` go with them.
+- GitHub sign-in asks for no scopes. Its token reads the profile once and is dropped: no
+  cookie, no process-wide value. Each account acts as its own `app_user` in an accounts
+  organization that no workspace uses, never as a person found in a workspace's sources.
+- Connecting GitHub: an installation on the owner's own account is attached on the owner id
+  check alone. An installation on an organization sends the owner once through GitHub's
+  approval for `read:org`; the token is used for the admin check and dropped.
+- Cookies are `Secure` outside `APP_ENV=local`. Sign-out is POST only.
+- The legacy scheduled sync reads only its own team's repositories, never a workspace's.
+
+### Reason
+
+A second, team-based authorization system next to workspace membership is how data leaked.
+Removing it leaves 1 check to test. Holding a user token with repository write scope gave
+no benefit once the GitHub App reads repositories (DEC-022).
+
+### Consequences
+
+- Documented contracts change: `PROJECT_REQUIREMENTS.md`, `TASKS.md`, `BUILD_ORDER.md` and
+  `TESTING_AND_EVALUATION.md` still name `/api/members/{id}/insight` and
+  `/api/teams/{id}/sync`. The Phase 6 evaluation runs per workspace (W11) and needs those
+  references rewritten.
+- The FR-028 route test is replaced by the workspace route test in `tests/test_workspaces.py`
+  and the 2-workspace route sweep in `tests/test_isolation.py`. The enforcement table in
+  `CLAUDE.md` still names the old test; changing it follows "Changing a rule".
+- User actions that set up access (sign-in, connecting GitHub or Jira, checking an invited
+  username) wait on GitHub or Atlassian through `app/integrations/`. Reading work data
+  never does (DEC-002 still holds for it).
+- An existing account bound to a workspace person is moved to its own `app_user` at its
+  next sign-in.
+
+### Related documents
+
+DEC-002, DEC-021, DEC-022, DEC-023, FR-028.

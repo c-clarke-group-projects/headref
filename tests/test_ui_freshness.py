@@ -1,7 +1,7 @@
 """Tests for freshness and degraded-state display (P5-006, Issue #38).
 
 Verifies:
-1. Fresh, stale, and unavailable states are visually distinct.
+1. (Freshness tiles went with the team pages in W10, DEC-026.)
 2. Unavailable source shows last success timestamp and typed failure reason.
 3. Fallback notice displays when AI reasoning is unavailable (FR-022).
 4. Truncation notice discloses capped item counts.
@@ -26,38 +26,6 @@ def make_env() -> Environment:
     ui_format.register(env)
     env.globals["url_for"] = lambda name, path="": f"/static/{path}"
     return env
-
-
-def test_freshness_tiles_render_distinct_states():
-    env = make_env()
-    source_health = [
-        SourceHealthOut(
-            source="github",  # type: ignore[arg-type]
-            state="fresh",  # type: ignore[arg-type]
-            last_success_at=NOW - timedelta(hours=2),
-        ),
-        SourceHealthOut(
-            source="jira",  # type: ignore[arg-type]
-            state="unavailable",  # type: ignore[arg-type]
-            last_success_at=NOW - timedelta(days=2),
-            last_error_type="AUTH_FAILED",  # type: ignore[arg-type]
-        ),
-    ]
-
-    html = env.get_template("partials/freshness.html").render(
-        source_health=source_health,
-        team_id=10,
-        now=NOW,
-        show_note=True,
-    )
-
-    # Fresh GitHub
-    assert "source-tile__state--fresh" in html
-    assert "Synced" in html
-
-    # Unavailable Jira
-    assert "source-tile--unavailable" in html
-    assert "access token rejected" in html
 
 
 def test_unavailable_banner_renders_details():

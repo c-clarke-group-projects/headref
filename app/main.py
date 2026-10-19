@@ -1,7 +1,8 @@
 """FastAPI application entry point.
 
-Wires the health endpoint, the scheduler lifespan and the auth routes. Member-data
-routes arrive in P5-001 and MUST take the MemberGuard dependency from app.web.auth.
+Wires the scheduler lifespan, sign-in, the workspace pages and their API. Every route
+under /w/{workspace_id} takes the workspace_access dependency (DEC-021); a test fails if
+one does not.
 """
 
 from contextlib import asynccontextmanager
@@ -71,30 +72,15 @@ def _wants_html(request: Request) -> bool:
     return "text/html" in request.headers.get("accept", "")
 
 
-def _error_kind(path: str) -> str:
-    """Pick the copy variant error.html uses for 404 and 422."""
-    return "member" if path.startswith("/members/") else "page"
-
-
-def _member_id_from(path: str) -> int | None:
-    """The member id in /members/{id}/..., for the 422 tab links."""
-    parts = path.strip("/").split("/")
-    if len(parts) >= 2 and parts[0] == "members" and parts[1].isdecimal():
-        return int(parts[1])
-    return None
-
-
 def _html_error(request: Request, code: int):
     """Render error.html for a page request. The copy comes from the status code."""
-    path = request.url.path
     return templates.TemplateResponse(
         request=request,
         name="error.html",
         context={
             "request": request,
             "code": code,
-            "kind": "question" if code == 422 else _error_kind(path),
-            "member_id": _member_id_from(path),
+            "kind": "page",
             "actor": None,
             "team_name": "",
             "unmatched_count": 0,

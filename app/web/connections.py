@@ -6,9 +6,13 @@ Flow:
    browser to the App's install page.
 2. GitHub sends the browser back to GET /connections/github/setup with the installation
    id and the state. The state must match the cookie, be signed, be fresh and name the
-   signed-in account; the account must still own the workspace; and the installation
-   must belong to the signed-in GitHub user or an organisation they administer. Only then
-   is the installation attached.
+   signed-in account, and the account must still own the workspace. An installation on
+   the signed-in user's own GitHub account is then attached.
+2a. An installation on an organisation needs proof that the signed-in user administers
+   it. Sign-in asks GitHub for no scopes (DEC-026), so the owner is sent once through
+   GitHub's approval for read:org, back to GET /auth/github/callback/org with a second
+   signed state naming the workspace, the account and the installation. The token is
+   used for the admin check and then dropped; it is never stored.
 3. The owner picks repositories. The server re-reads the installation's repositories and
    accepts only ids that are really in it.
 
@@ -28,10 +32,15 @@ from sqlalchemy import delete, select
 
 from app.config import get_settings
 from app.integrations.errors import IntegrationError, NotFoundError
-from app.integrations.github_app import GitHubAppClient, user_can_attach
+from app.integrations.github_app import (
+    GitHubAppClient,
+    Installation,
+    exchange_oauth_code,
+    user_can_attach,
+)
 from app.models.connections import GitHubInstallation, WorkspaceRepository
 from app.models.workspace import Workspace, WorkspaceMember
-from app.web.auth import DbDep, read_signed_value, sign_value
+from app.web.auth import DbDep, cookie_secure, read_signed_value, sign_value
 from app.web.ui_format import templates
 from app.web.workspace_pages import _base_context
 from app.web.workspaces import AccountDep, OwnerAccess
@@ -40,8 +49,9 @@ logger = logging.getLogger(__name__)
 
 INSTALL_STATE_COOKIE = "headref_gh_install_state"
 INSTALL_STATE_MAX_AGE_SECONDS = 15 * 60
-# The signed-in user's GitHub OAuth token cookie, set at sign-in (routes.py).
-USER_TOKEN_COOKIE = "headref_gh_token"  # noqa: S105  a cookie name, not a secret
+ORG_CHECK_COOKIE = "headref_gh_org_check"
+# The only scope the organisation check asks for: membership and role in an org.
+ORG_CHECK_SCOPE = "read:org"
 
 # Fixed copy for every outcome. Pages show these, never exception text.
 GITHUB_MESSAGES = {
@@ -56,7 +66,10 @@ GITHUB_MESSAGES = {
     "not_found": "GitHub did not recognise that installation of the headref App.",
     "not_allowed": "That installation belongs to an account or organisation you do not "
     "administer, so it cannot be connected.",
-    "sign_in_again": "Your GitHub sign-in has expired. Sign in again, then connect.",
+    "org_check_failed": "GitHub did not confirm that you administer that organisation, "
+    "so it was not connected.",
+    "org_check_unavailable": "Connecting an organisation needs GitHub sign-in to be "
+    "configured on this server.",
     "upstream": "GitHub could not be reached. Nothing was changed; try again shortly.",
     "invalid_selection": "1 or more selected repositories are not in this installation. "
     "Nothing was saved.",
@@ -101,6 +114,7 @@ def start_github_install(access: OwnerAccess) -> Response:
         max_age=INSTALL_STATE_MAX_AGE_SECONDS,
         httponly=True,
         samesite="lax",
+        secure=cookie_secure(),
     )
     return response
 
@@ -198,27 +212,32 @@ def _github_setup(request: Request, account: Any, db: Any) -> Response:
             status_code=status.HTTP_303_SEE_OTHER,
         )
 
-    user_token = request.cookies.get(USER_TOKEN_COOKIE)
-    if not user_token:
-        return _to_workspace(workspace_id, "sign_in_again")
-
     try:
         installation = get_app_client().get_installation(int(installation_raw))
-        allowed = user_can_attach(installation, user_token, account.github_user_id)
     except NotFoundError:
         return _to_workspace(workspace_id, "not_found")
     except IntegrationError as exc:
         logger.warning("github setup upstream failure: %s", type(exc).__name__)
         return _to_workspace(workspace_id, "upstream")
-    if not allowed:
-        logger.warning(
-            "github setup refused: account_id=%s installation_id=%s owner=%s",
-            account.id,
-            installation.installation_id,
-            installation.account_login,
-        )
-        return _to_workspace(workspace_id, "not_allowed")
+    if installation.account_type == "Organization":
+        return _start_org_check(request, workspace_id, account.id, installation)
+    if not user_can_attach(installation, None, account.github_user_id):
+        return _refused(workspace_id, account.id, installation)
+    return _attach(db, workspace_id, account.id, installation)
 
+
+def _refused(workspace_id: int, account_id: int, installation: Installation) -> Response:
+    logger.warning(
+        "github setup refused: account_id=%s installation_id=%s owner=%s",
+        account_id,
+        installation.installation_id,
+        installation.account_login,
+    )
+    return _to_workspace(workspace_id, "not_allowed")
+
+
+def _attach(db: Any, workspace_id: int, account_id: int, installation: Installation) -> Response:
+    """Attach a verified installation to the workspace and open the repository picker."""
     existing = db.scalar(
         select(GitHubInstallation).where(
             GitHubInstallation.workspace_id == workspace_id,
@@ -232,7 +251,7 @@ def _github_setup(request: Request, account: Any, db: Any) -> Response:
                 installation_id=installation.installation_id,
                 account_login=installation.account_login,
                 account_type=installation.account_type,
-                connected_by_account_id=account.id,
+                connected_by_account_id=account_id,
             )
         )
     else:
@@ -244,6 +263,129 @@ def _github_setup(request: Request, account: Any, db: Any) -> Response:
         installation.installation_id,
     )
     return _to_picker(workspace_id, "connected")
+
+
+# ---------------------------------------------------------------------------
+# Organisation installations: a 1-time read:org approval (DEC-026)
+# ---------------------------------------------------------------------------
+
+
+def _start_org_check(
+    request: Request, workspace_id: int, account_id: int, installation: Installation
+) -> Response:
+    """Send the owner to GitHub to approve read:org once, for the admin check."""
+    settings = get_settings()
+    if not settings.github_oauth_enabled:
+        return _to_workspace(workspace_id, "org_check_unavailable")
+    payload = ".".join(
+        [
+            "org",
+            str(workspace_id),
+            str(account_id),
+            str(installation.installation_id),
+            str(int(time.time())),
+            secrets.token_urlsafe(16),
+        ]
+    )
+    state = sign_value(payload)
+    url = "https://github.com/login/oauth/authorize?" + urlencode(
+        {
+            "client_id": settings.github_oauth_client_id,
+            "redirect_uri": str(request.url_for("github_org_check")),
+            "scope": ORG_CHECK_SCOPE,
+            "state": state,
+        }
+    )
+    response = RedirectResponse(url=url, status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(
+        ORG_CHECK_COOKIE,
+        state,
+        max_age=INSTALL_STATE_MAX_AGE_SECONDS,
+        httponly=True,
+        samesite="lax",
+        secure=cookie_secure(),
+    )
+    logger.info(
+        "github org check started: workspace_id=%s installation_id=%s",
+        workspace_id,
+        installation.installation_id,
+    )
+    return response
+
+
+def org_check_from_state(
+    state: str | None, cookie: str | None, account_id: int
+) -> tuple[int, int] | None:
+    """(workspace id, installation id) from a valid organisation-check state, or None.
+
+    Valid means: matches the cookie, signed here, made for this account, under 15 minutes.
+    """
+    if not state or not cookie or not secrets.compare_digest(state, cookie):
+        return None
+    payload = read_signed_value(state)
+    if payload is None:
+        return None
+    parts = payload.split(".")
+    if len(parts) != 6 or parts[0] != "org" or not all(p.isdecimal() for p in parts[1:5]):
+        return None
+    workspace_id, state_account, installation_id, issued = (int(p) for p in parts[1:5])
+    if state_account != account_id or time.time() - issued > INSTALL_STATE_MAX_AGE_SECONDS:
+        return None
+    return workspace_id, installation_id
+
+
+@connections_pages.get("/auth/github/callback/org", name="github_org_check")
+def github_org_check_callback(request: Request, account: AccountDep, db: DbDep) -> Response:
+    """Finish attaching an organisation installation once GitHub confirms the admin role.
+
+    The state cookie is deleted whatever the outcome, so a state is used at most once.
+    """
+    response = _github_org_check(request, account, db)
+    response.delete_cookie(ORG_CHECK_COOKIE)
+    return response
+
+
+def _github_org_check(request: Request, account: Any, db: Any) -> Response:
+    params = request.query_params
+    found = org_check_from_state(
+        params.get("state"), request.cookies.get(ORG_CHECK_COOKIE), account.id
+    )
+    if found is None:
+        logger.warning("github org check rejected: bad state, account_id=%s", account.id)
+        return RedirectResponse(
+            url="/workspaces?" + urlencode({"github": "bad_state"}),
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    workspace_id, installation_id = found
+    if not owns_workspace(db, workspace_id, account.id):
+        return RedirectResponse(
+            url="/workspaces?" + urlencode({"github": "not_owner"}),
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    code = params.get("code")
+    if params.get("error") or not code:
+        # The owner declined the approval on GitHub, or GitHub sent no code.
+        return _to_workspace(workspace_id, "org_check_failed")
+
+    settings = get_settings()
+    try:
+        # The token lives only in this call: used for the admin check, never stored.
+        token = exchange_oauth_code(
+            code,
+            str(request.url_for("github_org_check")),
+            settings.github_oauth_client_id,
+            settings.github_oauth_client_secret,
+        )
+        installation = get_app_client().get_installation(installation_id)
+        allowed = user_can_attach(installation, token, account.github_user_id)
+    except NotFoundError:
+        return _to_workspace(workspace_id, "not_found")
+    except IntegrationError as exc:
+        logger.warning("github org check failure: %s", type(exc).__name__)
+        return _to_workspace(workspace_id, "org_check_failed")
+    if not allowed:
+        return _refused(workspace_id, account.id, installation)
+    return _attach(db, workspace_id, account.id, installation)
 
 
 def _installations(db: Any, workspace_id: int) -> list[GitHubInstallation]:

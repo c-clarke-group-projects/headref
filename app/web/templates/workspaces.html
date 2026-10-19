@@ -2,10 +2,10 @@
   Portfolio home (W2, DEC-021). 1 card per workspace the account belongs to.
   Context: base context plus
     workspaces: list[WorkspaceOut], sorted by name
+    cards: {workspace_id: PortfolioCard} from the latest sync snapshots (W10), now
     invites: list[InviteForMe], open invites for this GitHub account (W9)
     invite_message: fixed copy or None
   Cards compare projects, never people: no per-person numbers here.
-  Health, counts and freshness arrive with sync (W5); until then each card says so.
 #}
 {% extends "base.html" %}
 {% import "partials/icons.html" as i %}
@@ -79,9 +79,22 @@
             <span class="badge badge--sm badge--outline">{{ w.role|capitalize }}</span>
           </div>
           {% if w.description %}<p class="caption ws-card__desc">{{ w.description }}</p>{% endif %}
+          {% set c = cards[w.workspace_id] %}
+          {% if c.health != "Unknown" or c.attention %}
+            <p class="caption">{{ c.blockers }} blocker{{ "s" if c.blockers != 1 }}, {{ c.conflicts }} Jira and GitHub conflict{{ "s" if c.conflicts != 1 }}, {{ c.risks }} risk{{ "s" if c.risks != 1 }}</p>
+          {% endif %}
+          {% if c.attention %}
+            <ul class="ws-card__attention">
+              {% for line in c.attention %}<li class="caption">{{ line }}</li>{% endfor %}
+            </ul>
+          {% endif %}
           <p class="ws-card__status">
-            <span class="badge badge--sm badge--unknown">Not synced yet</span>
-            <span class="caption">Connect sources and sync to see blockers, conflicts and risks.</span>
+            {% set badge = {"Blocked": "badge--blocked", "Needs Attention": "badge--needs-attention", "On Track": "badge--on-track"}.get(c.health, "badge--unknown") %}
+            <span class="badge badge--sm {{ badge }}">{{ c.health }}</span>
+            {% if c.unknown_reason %}<span class="caption">{{ c.unknown_reason }}</span>{% endif %}
+            {% for source, at in c.last_sync|dictsort %}
+              <span class="caption">{{ source|source_label }} synced <time datetime="{{ at|iso_utc }}" title="{{ at|utc_title }}">{{ at|reltime(now) }}</time></span>
+            {% endfor %}
           </p>
         </a>
       {% endfor %}

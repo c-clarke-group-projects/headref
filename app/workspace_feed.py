@@ -475,3 +475,94 @@ def mark_seen(
     member.last_seen_at = now or datetime.now(UTC)
     db.commit()
     return previous
+
+
+# ---------------------------------------------------------------------------
+# Portfolio cards
+# ---------------------------------------------------------------------------
+
+ATTENTION_LIMIT = 3
+_ATTENTION_ORDER = {"blocker": 0, "conflict": 1, "risk": 2}
+
+
+@dataclass
+class PortfolioCard:
+    """1 workspace on the portfolio home, from its latest snapshots (W10).
+
+    Counts are for the workspace as a whole, never per person (rule 15): a finding that
+    concerns 2 people counts once. health is "Blocked", "Needs Attention", "On Track" or
+    "Unknown"; unknown_reason says why when it is "Unknown".
+    """
+
+    health: str
+    blockers: int = 0
+    conflicts: int = 0
+    risks: int = 0
+    attention: list[str] | None = None
+    last_sync: dict[str, datetime] | None = None
+    failed_sources: list[str] | None = None
+    unknown_reason: str | None = None
+
+
+def portfolio_card(db: Session, workspace: Workspace, latest: list[SyncRun]) -> PortfolioCard:
+    """Health, counts, top attention items and last sync per source for 1 workspace.
+
+    latest is the newest sync_run per scope (workspace_sync.latest_runs). Only people
+    who are confirmed now count. A failed source makes the health Unknown, because its
+    findings may be missing; the counts are still shown, from the last good sync.
+    """
+    last_sync: dict[str, datetime] = {}
+    for run in latest:
+        if run.status != "failed" and run.finished_at is not None:
+            finished = _aware(run.finished_at)
+            if run.source not in last_sync or finished > last_sync[run.source]:
+                last_sync[run.source] = finished
+    failed = sorted({_SOURCE_NAMES.get(r.source, r.source) for r in latest if r.status == "failed"})
+
+    if workspace.organization_id is None or _load(db, workspace.id, WORK_STATE) is None:
+        return PortfolioCard(
+            health="Unknown",
+            last_sync=last_sync,
+            failed_sources=failed,
+            unknown_reason="Not synced yet.",
+        )
+    confirmed = [p.id for p in confirmed_people(db, workspace.organization_id)]
+    if not confirmed:
+        return PortfolioCard(
+            health="Unknown",
+            last_sync=last_sync,
+            failed_sources=failed,
+            unknown_reason="Nobody is confirmed yet.",
+        )
+
+    findings: dict[str, dict[str, Any]] = {}
+    for snapshot in db.scalars(
+        select(FindingSnapshot).where(
+            FindingSnapshot.workspace_id == workspace.id,
+            FindingSnapshot.subject.in_([_person_subject(pid) for pid in confirmed]),
+        )
+    ):
+        findings.update(snapshot.data.get("findings", {}))
+    counts = {kind: 0 for kind in _ATTENTION_ORDER}
+    for finding in findings.values():
+        counts[finding["kind"]] += 1
+    ordered = sorted(findings.items(), key=lambda kv: (_ATTENTION_ORDER[kv[1]["kind"]], kv[0]))
+
+    if failed:
+        health, reason = "Unknown", f"{' and '.join(failed)} could not be synced."
+    elif counts["blocker"]:
+        health, reason = "Blocked", None
+    elif counts["conflict"] or counts["risk"]:
+        health, reason = "Needs Attention", None
+    else:
+        health, reason = "On Track", None
+    return PortfolioCard(
+        health=health,
+        blockers=counts["blocker"],
+        conflicts=counts["conflict"],
+        risks=counts["risk"],
+        attention=[_clip(f["text"]) for _, f in ordered[:ATTENTION_LIMIT]],
+        last_sync=last_sync,
+        failed_sources=failed,
+        unknown_reason=reason,
+    )

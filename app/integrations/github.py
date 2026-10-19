@@ -35,19 +35,12 @@ def parse_next_page_url(link_header: str | None) -> str | None:
     return match.group(1) if match else None
 
 
-_ACTIVE_GITHUB_TOKEN: str | None = None
-
-
-def set_active_github_token(token: str | None) -> None:
-    """Store the authenticated user's GitHub token in memory for sync operations."""
-    global _ACTIVE_GITHUB_TOKEN
-    _ACTIVE_GITHUB_TOKEN = token
-
-
 def get_active_github_token() -> str | None:
-    """Retrieve the active GitHub token from memory, env, or settings."""
-    if _ACTIVE_GITHUB_TOKEN:
-        return _ACTIVE_GITHUB_TOKEN
+    """The configured GITHUB_TOKEN, for the legacy configured-scope sync.
+
+    A signed-in user's token is never kept: sign-in asks for no scopes and drops its
+    token after reading the profile (DEC-026). Workspaces use GitHub App tokens.
+    """
     env_token = os.getenv("GITHUB_TOKEN")
     if env_token:
         return env_token

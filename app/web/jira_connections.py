@@ -26,7 +26,7 @@ from app.integrations.crypto import CredentialError
 from app.integrations.errors import IntegrationError
 from app.integrations.jira_tokens import store_tokens, valid_access_token
 from app.models.connections import JiraConnection, WorkspaceJiraProject
-from app.web.auth import DbDep
+from app.web.auth import DbDep, cookie_secure
 from app.web.connections import make_connection_state, owns_workspace, workspace_from_state
 from app.web.ui_format import templates
 from app.web.workspace_pages import _base_context
@@ -97,6 +97,7 @@ def start_jira_connect(request: Request, access: OwnerAccess) -> Response:
         max_age=JIRA_STATE_MAX_AGE_SECONDS,
         httponly=True,
         samesite="lax",
+        secure=cookie_secure(),
     )
     return response
 

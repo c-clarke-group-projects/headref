@@ -23,7 +23,7 @@ from app.config import (
 )
 from app.db import get_sync_session
 from app.integrations.github import get_active_github_token
-from app.models.canonical import Repository
+from app.models.canonical import Repository, Team
 from app.models.operations import SyncRun
 from app.sync import sync_github, sync_jira
 from app.workspace_sync import sync_all_workspaces
@@ -83,13 +83,24 @@ def recover_stuck_syncs(
 def resolve_team_scopes(
     team_id: int, session: Session | None = None
 ) -> tuple[list[str], list[str]]:
-    """GitHub and Jira scopes for a team, as (github, jira)."""
+    """GitHub and Jira scopes for a team, as (github, jira).
+
+    Only the team's own organization's repositories: workspaces sync their repositories
+    with their own GitHub App installation (DEC-022), never with this deployment's
+    GITHUB_TOKEN, so their rows must not feed this legacy path.
+    """
     gh = []
     if session is not None:
         try:
-            db_repos = session.scalars(select(Repository)).all()
-            if db_repos:
-                gh = [r.full_name for r in db_repos]
+            team = session.get(Team, team_id)
+            if team is not None:
+                gh = list(
+                    session.scalars(
+                        select(Repository.full_name)
+                        .where(Repository.organization_id == team.organization_id)
+                        .order_by(Repository.full_name)
+                    ).all()
+                )
         except Exception:
             logger.exception("Could not read onboarded repositories; using GITHUB_REPOS")
     if not gh:

@@ -474,6 +474,7 @@ body.drawer-open { overflow: hidden; }
 .ws-card:hover { box-shadow: inset 0 0 0 1.5px var(--ink); }
 .ws-card__desc { overflow-wrap: anywhere; }
 .ws-card__status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); margin-top: auto; }
+.ws-card__attention { margin: 0; padding-left: var(--s-4); display: grid; gap: var(--s-1); overflow-wrap: anywhere; }
 .ws-switcher { position: relative; }
 .ws-switcher > summary { list-style: none; }
 .ws-switcher > summary::-webkit-details-marker { display: none; }

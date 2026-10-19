@@ -2,10 +2,10 @@
   Headref app.js. Vanilla JS, 1 file, no build step.
   Allowed jobs only (DESIGN.md 4):
     1. open and close the evidence drawer
-    2. switch question tabs without a full reload (progressive enhancement)
-    3. start a refresh and poll the sync status
+    2. poll a running workspace sync and reload when it ends
+    3. load a member's summary after the page
   plus 1 helper: rewrite <time data-local> to the viewer's local time.
-  Every page works without this file except the Refresh button.
+  Every page works without this file; the summary then shows its loading note.
 */
 
 // Named constants, keep at the top.
@@ -19,15 +19,6 @@ const ANSWER_SLOW_MS = 20000;
 const SUMMARY_TIMEOUT_MS = 120000;
 const DRAWER_ANIMATION_MS = 150;
 
-const ERROR_LABELS = {
-  TIMEOUT: "the request timed out",
-  RATE_LIMITED: "rate limited by the source",
-  AUTH_FAILED: "access token rejected",
-  NOT_FOUND: "the project or repository was not found",
-  UPSTREAM_ERROR: "the source returned an error",
-  SCHEMA_INVALID: "some records could not be read and were left out",
-};
-const SOURCE_LABELS = { github: "GitHub", jira: "Jira" };
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 document.documentElement.classList.add("js");
@@ -219,169 +210,6 @@ const drawer = {
   },
 };
 
-// Tabs ---------------------------------------------------------------------------
-
-/*
-  Tabs are real links. With JS: arrow keys move focus (WAI ARIA tabs), and if
-  the PROPOSED fragment route exists the panel swaps in place. If the fragment
-  request fails, fall back to a normal page load.
-*/
-const tabs = {
-  USE_FRAGMENT_ROUTE: true, // set false if GET /members/{id}/panel is not agreed
-
-  init() {
-    const list = document.querySelector("[data-tabs]");
-    if (!list) return;
-    const items = [...list.querySelectorAll('[role="tab"]')];
-
-    list.addEventListener("keydown", (e) => {
-      const i = items.indexOf(document.activeElement);
-      if (i < 0) return;
-      let next = null;
-      if (e.key === "ArrowRight") next = items[(i + 1) % items.length];
-      if (e.key === "ArrowLeft") next = items[(i - 1 + items.length) % items.length];
-      if (e.key === "Home") next = items[0];
-      if (e.key === "End") next = items[items.length - 1];
-      if (next) {
-        e.preventDefault();
-        next.focus();
-      }
-    });
-
-    if (!this.USE_FRAGMENT_ROUTE) return;
-    list.addEventListener("click", (e) => {
-      const tab = e.target.closest('[role="tab"]');
-      if (!tab || e.metaKey || e.ctrlKey || e.shiftKey) return;
-      e.preventDefault();
-      this.select(list, items, tab);
-    });
-  },
-
-  async select(list, items, tab) {
-    const panel = document.querySelector("[data-panel]");
-    const memberId = list.getAttribute("data-member-id");
-    const question = tab.getAttribute("data-question");
-    items.forEach((t) => {
-      const on = t === tab;
-      t.setAttribute("aria-selected", on ? "true" : "false");
-      t.setAttribute("tabindex", on ? "0" : "-1");
-    });
-    panel.setAttribute("aria-labelledby", tab.id);
-    panel.setAttribute("aria-busy", "true");
-    panel.innerHTML =
-      '<div class="skeleton layout-main"><div><div class="skeleton__bar skeleton__bar--w60"></div>' +
-      '<div class="skeleton__bar skeleton__bar--w90"></div><div class="skeleton__bar skeleton__bar--w90"></div>' +
-      '<p class="skeleton__text" data-loading-text>Building the answer from recorded data. This can take up to 20 seconds.</p></div></div>';
-    const slow = setTimeout(() => {
-      const t = panel.querySelector("[data-loading-text]");
-      if (t) t.textContent += " Still working.";
-    }, ANSWER_SLOW_MS);
-
-    try {
-      const res = await requestText(`/members/${memberId}/panel?question=${encodeURIComponent(question)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      panel.innerHTML = res.text; // server rendered and autoescaped by Jinja
-      history.replaceState(null, "", tab.getAttribute("href"));
-      localizeTimes(panel);
-      panel.querySelectorAll("[data-claim] [data-ev-open][hidden]").forEach((b) => b.removeAttribute("hidden"));
-      panel.querySelector("[data-panel-heading]")?.focus();
-    } catch (err) {
-      console.warn("[headref] panel swap failed, loading the page", err);
-      window.location.assign(tab.getAttribute("href"));
-    } finally {
-      clearTimeout(slow);
-      panel.removeAttribute("aria-busy");
-    }
-  },
-};
-
-// Refresh --------------------------------------------------------------------------
-
-const refresh = {
-  init() {
-    document.querySelectorAll("[data-refresh]").forEach((btn) => {
-      btn.addEventListener("click", () => this.start(btn));
-    });
-  },
-
-  setState(btn, busy, statusText) {
-    const label = btn.querySelector("[data-refresh-label]");
-    const icon = btn.querySelector("[data-refresh-icon]");
-    btn.disabled = busy;
-    btn.setAttribute("aria-busy", busy ? "true" : "false");
-    if (label) label.textContent = busy ? "Refreshing" : "Refresh";
-    if (icon) icon.innerHTML = busy ? '<span class="btn__spinner" aria-hidden="true"></span>' : icon.dataset.idle || icon.innerHTML;
-    const status = document.getElementById("refresh-status");
-    if (status && statusText !== undefined) status.textContent = statusText;
-  },
-
-  showBanner(text) {
-    const banner = document.querySelector("[data-refresh-banner]");
-    if (!banner) return;
-    banner.querySelector("[data-refresh-banner-text]").textContent = text;
-    banner.hidden = false;
-  },
-
-  async start(btn) {
-    const teamId = btn.getAttribute("data-team-id");
-    const icon = btn.querySelector("[data-refresh-icon]");
-    if (icon && !icon.dataset.idle) icon.dataset.idle = icon.innerHTML;
-    this.setState(btn, true, "Starting sync");
-
-    let res;
-    try {
-      res = await requestJSON(`/api/teams/${teamId}/sync`, { method: "POST" });
-    } catch (err) {
-      this.setState(btn, false, "");
-      this.showBanner("Refresh failed: the request timed out. Showing data from the last successful sync.");
-      return;
-    }
-    if (res.status === 403) {
-      this.setState(btn, false, "");
-      this.showBanner("You can only refresh your own team.");
-      return;
-    }
-    if (res.status !== 202 && !res.ok) {
-      this.setState(btn, false, "");
-      this.showBanner("Refresh failed: the source returned an error. Showing data from the last successful sync.");
-      return;
-    }
-
-    // started is false when a run was already in flight for this team's scopes. The
-    // server starts nothing in that case, so say so rather than implying we did.
-    const alreadyRunning = res.body && res.body.started === false;
-    this.setState(btn, true, alreadyRunning ? "A sync is already running" : "Syncing GitHub and Jira");
-    const started = Date.now();
-    let status = res.body;
-    while (!status?.all_finished) {
-      if (Date.now() - started > SYNC_POLL_TIMEOUT_MS) {
-        this.setState(btn, false, "");
-        this.showBanner("Refresh is taking longer than expected. It will continue in the background.");
-        return;
-      }
-      await wait(SYNC_POLL_INTERVAL_MS);
-      try {
-        const poll = await requestJSON(`/api/teams/${teamId}/sync/status`);
-        if (poll.ok) status = poll.body;
-      } catch (err) {
-        console.warn("[headref] status poll failed, will retry", err);
-      }
-    }
-
-    const failed = (status.runs || []).filter((r) => r.status === "failed");
-    if (failed.length) {
-      // A failed refresh never blanks the page. Cached data stays.
-      const parts = failed.map((r) => `${SOURCE_LABELS[r.source] || r.source}, ${ERROR_LABELS[r.error_type] || "the source returned an error"}`);
-      this.setState(btn, false, "");
-      this.showBanner(`Refresh failed: ${parts.join("; ")}. Showing data from the last successful sync.`);
-      return;
-    }
-    const skipped = (status.runs || []).reduce((sum, r) => sum + (r.items_skipped || 0), 0);
-    if (skipped > 0) sessionStorage.setItem("headref-skipped", String(skipped));
-    window.location.reload();
-  },
-};
-
 // Logout --------------------------------------------------------------------------
 
 function initLogout() {
@@ -395,18 +223,6 @@ function initLogout() {
       }
     });
   });
-}
-
-function showSkippedNote() {
-  let skipped = null;
-  try {
-    skipped = sessionStorage.getItem("headref-skipped");
-    sessionStorage.removeItem("headref-skipped");
-  } catch (err) {
-    return;
-  }
-  const status = document.getElementById("refresh-status");
-  if (skipped && status) status.textContent = `Last sync skipped ${skipped} records.`;
 }
 
 // Workspace sync (W5): while a sync runs, poll its status and reload once it ends.
@@ -454,8 +270,5 @@ document.addEventListener("DOMContentLoaded", () => {
   pollWorkspaceSync();
   loadMemberSummary();
   drawer.init();
-  tabs.init();
-  refresh.init();
   initLogout();
-  showSkippedNote();
 });

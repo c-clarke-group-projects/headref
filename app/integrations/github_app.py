@@ -20,12 +20,13 @@ import httpx
 import jwt
 
 from app.config import HTTP_MAX_ATTEMPTS, HTTP_TIMEOUT_SECONDS, get_settings
-from app.integrations.errors import IntegrationError
+from app.integrations.errors import AuthError, IntegrationError
 from app.integrations.http import HttpClient
 
 logger = logging.getLogger("headref.integrations.github_app")
 
 GITHUB_API = "https://api.github.com"
+GITHUB_WEB = "https://github.com"
 # GitHub accepts an App JWT for at most 10 minutes. Issue it 60 seconds in the past to
 # absorb clock drift, and for 9 minutes in total.
 JWT_BACKDATE_SECONDS = 60
@@ -158,16 +159,56 @@ class GitHubAppClient:
             page += 1
 
 
-def user_can_attach(installation: Installation, user_token: str, github_user_id: int) -> bool:
+def exchange_oauth_code(
+    code: str,
+    redirect_uri: str,
+    client_id: str,
+    client_secret: str,
+    transport: httpx.BaseTransport | None = None,
+) -> str:
+    """Exchange a GitHub OAuth code for a user token. The caller uses it once and drops it.
+
+    1 attempt only: a code is single use, so a retry after a lost response would fail
+    anyway and hide the first error. The token is never logged.
+    """
+    with HttpClient(
+        base_url=GITHUB_WEB,
+        timeout=HTTP_TIMEOUT_SECONDS,
+        max_attempts=1,
+        transport=transport,
+        headers={"Accept": "application/json"},
+    ) as http:
+        body = http.request(
+            "POST",
+            "/login/oauth/access_token",
+            data={
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "code": code,
+                "redirect_uri": redirect_uri,
+            },
+        ).json()
+    token = body.get("access_token")
+    if not token:
+        # GitHub answers 200 with {"error": ...} for a bad or used code.
+        logger.warning("github oauth code exchange refused: %s", body.get("error"))
+        raise AuthError("GitHub refused the authorization code", status_code=200)
+    return str(token)
+
+
+def user_can_attach(
+    installation: Installation, user_token: str | None, github_user_id: int
+) -> bool:
     """True if the signed-in GitHub user owns the installation or administers its org.
 
     Without this check, anyone could pass another person's installation_id to the setup
-    URL and attach their repositories to a workspace. user_token is the signed-in user's
-    OAuth token, which has the read:org scope.
+    URL and attach their repositories to a workspace. A User installation needs no token:
+    its owner id is compared with the account. An Organization installation needs
+    user_token, from the 1-time read:org approval in the connect flow (DEC-026).
     """
     if installation.account_type == "User":
         return installation.account_id == github_user_id
-    if installation.account_type != "Organization":
+    if installation.account_type != "Organization" or not user_token:
         return False
     with HttpClient(
         base_url=GITHUB_API,

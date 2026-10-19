@@ -26,6 +26,12 @@ written to PostgreSQL with a timestamp. A request may *start* a background sync
 
 ## 2. Architecture diagram
 
+> **Superseded in part (2026-10-19, DEC-021 and DEC-026).** The team pages, the team API
+> (`/api/members/*`, `/api/teams/*`), the login stub and `can_view_member` shown below are
+> removed. Pages live under `/w/{workspace_id}` behind `workspace_access`; GitHub sign-in
+> is identity only; workspace data comes through a GitHub App installation and Atlassian
+> OAuth per workspace. This document is updated in full when DEC-021 to DEC-026 are agreed.
+
 ```text
                             BROWSER
                                |

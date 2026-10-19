@@ -1,10 +1,10 @@
-"""Tests for the login stub and the authorization seam (P3-001).
+"""Tests for the session cookie and who is asking (P3-001, DEC-026).
 
 No test here touches a database. Users are plain in-memory objects and the database
-dependency is replaced with a stub.
+dependency is replaced with a stub. Workspace authorization is tested in
+tests/test_workspaces.py and tests/test_isolation.py.
 """
 
-import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
@@ -16,11 +16,9 @@ from fastapi.testclient import TestClient
 from app.main import app as real_app
 from app.web import auth
 from app.web.auth import (
-    MemberGuard,
     auth_router,
-    can_view_member,
+    cookie_secure,
     read_session,
-    require_member_access,
     sign_session,
 )
 from tests.conftest import iter_api_routes, log_in
@@ -50,31 +48,9 @@ USERS = {
 # ---------------------------------------------------------------------------
 
 
-def _depends_on(dependant: Any, target: Any) -> bool:
-    """Return True if a route's dependency tree includes the target callable."""
-    for dependency in dependant.dependencies:
-        if dependency.call is target or _depends_on(dependency, target):
-            return True
-    return False
-
-
-def _is_member_route(path: str) -> bool:
-    """A member-data route is anything under /api/members/ or with {member_id}."""
-    return path.startswith("/api/members/") or "{member_id}" in path
-
-
-def unguarded_member_routes(application: FastAPI) -> list[str]:
-    """Return the paths of member routes that do not use the access guard."""
-    return [
-        path
-        for path, dependant in iter_api_routes(application)
-        if _is_member_route(path) and not _depends_on(dependant, require_member_access)
-    ]
-
-
 @pytest.fixture
 def member_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
-    """A test app with the auth routes, one guarded member route, and no database."""
+    """A test app with the auth routes and no database."""
     monkeypatch.setattr(auth, "load_user", lambda db, user_id: USERS.get(user_id))
 
     def fake_db() -> Iterator[None]:
@@ -83,10 +59,6 @@ def member_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     application = FastAPI()
     application.include_router(auth_router)
     application.dependency_overrides[auth.get_db] = fake_db
-
-    @application.get("/api/members/{member_id}/insight")
-    def member_insight(member: MemberGuard) -> dict[str, int]:
-        return {"member_id": member.id}
 
     return application
 
@@ -99,27 +71,6 @@ def client(member_app: FastAPI) -> TestClient:
 
 def _log_in(client: TestClient, user_id: int) -> None:
     log_in(client, user_id)
-
-
-# ---------------------------------------------------------------------------
-# can_view_member
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    ("actor_id", "subject_id", "expected"),
-    [
-        (1, 2, True),  # same team
-        (1, 1, True),  # yourself, when you are on a team
-        (1, 3, False),  # different team
-        (4, 4, False),  # two people with no team must NOT match (None == None)
-        (4, 1, False),  # actor has no team
-        (1, 4, False),  # subject has no team
-    ],
-)
-def test_can_view_member(actor_id: int, subject_id: int, expected: bool) -> None:
-    """The MVP rule is same team, and no team means no access."""
-    assert can_view_member(USERS[actor_id], USERS[subject_id]) is expected
 
 
 # ---------------------------------------------------------------------------
@@ -238,86 +189,25 @@ def test_logout_ends_the_session(client: TestClient) -> None:
 
 
 # ---------------------------------------------------------------------------
-# The guard on member routes
+# What W10 removed (DEC-026)
 # ---------------------------------------------------------------------------
 
 
-def test_same_team_member_is_allowed(client: TestClient) -> None:
-    """A colleague on the same team is visible."""
-    _log_in(client, 1)
-
-    response = client.get("/api/members/2/insight")
-
-    assert response.status_code == 200
-    assert response.json() == {"member_id": 2}
+def test_the_team_pages_and_team_api_are_gone() -> None:
+    """Member and team data is served only under /w/{workspace_id} now."""
+    paths = [p for p, _ in iter_api_routes(real_app)]
+    assert paths, "the route scan saw nothing"
+    legacy = ("/api/members", "/api/teams", "/teams", "/members", "/admin", "/repos", "/jira")
+    assert [p for p in paths if p.startswith(legacy)] == []
 
 
-def test_cross_team_member_is_403_and_logged(
-    client: TestClient, caplog: pytest.LogCaptureFixture
+@pytest.mark.parametrize(("env", "secure"), [("local", False), ("production", True)])
+def test_cookies_are_secure_outside_local(
+    monkeypatch: pytest.MonkeyPatch, env: str, secure: bool
 ) -> None:
-    """Someone on another team gets 403, and the denial is logged."""
-    _log_in(client, 1)
+    monkeypatch.setenv("APP_ENV", env)
+    import app.config
 
-    with caplog.at_level(logging.WARNING, logger="app.web.auth"):
-        response = client.get("/api/members/3/insight")
+    monkeypatch.setattr(app.config, "settings", None)
 
-    assert response.status_code == 403
-    assert "access denied" in caplog.text
-    assert "actor_id=1" in caplog.text
-    assert "subject_id=3" in caplog.text
-
-
-def test_member_route_without_login_is_401(client: TestClient) -> None:
-    """Member data is never served to an anonymous request."""
-    assert client.get("/api/members/2/insight").status_code == 401
-
-
-def test_unknown_member_is_404(client: TestClient) -> None:
-    """A member id that does not exist answers 404."""
-    _log_in(client, 1)
-
-    assert client.get("/api/members/999/insight").status_code == 404
-
-
-def test_user_with_no_team_can_view_nobody(client: TestClient) -> None:
-    """A user without a team is denied, including their own record."""
-    _log_in(client, 4)
-
-    assert client.get("/api/members/1/insight").status_code == 403
-    assert client.get("/api/members/4/insight").status_code == 403
-
-
-# ---------------------------------------------------------------------------
-# Route coverage: no member route may skip the check
-# ---------------------------------------------------------------------------
-
-
-def test_checker_flags_member_routes_without_the_guard() -> None:
-    """The coverage check really catches an unguarded route, so it is not vacuous."""
-    leaky = FastAPI()
-
-    @leaky.get("/api/members/{member_id}/insight")
-    def by_member_id(member_id: int) -> dict[str, int]:
-        return {"member_id": member_id}
-
-    @leaky.get("/api/members/{id}/activity")
-    def by_other_name() -> dict[str, str]:
-        return {}
-
-    assert unguarded_member_routes(leaky) == [
-        "/api/members/{member_id}/insight",
-        "/api/members/{id}/activity",
-    ]
-
-
-def test_checker_accepts_a_guarded_route(member_app: FastAPI) -> None:
-    """A route that takes MemberGuard passes the coverage check."""
-    assert unguarded_member_routes(member_app) == []
-
-
-def test_no_member_route_in_the_real_app_bypasses_the_guard() -> None:
-    """Every member-data route in the real application uses the access guard."""
-    member_paths = [p for p, _ in iter_api_routes(real_app) if _is_member_route(p)]
-    # Guards against a vacuous pass: this check once saw 0 routes (FastAPI 0.143).
-    assert len(member_paths) >= 3, member_paths
-    assert unguarded_member_routes(real_app) == []
+    assert cookie_secure() is secure

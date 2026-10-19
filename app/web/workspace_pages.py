@@ -22,7 +22,7 @@ from app.models.connections import (
     WorkspaceJiraProject,
     WorkspaceRepository,
 )
-from app.models.workspace import Account
+from app.models.workspace import Account, Workspace
 from app.people import confirmed_people, waiting_count
 from app.schemas.workspace import WorkspaceCreate
 from app.web.auth import DbDep
@@ -36,7 +36,7 @@ from app.web.workspaces import (
 )
 from app.workspace_admin import invites_for
 from app.workspace_analysis import analyze_workspace, member_summary
-from app.workspace_feed import feed, mark_seen
+from app.workspace_feed import feed, mark_seen, portfolio_card
 from app.workspace_sync import (
     ensure_organization,
     has_sources,
@@ -119,6 +119,13 @@ def portfolio_home(request: Request, account: AccountDep, db: DbDep) -> HTMLResp
     """1 card per workspace the account belongs to. Compares projects, never people."""
     context = _base_context(request, db, account, "workspaces")
     context["workspaces"] = list_workspaces_for(db, account)
+    context["cards"] = {
+        w.workspace_id: portfolio_card(
+            db, db.get(Workspace, w.workspace_id), latest_runs(db, w.workspace_id)
+        )
+        for w in context["workspaces"]
+    }
+    context["now"] = datetime.now(UTC)
     context["invites"] = invites_for(db, account)
     context["invite_message"] = INVITE_MESSAGES.get(request.query_params.get("invite", ""))
     context["github_message"] = _github_message(request.query_params.get("github", ""))

@@ -1,23 +1,27 @@
 """Unit and integration tests for GitHub OAuth authentication flow."""
 
 from collections.abc import Generator
-from datetime import UTC, datetime
 
 import pytest
 import respx
 from fastapi import status
 from fastapi.testclient import TestClient
 from httpx import Response
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from app.config import Settings
 from app.db import Base
+from app.integrations.identity_resolver import resolve_actor
 from app.main import app
 from app.models.canonical import AppUser, Organization, Team
 from app.models.identity import IdentityLink
+from app.models.workspace import Account
 from app.web import auth, routes
+from app.web.workspaces import upsert_account
+from app.workspace_sync import ensure_organization
+from tests.test_workspaces import _account, _workspace
 
 
 @pytest.fixture
@@ -100,22 +104,21 @@ def test_login_page_shows_banner_when_unconfigured(
 
 def test_github_login_redirects_to_github(client: TestClient, oauth_settings: Settings) -> None:
     """GET /auth/github/login sets state cookie and redirects to GitHub OAuth authorize."""
-    response = client.get("/auth/github/login?next=/teams/1", follow_redirects=False)
+    response = client.get("/auth/github/login?next=/w/1", follow_redirects=False)
     assert response.status_code == status.HTTP_303_SEE_OTHER
 
     location = response.headers["location"]
     assert location.startswith("https://github.com/login/oauth/authorize?")
     assert "client_id=test-client-id" in location
-    assert "scope=read%3Auser" in location
-    assert "repo" in location
-    assert "read%3Aorg" in location
     assert "state=" in location
+    # Identity only: no scope means GitHub grants read access to public profile data.
+    assert "scope=" not in location
 
     cookies = response.cookies
     assert "headref_oauth_state" in cookies
     assert "headref_oauth_next" in cookies
     # Starlette quotes a cookie value containing "/" and unquotes it again on read.
-    assert cookies["headref_oauth_next"].strip('"') == "/teams/1"
+    assert cookies["headref_oauth_next"].strip('"') == "/w/1"
 
 
 def test_github_login_fails_when_unconfigured(
@@ -185,231 +188,100 @@ def test_github_callback_auto_provisions_unmapped_user(
     assert response.status_code == status.HTTP_303_SEE_OTHER
     assert response.headers["location"] == "/workspaces"
     assert auth.SESSION_COOKIE in response.cookies
-    assert routes.GITHUB_TOKEN_COOKIE in response.cookies
-    assert response.cookies[routes.GITHUB_TOKEN_COOKIE] == "gho_test_token_123"
+    assert "gho_test_token_123" not in response.headers.get("set-cookie", "")
 
     user = db_session.query(AppUser).filter_by(display_name="Stranger Danger").first()
     assert user is not None
     assert user.is_active is True
-    link = db_session.query(IdentityLink).filter_by(external_id="9999999").first()
-    assert link is not None
-    assert link.app_user_id == user.id
+    assert user.team_id is None
+    assert user.organization.name == routes.ACCOUNTS_ORGANIZATION
+    assert db_session.query(IdentityLink).count() == 0
+
+
+def _sign_in(client: TestClient, gh_id: int, login: str, next_path: str | None = None):
+    respx.post("https://github.com/login/oauth/access_token").mock(
+        return_value=Response(200, json={"access_token": f"gho_{gh_id}"})
+    )
+    respx.get("https://api.github.com/user").mock(
+        return_value=Response(200, json={"id": gh_id, "login": login, "name": login})
+    )
+    client.cookies.clear()
+    client.cookies.set("headref_oauth_state", "state-1")
+    if next_path:
+        client.cookies.set("headref_oauth_next", next_path)
+    return client.get("/auth/github/callback?code=c&state=state-1", follow_redirects=False)
 
 
 @respx.mock
-def test_github_callback_successful_login(
+def test_an_existing_account_keeps_its_user_and_returns_to_next(
     client: TestClient, db_session: Session, oauth_settings: Settings
 ) -> None:
-    """Mapped active user successfully signs in and receives an authenticated session cookie."""
     org = Organization(name="Demo Org")
     db_session.add(org)
     db_session.flush()
-
-    team = Team(organization_id=org.id, name="Eng")
-    db_session.add(team)
-    db_session.flush()
-
-    user = AppUser(
-        organization_id=org.id,
-        team_id=team.id,
-        display_name="Keshan",
-        role_label="Backend",
-        is_active=True,
-    )
+    user = AppUser(organization_id=org.id, display_name="Keshan", is_active=True)
     db_session.add(user)
     db_session.flush()
-
-    link = IdentityLink(
-        app_user_id=user.id,
-        integration="github",
-        external_id="219891474",
-        external_handle="keshan-dev",
-        match_method="manual",
-        confidence="HIGH",
-        created_at=datetime.now(UTC),
-    )
-    db_session.add(link)
+    upsert_account(db_session, {"id": 219891474, "login": "keshan-dev"}, user.id)
     db_session.commit()
 
-    respx.post("https://github.com/login/oauth/access_token").mock(
-        return_value=Response(200, json={"access_token": "gho_valid_oauth_token"})
-    )
-    respx.get("https://api.github.com/user").mock(
-        return_value=Response(
-            200,
-            json={"id": 219891474, "login": "keshan-dev", "name": "Keshan"},
-        )
-    )
+    response = _sign_in(client, 219891474, "keshan-dev", "/workspaces/new")
 
-    client.cookies.set("headref_oauth_state", "state_abc_456")
-    client.cookies.set("headref_oauth_next", "/teams/1")
-
-    response = client.get(
-        "/auth/github/callback?code=valid-code-789&state=state_abc_456",
-        follow_redirects=False,
-    )
-
-    assert response.status_code == status.HTTP_303_SEE_OTHER
-    assert response.headers["location"] == "/teams/1"
-
-    # Session cookie must be set and state cookies cleared
-    assert auth.SESSION_COOKIE in response.cookies
-    assert routes.GITHUB_TOKEN_COOKIE in response.cookies
-    assert response.cookies[routes.GITHUB_TOKEN_COOKIE] == "gho_valid_oauth_token"
+    assert response.headers["location"] == "/workspaces/new"
     assert auth.read_session(response.cookies[auth.SESSION_COOKIE]) == user.id
     assert (
         "headref_oauth_state" not in response.cookies
         or response.cookies["headref_oauth_state"] == ""
     )
 
-    # Sign-in creates the account, matched on the numeric GitHub id (DEC-021).
-    from sqlalchemy import select
 
-    from app.models.workspace import Account
+@respx.mock
+def test_a_sign_in_never_becomes_a_person_of_a_workspace(
+    client: TestClient, db_session: Session, oauth_settings: Settings
+) -> None:
+    """Isiwara's commits were synced into lead-a's workspace; then she signs in.
 
-    account = db_session.scalar(select(Account).where(Account.github_user_id == 219891474))
-    assert account is not None
-    assert account.github_login == "keshan-dev"
-    assert account.app_user_id == user.id
+    Before W10 the callback matched her synced identity link, so her account acted as
+    that workspace person, which the team pages then showed to any signed-in user.
+    """
+    _, owner = _account(db_session, 101, "lead-a")
+    db_session.add(Team(organization_id=db_session.scalar(select(Organization.id)), name="Core"))
+    workspace = _workspace(db_session, owner)
+    org_id = ensure_organization(db_session, workspace)
+    db_session.commit()
+    person_id = resolve_actor(
+        db_session, "github", "202", "isiwara", auto_create=True, organization_id=org_id
+    )
+    db_session.commit()
 
+    _sign_in(client, 202, "isiwara")
 
-def test_repos_page_requires_auth(client: TestClient) -> None:
-    """Unauthenticated access to /repos redirects to /login."""
-    response = client.get("/repos", follow_redirects=False)
-    assert response.status_code == status.HTTP_303_SEE_OTHER
-    assert "/login" in response.headers["location"]
+    db_session.expire_all()
+    account = db_session.scalar(select(Account).where(Account.github_user_id == 202))
+    assert account.app_user_id != person_id
+    assert db_session.get(AppUser, person_id).team_id is None
 
 
 @respx.mock
-def test_repos_page_renders_with_mocked_github(client: TestClient, db_session: Session) -> None:
-    """Authenticated user visiting /repos sees their organizations and repositories."""
-    org = Organization(name="Demo Org")
-    db_session.add(org)
-    db_session.flush()
-    team = Team(organization_id=org.id, name="Eng")
-    db_session.add(team)
-    db_session.flush()
-    user = AppUser(
-        organization_id=org.id,
-        team_id=team.id,
-        display_name="Keshan",
-        role_label="Backend",
-        is_active=True,
-    )
-    db_session.add(user)
-    db_session.commit()
-
-    respx.get("https://api.github.com/user/orgs").mock(
-        return_value=Response(
-            200,
-            json=[{"id": 1, "login": "my-cool-org", "description": "Cool Org"}],
-        )
-    )
-    respx.get("https://api.github.com/user/repos").mock(
-        return_value=Response(
-            200,
-            json=[
-                {
-                    "id": 101,
-                    "name": "argus",
-                    "full_name": "keshan-dev/argus",
-                    "owner": {"login": "keshan-dev"},
-                    "description": "Headref repository",
-                    "private": False,
-                    "stargazers_count": 5,
-                    "language": "Python",
-                }
-            ],
-        )
-    )
-
-    client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
-    client.cookies.set(routes.GITHUB_TOKEN_COOKIE, "gho_dummy_token")
-
-    response = client.get("/repos")
-    assert response.status_code == 200
-    assert "Available Repositories" in response.text
-    assert "my-cool-org" in response.text
-    assert "keshan-dev/argus" in response.text
-
-
-def test_select_repo_triggers_sync_and_redirects(
-    client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+def test_an_account_bound_to_a_workspace_person_is_moved_to_its_own_user(
+    client: TestClient, db_session: Session, oauth_settings: Settings
 ) -> None:
-    """POST /repos/select invokes sync_github and redirects with ?synced=true."""
-    org = Organization(name="Demo Org")
-    db_session.add(org)
-    db_session.flush()
-    team = Team(organization_id=org.id, name="Eng")
-    db_session.add(team)
-    db_session.flush()
-    user = AppUser(
-        organization_id=org.id,
-        team_id=team.id,
-        display_name="Keshan",
-        role_label="Backend",
-        is_active=True,
+    _, owner = _account(db_session, 101, "lead-a")
+    workspace = _workspace(db_session, owner)
+    org_id = ensure_organization(db_session, workspace)
+    db_session.commit()
+    person_id = resolve_actor(
+        db_session, "github", "202", "isiwara", auto_create=True, organization_id=org_id
     )
-    db_session.add(user)
+    upsert_account(db_session, {"id": 202, "login": "isiwara"}, person_id)
     db_session.commit()
 
-    sync_called = []
+    response = _sign_in(client, 202, "isiwara")
 
-    def mock_sync_github(session, team_id, scope, gh_client, auto_create_contributors):
-        sync_called.append(
-            {
-                "team_id": team_id,
-                "scope": scope,
-                "auto_create_contributors": auto_create_contributors,
-            }
-        )
-
-    monkeypatch.setattr(routes, "sync_github", mock_sync_github)
-
-    client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
-    client.cookies.set(routes.GITHUB_TOKEN_COOKIE, "gho_dummy_token")
-
-    response = client.post(
-        "/repos/select",
-        data={"repo_full_name": "keshan-dev/argus"},
-        follow_redirects=False,
-    )
-
-    assert response.status_code == status.HTTP_303_SEE_OTHER
-    assert "/?synced=true" in response.headers["location"]
-    assert "keshan-dev%2Fargus" in response.headers["location"]
-    assert len(sync_called) == 1
-    assert sync_called[0]["scope"] == "keshan-dev/argus"
-    assert sync_called[0]["auto_create_contributors"] is True
-
-
-def test_select_repo_rejects_invalid_name(client: TestClient, db_session: Session) -> None:
-    """POST /repos/select rejects invalid repository format."""
-    org = Organization(name="Demo Org")
-    db_session.add(org)
-    db_session.flush()
-    team = Team(organization_id=org.id, name="Eng")
-    db_session.add(team)
-    db_session.flush()
-    user = AppUser(
-        organization_id=org.id,
-        team_id=team.id,
-        display_name="Keshan",
-        role_label="Backend",
-        is_active=True,
-    )
-    db_session.add(user)
-    db_session.commit()
-
-    client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
-
-    response = client.post(
-        "/repos/select",
-        data={"repo_full_name": "invalid_format_without_slash"},
-        follow_redirects=False,
-    )
-    assert response.status_code == status.HTTP_303_SEE_OTHER
-    assert "/repos?error=" in response.headers["location"]
+    db_session.expire_all()
+    account = db_session.scalar(select(Account).where(Account.github_user_id == 202))
+    assert account.app_user_id != person_id
+    assert auth.read_session(response.cookies[auth.SESSION_COOKIE]) == account.app_user_id
 
 
 def test_a_stale_next_naming_a_post_only_route_goes_home() -> None:
@@ -421,3 +293,21 @@ def test_a_stale_next_naming_a_post_only_route_goes_home() -> None:
     assert is_openable_page(real_app, "/w/1?jira=saved")
     assert not is_openable_page(real_app, "/w/1/connections/jira/start")
     assert not is_openable_page(real_app, "/no/such/page")
+
+
+@respx.mock
+def test_a_workspace_named_like_the_accounts_organization_captures_nobody(
+    client: TestClient, db_session: Session, oauth_settings: Settings
+) -> None:
+    """A workspace's organization takes the workspace's name, which anyone can choose."""
+    _, owner = _account(db_session, 101, "lead-a")
+    trap = _workspace(db_session, owner, routes.ACCOUNTS_ORGANIZATION)
+    trap_org = ensure_organization(db_session, trap)
+    db_session.commit()
+
+    _sign_in(client, 555, "newcomer")
+
+    account = db_session.scalar(select(Account).where(Account.github_user_id == 555))
+    user = db_session.get(AppUser, account.app_user_id)
+    assert user.organization_id != trap_org
+    assert user.organization.name == routes.ACCOUNTS_ORGANIZATION

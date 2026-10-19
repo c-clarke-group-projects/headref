@@ -9,9 +9,11 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from httpx import Response
 
+from app.integrations.errors import IntegrationError
 from app.integrations.github_app import (
     GitHubAppClient,
     Installation,
+    exchange_oauth_code,
     make_app_jwt,
     user_can_attach,
 )
@@ -159,3 +161,32 @@ def test_an_org_admin_token_of_another_person_is_refused():
 
 def test_an_unknown_account_type_never_attaches():
     assert not user_can_attach(_installation("Enterprise"), "token", github_user_id=101)
+
+
+def test_an_org_installation_without_a_token_never_attaches():
+    assert not user_can_attach(_installation("Organization"), None, github_user_id=101)
+
+
+@respx.mock
+def test_the_oauth_code_is_exchanged_once_and_the_token_returned():
+    route = respx.post("https://github.com/login/oauth/access_token").mock(
+        return_value=Response(200, json={"access_token": "gho_once", "scope": "read:org"})
+    )
+
+    token = exchange_oauth_code("c", "http://x/auth/github/callback/org", "id", "secret")
+
+    assert token == "gho_once"
+    assert route.call_count == 1
+
+
+@respx.mock
+@pytest.mark.parametrize(
+    "response",
+    [Response(200, json={"error": "bad_verification_code"}), Response(502, text="bad gateway")],
+)
+def test_a_refused_or_failed_exchange_raises_and_is_not_retried(response):
+    route = respx.post("https://github.com/login/oauth/access_token").mock(return_value=response)
+
+    with pytest.raises(IntegrationError):
+        exchange_oauth_code("c", "http://x/auth/github/callback/org", "id", "secret")
+    assert route.call_count == 1
