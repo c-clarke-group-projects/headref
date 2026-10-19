@@ -1458,8 +1458,8 @@ Owner: Developer 1 for the diff and the rules, Developer 2 for the screen
 
 - **Likely next** is shown as facts with a stated order, not as an inference: each item is
   1 record ("assigned, status To Do"), and an inference needs 2 or more evidence items
-  (`TESTING_AND_EVALUATION.md` 11.6). Reviews requested from the person are not included
-  yet.
+  (`TESTING_AND_EVALUATION.md` 11.6). Reviews requested from the person and still waiting
+  are included since W11 (`review_request`, migration 0009).
 - **Feed keys**: a finding is keyed by rule and entity (`blocker:BL-5:owner/repo#5`), never
   by its text, so a day counter ("open for 4 days") is not a change. RK-4 is left out of
   the feed because the conflict line already reports it.
