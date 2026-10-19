@@ -7,7 +7,7 @@ routes arrive in P5-001 and MUST take the MemberGuard dependency from app.web.au
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
@@ -116,6 +116,24 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
+def _return_path(request: Request) -> str:
+    """Where to send someone after they sign in.
+
+    A page load returns to that page. A form submission (POST) cannot be repeated by a
+    redirect, which is always a GET: returning to a POST-only path such as
+    /w/1/connections/jira/start answers 405. It returns to the page the form was on,
+    from a same-site Referer, or else to the home page. The login route still applies
+    safe_next to whatever this returns.
+    """
+    if request.method in ("GET", "HEAD"):
+        path = request.url.path
+        return f"{path}?{request.url.query}" if request.url.query else path
+    referer = urlparse(request.headers.get("referer", ""))
+    if referer.netloc == request.url.netloc and referer.path.startswith("/"):
+        return f"{referer.path}?{referer.query}" if referer.query else referer.path
+    return "/"
+
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     """Render page errors as HTML and API errors as JSON.
@@ -124,9 +142,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     trying to reach. The API keeps its JSON body unchanged so clients are not broken.
     """
     if exc.status_code == status.HTTP_401_UNAUTHORIZED and not request.url.path.startswith("/api"):
-        next_url = request.url.path
-        if request.url.query:
-            next_url = f"{next_url}?{request.url.query}"
+        next_url = _return_path(request)
         return RedirectResponse(
             url=f"/login?next={quote(next_url, safe='/?=&')}",
             status_code=status.HTTP_303_SEE_OTHER,

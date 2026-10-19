@@ -166,3 +166,34 @@ def test_the_switcher_lists_only_my_workspaces(client, db_session):
     assert "Switch workspace" in html
     assert "Charlie team" in html
     assert "Bravo team" not in html
+
+
+def test_a_signed_out_form_post_returns_to_the_page_not_the_post_route(client, db_session):
+    """After signing in, a redirect is a GET; a POST-only path would answer 405."""
+    _, account = _account(db_session, 101, "lead-a")
+    workspace = _workspace(db_session, account, "Payments")
+
+    response = client.post(
+        f"/w/{workspace.id}/connections/jira/start",
+        headers={"referer": f"http://testserver/w/{workspace.id}"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == f"/login?next=/w/{workspace.id}"
+
+
+def test_a_signed_out_post_from_another_site_returns_home(client):
+    response = client.post(
+        "/w/1/connections/jira/start",
+        headers={"referer": "https://evil.example/w/1"},
+        follow_redirects=False,
+    )
+
+    assert response.headers["location"] == "/login?next=/"
+
+
+def test_a_signed_out_page_load_still_returns_to_that_page(client):
+    response = client.get("/w/1?jira=saved", headers=HTML, follow_redirects=False)
+
+    assert response.headers["location"] == "/login?next=/w/1?jira=saved"
