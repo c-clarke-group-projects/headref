@@ -23,7 +23,7 @@ from app.models.work import (
     WorkItemDependency,
     WorkItemLink,
 )
-from app.models.workspace import Account, Workspace, WorkspaceMember
+from app.models.workspace import Account, Workspace, WorkspaceInvite, WorkspaceMember
 
 __all__ = [
     "Base",
@@ -53,4 +53,5 @@ __all__ = [
     "WorkspaceJiraProject",
     "FindingSnapshot",
     "WorkspaceEvent",
+    "WorkspaceInvite",
 ]

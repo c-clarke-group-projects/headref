@@ -1288,6 +1288,18 @@ needs yet.
 - A test enumerates routes and fails if one skips the workspace dependency.
 - The `team` table is removed; a workspace is the team.
 
+### Amended 2026-10-19 (W9), still Proposed
+
+- An invite is made for a GitHub login but stored and matched by GitHub's numeric account
+  id, looked up once when the invite is made. A renamed login, or a login someone else
+  takes over later, does not carry the invite. The invited person accepts or declines on
+  their workspace list; nobody is added without accepting. Invites expire after 14 days.
+- Only the owner changes settings: details, invites, roles (manager or viewer), removing
+  access, archiving. The owner's own role does not change; transferring ownership is not
+  built.
+- Archiving needs the workspace name typed. It closes the workspace for everyone and stops
+  its syncs; the data is kept, and there is no unarchive in the app.
+
 ### Related documents
 
 DEC-008, DEC-010, DEC-015, DEC-019, FR-001, FR-028, `impl/implementation_plan_workspaces.md`.

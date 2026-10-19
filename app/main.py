@@ -23,6 +23,7 @@ from app.web.connections import connections_pages
 from app.web.jira_connections import jira_pages
 from app.web.people_pages import people_pages
 from app.web.routes import router as api_router
+from app.web.settings_pages import settings_pages
 from app.web.ui_format import templates
 from app.web.workspace_pages import workspace_pages
 from app.web.workspaces import workspace_api
@@ -59,6 +60,7 @@ app.include_router(workspace_pages)
 app.include_router(connections_pages)
 app.include_router(jira_pages)
 app.include_router(people_pages)
+app.include_router(settings_pages)
 app.include_router(api_router)
 
 

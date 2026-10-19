@@ -2,6 +2,8 @@
   Portfolio home (W2, DEC-021). 1 card per workspace the account belongs to.
   Context: base context plus
     workspaces: list[WorkspaceOut], sorted by name
+    invites: list[InviteForMe], open invites for this GitHub account (W9)
+    invite_message: fixed copy or None
   Cards compare projects, never people: no per-person numbers here.
   Health, counts and freshness arrive with sync (W5); until then each card says so.
 #}
@@ -31,16 +33,41 @@
 {% for message in [github_message, jira_message] if message %}
 <div class="banners"><div class="banner banner--unavailable" role="alert"><span class="banner__icon">{{ i.icon("warning", 18) }}</span><span>{{ message }}</span></div></div>
 {% endfor %}
+{% if invite_message %}
+<div class="banners"><div class="banner" role="status"><span class="banner__dot" aria-hidden="true"></span><span>{{ invite_message }}</span></div></div>
+{% endif %}
 {% endblock %}
 
 {% block content %}
+{% if invites %}
+<section class="section" aria-labelledby="invites-title">
+  <div class="card card--pad-md">
+    <h2 class="card__title" id="invites-title">Invitations ({{ invites|length }})</h2>
+    <ul class="next-up">
+      {% for inv in invites %}
+        <li>
+          <strong>{{ inv.workspace_name }}</strong>
+          <span class="badge badge--sm badge--outline">{{ inv.role|capitalize }}</span>
+          <span class="caption">{% if inv.invited_by %}From {{ inv.invited_by }}. {% endif %}Expires {{ inv.expires_at|utc_title }}</span>
+          <form method="post" action="/invites/{{ inv.invite_id }}/accept" class="inline-form">
+            <button type="submit" class="btn btn--primary btn--sm">Accept</button>
+          </form>
+          <form method="post" action="/invites/{{ inv.invite_id }}/decline" class="inline-form">
+            <button type="submit" class="linklike">Decline</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
 <section class="section">
   {% if not workspaces %}
     <div class="card card--pad card--dashed">
       <h2 class="card__title">No workspaces yet</h2>
       <p class="empty-note" style="margin-top: var(--s-3)">Create a workspace for a team or a
-        project, then connect its GitHub repositories and Jira projects. If someone invited you,
-        their workspace appears here after they add your GitHub username.</p>
+        project, then connect its GitHub repositories and Jira projects. If someone invites you
+        by your GitHub username, the invitation appears here.</p>
       <p style="margin-top: var(--s-5)"><a class="btn btn--primary" href="/workspaces/new">Create your first workspace</a></p>
     </div>
   {% else %}

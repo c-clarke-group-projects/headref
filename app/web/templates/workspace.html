@@ -28,6 +28,7 @@
     {% if workspace.description %}<p class="hero__lead">{{ workspace.description }}</p>{% endif %}
     <div class="hero__pills">
       <span class="badge badge--sm badge--on-dark">You are {{ "an" if role == "owner" else "a" }} {{ role }}</span>
+      <a class="badge badge--sm badge--on-dark" href="/w/{{ workspace.id }}/settings">Settings</a>
     </div>
   </div>
   {% if my_workspaces|length > 1 %}

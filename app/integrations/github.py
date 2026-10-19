@@ -21,6 +21,11 @@ logger = logging.getLogger("headref.integrations.github")
 # Regex to extract URL with rel="next" from RFC-5988 Link header
 _NEXT_LINK_REGEX = re.compile(r'<([^>]+)>;\s*rel="next"')
 
+# GitHub logins: letters, digits and hyphens, 1 to 39 characters, no hyphen at
+# either end. Checked before the login goes into a URL path.
+GITHUB_LOGIN_PATTERN = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
+GITHUB_API_URL = "https://api.github.com"
+
 
 def parse_next_page_url(link_header: str | None) -> str | None:
     """Extract the next page URL from a GitHub RFC-5988 Link response header."""
@@ -226,3 +231,26 @@ class GitHubClient:
         url = f"/repos/{owner}/{repo}/branches"
         params = {"per_page": 100}
         return self._paginate(url, params=params)
+
+
+def lookup_github_user(login: str, transport: httpx.BaseTransport | None = None) -> dict[str, Any]:
+    """Return {"id", "login", "type"} of a GitHub account, from its public profile.
+
+    Used to turn an invited login into the numeric id an invite is matched on. No token:
+    GitHub allows 60 unauthenticated requests an hour per address, plenty for invites.
+    Raises ValueError for a malformed login, NotFoundError when there is no such account,
+    and the other typed IntegrationErrors when GitHub cannot be reached.
+    """
+    if not GITHUB_LOGIN_PATTERN.match(login):
+        raise ValueError("not a GitHub login")
+    headers = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
+    with HttpClient(
+        base_url=GITHUB_API_URL,
+        timeout=HTTP_TIMEOUT_SECONDS,
+        max_attempts=HTTP_MAX_ATTEMPTS,
+        transport=transport,
+        headers=headers,
+    ) as http:
+        data = http.get(f"/users/{login}").json()
+    logger.info("github user lookup: login=%s found_id=%s", login, data.get("id"))
+    return {"id": int(data["id"]), "login": str(data["login"]), "type": str(data.get("type"))}

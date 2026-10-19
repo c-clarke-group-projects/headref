@@ -34,6 +34,7 @@ from app.web.workspaces import (
     create_workspace,
     list_workspaces_for,
 )
+from app.workspace_admin import invites_for
 from app.workspace_analysis import analyze_workspace, member_summary
 from app.workspace_feed import feed, mark_seen
 from app.workspace_sync import (
@@ -77,6 +78,15 @@ def _run_out(run: Any) -> dict[str, Any]:
 workspace_pages = APIRouter(tags=["workspace pages"])
 
 
+# Results of accepting or declining an invite, and of archiving, shown on the portfolio.
+INVITE_MESSAGES = {
+    "declined": "Invite declined.",
+    "not_found": "That invite is no longer open: it was withdrawn, it expired, or it was for "
+    "a different GitHub account.",
+    "archived": "Workspace archived. It no longer appears here and no longer syncs.",
+}
+
+
 def _github_message(code: str) -> str | None:
     """Fixed copy for a ?github= outcome code. Imported late: connections imports us."""
     from app.web.connections import GITHUB_MESSAGES
@@ -109,6 +119,8 @@ def portfolio_home(request: Request, account: AccountDep, db: DbDep) -> HTMLResp
     """1 card per workspace the account belongs to. Compares projects, never people."""
     context = _base_context(request, db, account, "workspaces")
     context["workspaces"] = list_workspaces_for(db, account)
+    context["invites"] = invites_for(db, account)
+    context["invite_message"] = INVITE_MESSAGES.get(request.query_params.get("invite", ""))
     context["github_message"] = _github_message(request.query_params.get("github", ""))
     context["jira_message"] = _jira_message(request.query_params.get("jira", ""))
     return templates.TemplateResponse(request=request, name="workspaces.html", context=context)

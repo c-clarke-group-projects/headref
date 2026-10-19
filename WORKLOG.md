@@ -60,6 +60,47 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-19 | Keshan | Workspaces W9: settings, invites, roles, archive
+Status: IN_PROGRESS
+
+### Completed
+1. Migration `0008_workspace_invite`, additive. Upgrade, downgrade and upgrade verified on a
+   copy of the local database, then applied locally.
+2. `app/workspace_admin.py` and `/w/{id}/settings`: rename and describe the workspace;
+   who has access; invite by GitHub username as manager or viewer; withdraw an invite;
+   change a role; remove access; archive after typing the name. Every member sees who has
+   access; only the owner sees and uses the forms (403 otherwise).
+3. Invites: the login is checked against GitHub's public profile
+   (`lookup_github_user`, no token, timeout and retry limit from `HttpClient`) and stored
+   by numeric id. Malformed logins are refused before any request; organizations,
+   unknown users, existing members and GitHub failures are each reported, and nothing is
+   saved. A GitHub failure shows its typed error.
+4. The invited person sees "Invitations" on their workspace list with Accept and Decline.
+   An invite is accepted only by the account whose GitHub id it holds, while it is open
+   and its workspace is not archived.
+5. Settings link on the workspace page. DEC-021 amended (still Proposed).
+6. 20 tests. Full suite: 592 passed, 1 skipped, 1 failed (`test_parse_valid_identity_map_file`,
+   only because of the local uncommitted edit to `seed/identity_map.yml`).
+7. Real data, workspace "dev team": settings page renders for the owner; inviting the
+   owner's own login looked it up on GitHub in 0.8 s and was refused as already a member;
+   a malformed login was refused without a request; 0 invites stored.
+
+### Discovered
+- The P3 member-route guard test treats any `{member_id}` path as a person's data. The
+  settings routes take a workspace membership id, so their parameter is `membership_id`.
+
+### Not verified
+- A real second person accepting an invite (needs Isiwara's GitHub username and a sign-in).
+- Browser layout of the settings page and the invitations section.
+- Cross-site request protection relies on the session cookie's `SameSite=Lax`, as every
+  existing form does. For the W10 security review.
+
+### Next Step
+W10: hardening. Isolation tests across 2 workspaces, security review, remove the old pages,
+secure cookie.
+
+---
+
 ## 2026-10-19 | Keshan | Workspaces W8: what changed between syncs
 Status: IN_PROGRESS
 

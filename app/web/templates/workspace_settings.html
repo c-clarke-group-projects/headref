@@ -1,0 +1,133 @@
+{#
+  Workspace settings (W9, DEC-021).
+  Context: base context plus workspace, role, is_owner (bool),
+    members (list[MemberRow], owner first), invites (list of (WorkspaceInvite, expired bool), owner only),
+    invite_roles (tuple of roles an invite can give), message (fixed copy or None)
+  Every member sees who has access. Only the owner sees forms.
+#}
+{% extends "base.html" %}
+{% import "partials/icons.html" as i %}
+
+{% block title %}Settings, {{ workspace.name }}, Headref{% endblock %}
+
+{% block hero %}
+<section class="hero">
+  <div>
+    <a class="hero__back" href="/w/{{ workspace.id }}">{{ i.icon("arrow-left") }}Back to {{ workspace.name }}</a>
+    <h1 class="hero__title">Settings</h1>
+    <p class="hero__lead">Owner: everything here. Managers: sync and decide who is on the team.
+      Viewers: read only.</p>
+  </div>
+</section>
+{% endblock %}
+
+{% block banners %}
+{% if message %}
+<div class="banners"><div class="banner" role="status"><span class="banner__dot" aria-hidden="true"></span><span>{{ message }}</span></div></div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{% if is_owner %}
+<section class="section" aria-labelledby="details-title">
+  <form class="card card--pad-md ws-form" method="post" action="/w/{{ workspace.id }}/settings/details">
+    <h2 class="card__title" id="details-title">Details</h2>
+    <div class="field">
+      <label for="ws-name">Name</label>
+      <input id="ws-name" name="name" type="text" required maxlength="100" value="{{ workspace.name }}" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="ws-description">Description <span class="caption">(optional)</span></label>
+      <input id="ws-description" name="description" type="text" maxlength="500" value="{{ workspace.description or '' }}" autocomplete="off">
+    </div>
+    <p style="margin-top: var(--s-5)"><button type="submit" class="btn btn--primary btn--sm">Save</button></p>
+  </form>
+</section>
+{% endif %}
+
+<section class="section" aria-labelledby="members-title">
+  <div class="card card--pad-md">
+    <h2 class="card__title" id="members-title">Who has access ({{ members|length }})</h2>
+    <ul class="next-up">
+      {% for m in members %}
+        <li>
+          <strong>{{ m.github_login }}</strong>{% if m.display_name != m.github_login %} <span class="caption">{{ m.display_name }}</span>{% endif %}
+          <span class="badge badge--sm badge--outline">{{ m.role|capitalize }}</span>
+          {% if is_owner and m.role != "owner" %}
+            <form method="post" action="/w/{{ workspace.id }}/settings/members/{{ m.member_id }}/role" class="inline-form">
+              <input type="hidden" name="role" value="{{ 'viewer' if m.role == 'manager' else 'manager' }}">
+              <button type="submit" class="linklike">Make {{ "viewer" if m.role == "manager" else "manager" }}</button>
+            </form>
+            <form method="post" action="/w/{{ workspace.id }}/settings/members/{{ m.member_id }}/remove" class="inline-form">
+              <button type="submit" class="linklike">Remove access</button>
+            </form>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+
+{% if is_owner %}
+<section class="section" aria-labelledby="invite-title">
+  <div class="card card--pad-md">
+    <h2 class="card__title" id="invite-title">Invite by GitHub username</h2>
+    <p class="caption">Headref checks the username with GitHub and saves the account's id, so the
+      invite stays with that account if the username changes. The person accepts from their
+      workspace list after signing in with GitHub.</p>
+    <form class="ws-form" method="post" action="/w/{{ workspace.id }}/settings/invites">
+      <div class="field">
+        <label for="invite-login">GitHub username</label>
+        <input id="invite-login" name="login" type="text" required maxlength="39" autocomplete="off" placeholder="octocat">
+      </div>
+      <div class="field">
+        <label for="invite-role">Role</label>
+        <select id="invite-role" name="role">
+          {% for r in invite_roles %}<option value="{{ r }}">{{ r|capitalize }}</option>{% endfor %}
+        </select>
+      </div>
+      <p style="margin-top: var(--s-5)"><button type="submit" class="btn btn--primary btn--sm">Invite</button></p>
+    </form>
+
+    <h3 class="card__title section">Waiting to be accepted ({{ invites|length }})</h3>
+    {% if invites %}
+      <ul class="next-up">
+        {% for inv, expired in invites %}
+          <li>
+            <strong>{{ inv.github_login }}</strong>
+            <span class="badge badge--sm badge--outline">{{ inv.role|capitalize }}</span>
+            <span class="caption">{% if expired %}Expired. Invite again to renew.{% else %}Expires {{ inv.expires_at|utc_title }}{% endif %}</span>
+            <form method="post" action="/w/{{ workspace.id }}/settings/invites/{{ inv.id }}/revoke" class="inline-form">
+              <button type="submit" class="linklike">Withdraw</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="empty-note">No invites waiting.</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="section" aria-labelledby="connections-title">
+  <div class="card card--pad-md">
+    <h2 class="card__title" id="connections-title">Connections</h2>
+    <p class="caption">Add or disconnect sources on their own pages.</p>
+    <p><a href="/w/{{ workspace.id }}/connections/github">GitHub repositories</a> · <a href="/w/{{ workspace.id }}/connections/jira">Jira projects</a></p>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="archive-title">
+  <form class="card card--pad-md ws-form" method="post" action="/w/{{ workspace.id }}/settings/archive">
+    <h2 class="card__title" id="archive-title">Archive this workspace</h2>
+    <p class="caption">Archiving closes the workspace for everyone with access and stops its
+      syncs. Its data is kept. It cannot be undone from the app.</p>
+    <div class="field">
+      <label for="confirm-name">Type <strong>{{ workspace.name }}</strong> to confirm</label>
+      <input id="confirm-name" name="confirm_name" type="text" required maxlength="100" autocomplete="off">
+    </div>
+    <p style="margin-top: var(--s-5)"><button type="submit" class="btn btn--quiet btn--sm">Archive workspace</button></p>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

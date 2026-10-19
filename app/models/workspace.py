@@ -121,3 +121,32 @@ class WorkspaceMember(Base):
     account: Mapped["Account"] = relationship(
         "Account", back_populates="memberships", foreign_keys=[account_id]
     )
+
+
+class WorkspaceInvite(Base):
+    """A pending invite to 1 workspace, for 1 GitHub account (W9, DEC-021).
+
+    Matched on the numeric GitHub id looked up when the invite is made, never on the login:
+    a login can be renamed and then taken by someone else.
+    """
+
+    __tablename__ = "workspace_invite"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "github_user_id", name="uq_workspace_invite_user"),
+        CheckConstraint("role IN ('manager', 'viewer')", name="ck_workspace_invite_role"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    workspace_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    github_user_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
+    github_login: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(String(16), nullable=False)
+    invited_by_account_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("account.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, nullable=False
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
