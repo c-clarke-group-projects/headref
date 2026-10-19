@@ -18,6 +18,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, Query, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import and_, func, or_, select
+from starlette.routing import Match
 
 from app.agent.orchestrator import run_agent
 from app.agent.planner import build_plan
@@ -604,6 +605,16 @@ def safe_next(value: str | None) -> str:
     return value
 
 
+def is_openable_page(application: Any, path: str) -> bool:
+    """True if a GET to path reaches a route, so redirecting there cannot answer 405.
+
+    A stale sign-in link can carry next=<a POST-only path>, for example a Connect
+    button's action. Redirects are always GETs, so such a next would land on a 405.
+    """
+    scope = {"type": "http", "path": path.split("?", 1)[0], "method": "GET", "root_path": ""}
+    return any(route.matches(scope)[0] == Match.FULL for route in application.routes)
+
+
 OAUTH_STATE_COOKIE = "headref_oauth_state"
 OAUTH_NEXT_COOKIE = "headref_oauth_next"
 GITHUB_TOKEN_COOKIE = "headref_gh_token"  # noqa: S105  a cookie name, not a secret
@@ -707,6 +718,8 @@ async def github_callback(
         return _login_err("Missing authorization code from GitHub.")
 
     next_url = safe_next(request.cookies.get(OAUTH_NEXT_COOKIE, "/"))
+    if not is_openable_page(request.app, next_url):
+        next_url = "/"
 
     try:
         async with httpx.AsyncClient(timeout=settings.http_timeout_seconds) as http_client:

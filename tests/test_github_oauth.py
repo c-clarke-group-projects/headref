@@ -410,3 +410,14 @@ def test_select_repo_rejects_invalid_name(client: TestClient, db_session: Sessio
     )
     assert response.status_code == status.HTTP_303_SEE_OTHER
     assert "/repos?error=" in response.headers["location"]
+
+
+def test_a_stale_next_naming_a_post_only_route_goes_home() -> None:
+    """A redirect is a GET; next=<POST-only path> would land on a 405."""
+    from app.main import app as real_app
+    from app.web.routes import is_openable_page
+
+    assert is_openable_page(real_app, "/workspaces")
+    assert is_openable_page(real_app, "/w/1?jira=saved")
+    assert not is_openable_page(real_app, "/w/1/connections/jira/start")
+    assert not is_openable_page(real_app, "/no/such/page")
