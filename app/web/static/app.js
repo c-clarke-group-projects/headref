@@ -406,8 +406,33 @@ function showSkippedNote() {
   if (skipped && status) status.textContent = `Last sync skipped ${skipped} records.`;
 }
 
+// Workspace sync (W5): while a sync runs, poll its status and reload once it ends.
+// Stops after SYNC_POLL_TIMEOUT_MS rather than polling forever.
+async function pollWorkspaceSync() {
+  const box = document.querySelector("[data-ws-sync-poll]");
+  if (!box) return;
+  const url = box.getAttribute("data-ws-sync-poll");
+  const note = box.querySelector("[data-ws-sync-note]");
+  const started = Date.now();
+  while (Date.now() - started < SYNC_POLL_TIMEOUT_MS) {
+    await wait(SYNC_POLL_INTERVAL_MS);
+    try {
+      const status = await requestJSON(url);
+      if (status && status.running === false) {
+        window.location.reload();
+        return;
+      }
+    } catch (err) {
+      if (note) note.textContent = "Sync status could not be read. Reload the page to check again.";
+      return;
+    }
+  }
+  if (note) note.textContent = "The sync is taking longer than expected. Reload the page to check again.";
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   localizeTimes();
+  pollWorkspaceSync();
   drawer.init();
   tabs.init();
   refresh.init();

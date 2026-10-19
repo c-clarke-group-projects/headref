@@ -26,6 +26,7 @@ from app.integrations.github import get_active_github_token
 from app.models.canonical import Repository
 from app.models.operations import SyncRun
 from app.sync import sync_github, sync_jira
+from app.workspace_sync import sync_all_workspaces
 
 logger = logging.getLogger("headref.scheduler")
 
@@ -189,6 +190,17 @@ def run_scheduled_tick(
     }
 
 
+def _tick(team_id: int) -> None:
+    """1 scheduler pass: the legacy configured scopes, then every workspace (W5)."""
+    session = get_sync_session()
+    try:
+        run_scheduled_tick(session, team_id=team_id)
+    finally:
+        session.close()
+    synced = sync_all_workspaces(get_sync_session)
+    logger.info("scheduled workspace syncs: %s", synced)
+
+
 async def scheduler_loop(
     interval_seconds: float,
     stop_event: asyncio.Event,
@@ -198,11 +210,9 @@ async def scheduler_loop(
     logger.info("Scheduler loop started with interval of %.1f seconds", interval_seconds)
     while not stop_event.is_set():
         try:
-            session = get_sync_session()
-            try:
-                run_scheduled_tick(session, team_id=team_id)
-            finally:
-                session.close()
+            # In a worker thread: a sync takes seconds to minutes, and running it on the
+            # event loop would stop the web app answering requests meanwhile.
+            await asyncio.to_thread(_tick, team_id)
         except Exception as exc:
             logger.error("Unexpected error in scheduler loop: %s", exc)
 

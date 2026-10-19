@@ -151,6 +151,7 @@ def load_identity_map(
         for account in person.accounts:
             link = session.scalar(
                 select(IdentityLink).where(
+                    IdentityLink.organization_id == org_id,
                     IdentityLink.integration == account.integration,
                     IdentityLink.external_id == account.external_id,
                 )
@@ -164,6 +165,7 @@ def load_identity_map(
                 link.verified_at = now
             else:
                 link = IdentityLink(
+                    organization_id=org_id,
                     app_user_id=user.id,
                     integration=account.integration,
                     external_id=account.external_id,

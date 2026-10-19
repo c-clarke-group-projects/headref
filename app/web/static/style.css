@@ -485,6 +485,8 @@ body.drawer-open { overflow: hidden; }
 .ws-conn__name { display: inline-flex; align-items: center; gap: var(--s-2); font-weight: 500; }
 .ws-sync { margin-top: var(--s-5); display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
 .ws-form { max-width: 720px; }
+.ws-runs { margin-top: var(--s-4); list-style: none; display: flex; flex-direction: column; }
+.ws-runs__row { display: grid; grid-template-columns: minmax(0, 1.2fr) auto minmax(0, 2fr); align-items: center; gap: var(--s-3); padding: var(--s-2) 0; border-top: 1px solid var(--ash); overflow-wrap: anywhere; }
 .repo-pick { margin-top: var(--s-4); list-style: none; display: flex; flex-direction: column; }
 .repo-pick__row { display: flex; align-items: center; gap: var(--s-3); min-height: 44px; padding: var(--s-2) 0; border-top: 1px solid var(--ash); cursor: pointer; overflow-wrap: anywhere; }
 .repo-pick__row input { width: 20px; height: 20px; flex: none; }
@@ -503,6 +505,8 @@ body.drawer-open { overflow: hidden; }
 @media (max-width: 719px) {
   .ws-conn__row { grid-template-columns: minmax(0, 1fr) auto; }
   .ws-conn__row .caption { grid-column: 1 / -1; }
+  .ws-runs__row { grid-template-columns: minmax(0, 1fr) auto; }
+  .ws-runs__row .caption { grid-column: 1 / -1; }
   .page { padding: var(--s-3) var(--s-3) var(--s-7); }
   .topnav { flex-wrap: wrap; }
   .userchip span:not(.avatar) { display: none; }

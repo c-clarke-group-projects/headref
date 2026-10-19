@@ -64,19 +64,21 @@ def test_external_data_freshness_columns() -> None:
 
 def test_unique_constraints_exist() -> None:
     """Key natural uniqueness constraints must exist for idempotency (ARCHITECTURE.md 6)."""
-    # 1. identity_link(integration, external_id)
+    # Unique per workspace organization since migration 0005 (DEC-021): 2 workspaces may
+    # each map the same external account.
+    # 1. identity_link(organization_id, integration, external_id)
     id_link = Base.metadata.tables["identity_link"]
     unique_cols = [
         {c.name for c in uq.columns} for uq in id_link.constraints if getattr(uq, "columns", None)
     ]
-    assert {"integration", "external_id"} in unique_cols
+    assert {"organization_id", "integration", "external_id"} in unique_cols
 
-    # 2. unmatched_entity(integration, external_id)
+    # 2. unmatched_entity(organization_id, integration, external_id)
     unmatched = Base.metadata.tables["unmatched_entity"]
     unique_cols = [
         {c.name for c in uq.columns} for uq in unmatched.constraints if getattr(uq, "columns", None)
     ]
-    assert {"integration", "external_id"} in unique_cols
+    assert {"organization_id", "integration", "external_id"} in unique_cols
 
     # 3. commit(repository_id, sha)
     commit = Base.metadata.tables["commit"]

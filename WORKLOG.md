@@ -60,6 +60,46 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-19 | Keshan | Workspaces W5: per-workspace sync and status
+Status: IN_PROGRESS
+
+### Completed
+1. Migration `0005_workspace_scope`: each workspace gets its own `organization` row, which
+   repositories, projects and people already hang off. Repository name, project key,
+   identity link and unmatched account become unique per organization; `sync_run` gains
+   `workspace_id`. Backfills, drops nothing. Verified up, down, up on a copy of the real
+   local data (all rows backfilled); applied locally.
+2. `sync_github`, `sync_jira`, the identity resolver, the identity loader and the upserts
+   take the workspace's organization. Cursors use `w<id>:<scope>`, so 2 workspaces syncing
+   the same repository cannot skip each other's commits. Link building stays inside 1
+   organization.
+3. `app/workspace_sync.py`: Jira first, then GitHub; installation token per repository,
+   refreshed Atlassian token through `api.atlassian.com/ex/jira/<cloudId>` (JiraClient
+   gained bearer-token mode). An unreachable source is a failed `sync_run` with a typed
+   error, never silence.
+4. Sync now (owners and managers), refused when nothing is selected or a sync is running;
+   status endpoint; status rows on the workspace page with polling every 2 seconds and a
+   5 minute cap; sync history page. The scheduler also syncs every workspace with sources.
+5. **First real sync, workspace "dev team"**: Jira HRS 12 fetched, 12 written; GitHub
+   headref-sandbox 12 fetched, 12 written; 9 work items, 7 pull requests, 14 links; PR #5
+   checks failing, the others passing.
+6. 15 new tests: organization scoping, 2 workspaces on 1 repository, failed runs, Jira
+   bearer client and project filter, running guard, scheduler pass, pages.
+
+### Discovered
+- The scheduler ran syncs on the event loop, so the web app stopped answering during a
+  sync. The tick now runs in a worker thread.
+- The identity resolver's handle fallback also matched Jira display names, which G-5 and
+  DEC-008 forbid. It now applies to GitHub logins only.
+- Jira remote links to pull requests only resolve against pull requests already stored, so
+  a brand new workspace gets them on its second sync.
+
+### Next Step
+W6, people confirmation: today GitHub authors are still created automatically and Jira
+assignees go to the unmatched queue until a manager links them.
+
+---
+
 ## 2026-10-19 | Keshan | Workspaces W4: Atlassian connection
 Status: IN_PROGRESS
 

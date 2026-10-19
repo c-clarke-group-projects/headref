@@ -782,18 +782,28 @@ async def github_callback(
     if not gh_user_id:
         return _login_err("GitHub profile is missing a numeric user ID.")
 
+    # Since W5 the same GitHub account can be linked once per workspace organization.
+    # The sign-in's own link (match_method "oauth") wins, so the legacy pages keep
+    # acting as the same person; then the oldest link.
+    link_order = (IdentityLink.match_method != "oauth", IdentityLink.id)
     link = db.scalar(
-        select(IdentityLink).where(
+        select(IdentityLink)
+        .where(
             IdentityLink.integration == "github",
             IdentityLink.external_id == str(gh_user_id),
         )
+        .order_by(*link_order)
+        .limit(1)
     )
     if not link and gh_login:
         link = db.scalar(
-            select(IdentityLink).where(
+            select(IdentityLink)
+            .where(
                 IdentityLink.integration == "github",
                 func.lower(IdentityLink.external_handle) == gh_login.lower(),
             )
+            .order_by(*link_order)
+            .limit(1)
         )
 
     if not link:
@@ -819,6 +829,7 @@ async def github_callback(
         db.flush()
 
         link = IdentityLink(
+            organization_id=org.id,
             app_user_id=user.id,
             integration="github",
             external_id=str(gh_user_id),

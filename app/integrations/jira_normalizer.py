@@ -286,8 +286,11 @@ def extract_blocking_dependencies(
 
 
 def upsert_project(session: Session, project_dict: dict[str, Any]) -> Project:
-    """Idempotently insert or update a Project record on key."""
-    stmt = select(Project).where(Project.key == project_dict["key"])
+    """Idempotently insert or update a Project record on (organization, key) (W5)."""
+    stmt = select(Project).where(
+        Project.organization_id == project_dict["organization_id"],
+        Project.key == project_dict["key"],
+    )
     existing = session.scalar(stmt)
     if existing:
         existing.name = project_dict.get("name", existing.name)

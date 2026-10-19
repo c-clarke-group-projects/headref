@@ -6,6 +6,7 @@ does not. Connections, sync, analysis and the feed fill the shell in W3 to W8; u
 then each section says plainly that it is not set up, never shows invented data.
 """
 
+from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import parse_qs
 
@@ -27,10 +28,47 @@ from app.web.auth import DbDep
 from app.web.ui_format import templates
 from app.web.workspaces import (
     AccountDep,
+    ManagerAccess,
     ViewerAccess,
     create_workspace,
     list_workspaces_for,
 )
+from app.workspace_sync import (
+    has_sources,
+    is_running,
+    latest_runs,
+    start_workspace_sync,
+    sync_history,
+)
+
+# Fixed copy for ?sync= outcomes. Never exception text.
+SYNC_MESSAGES = {
+    "started": "Sync started. This page updates when it finishes.",
+    "already_running": "A sync is already running for this workspace.",
+    "nothing_to_sync": "Nothing to sync yet: select a repository or a Jira project first.",
+}
+
+
+def get_session_factory() -> Any:
+    """Opens a new database session for a background sync. A function, so tests can
+    replace it."""
+    from app.db import get_sync_session
+
+    return get_sync_session
+
+
+def _run_out(run: Any) -> dict[str, Any]:
+    return {
+        "source": run.source,
+        "scope": run.scope,
+        "status": run.status,
+        "started_at": run.started_at.isoformat() if run.started_at else None,
+        "finished_at": run.finished_at.isoformat() if run.finished_at else None,
+        "error_type": run.error_type,
+        "items_written": run.items_written,
+        "items_skipped": run.items_skipped,
+    }
+
 
 workspace_pages = APIRouter(tags=["workspace pages"])
 
@@ -137,6 +175,11 @@ def workspace_page(request: Request, access: ViewerAccess, db: DbDep) -> HTMLRes
             "jira": db.scalar(
                 select(JiraConnection).where(JiraConnection.workspace_id == access.workspace.id)
             ),
+            "sync_runs": latest_runs(db, access.workspace.id),
+            "sync_running": is_running(db, access.workspace.id),
+            "now": datetime.now(UTC),
+            "has_sources": has_sources(db, access.workspace.id),
+            "sync_message": SYNC_MESSAGES.get(request.query_params.get("sync", "")),
             "jira_project_count": db.scalar(
                 select(func.count(WorkspaceJiraProject.id)).where(
                     WorkspaceJiraProject.workspace_id == access.workspace.id
@@ -146,3 +189,44 @@ def workspace_page(request: Request, access: ViewerAccess, db: DbDep) -> HTMLRes
         }
     )
     return templates.TemplateResponse(request=request, name="workspace.html", context=context)
+
+
+@workspace_pages.post("/w/{workspace_id}/sync")
+def sync_now(access: ManagerAccess, db: DbDep) -> Response:
+    """Start a background sync of the workspace's sources; never wait for it (DEC-002)."""
+    workspace_id = access.workspace.id
+    if not has_sources(db, workspace_id):
+        code = "nothing_to_sync"
+    elif is_running(db, workspace_id):
+        code = "already_running"
+    elif start_workspace_sync(workspace_id, get_session_factory()):
+        code = "started"
+    else:
+        code = "already_running"
+    return RedirectResponse(
+        url=f"/w/{workspace_id}?sync={code}", status_code=status.HTTP_303_SEE_OTHER
+    )
+
+
+@workspace_pages.get("/api/workspaces/{workspace_id}/sync/status")
+def sync_status(access: ViewerAccess, db: DbDep) -> dict[str, Any]:
+    """Whether a sync is running, and the latest run per repository and project."""
+    workspace_id = access.workspace.id
+    return {
+        "running": is_running(db, workspace_id),
+        "runs": [_run_out(r) for r in latest_runs(db, workspace_id)],
+    }
+
+
+@workspace_pages.get("/w/{workspace_id}/syncs", response_class=HTMLResponse)
+def sync_history_page(request: Request, access: ViewerAccess, db: DbDep) -> HTMLResponse:
+    """The workspace's last 50 sync runs."""
+    context = _base_context(request, db, access.account, "workspaces")
+    context.update(
+        {
+            "workspace": access.workspace,
+            "runs": sync_history(db, access.workspace.id),
+            "now": datetime.now(UTC),
+        }
+    )
+    return templates.TemplateResponse(request=request, name="sync_history.html", context=context)

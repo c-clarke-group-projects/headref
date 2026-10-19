@@ -7,7 +7,9 @@
     can_manage (bool), is_owner (bool), my_workspaces (list[WorkspaceOut]),
     github_accounts (list of installation account logins), github_repo_count (int),
     github_message, jira_message (fixed copy or None),
-    jira (JiraConnection or None), jira_project_count (int)
+    jira (JiraConnection or None), jira_project_count (int),
+    sync_runs (latest SyncRun per repository and project), sync_running (bool),
+    has_sources (bool), sync_message (fixed copy or None), now
   Nothing here is invented: a section that has no data yet says why.
 #}
 {% extends "base.html" %}
@@ -41,7 +43,7 @@
 {% endblock %}
 
 {% block banners %}
-{% for message in [github_message, jira_message] if message %}
+{% for message in [github_message, jira_message, sync_message] if message %}
 <div class="banners"><div class="banner" role="status"><span class="banner__dot" aria-hidden="true"></span><span>{{ message }}</span></div></div>
 {% endfor %}
 {% endblock %}
@@ -98,10 +100,42 @@
     {% if not is_owner %}
     <p class="caption" style="margin-top: var(--s-4)">The workspace owner connects repositories and Jira projects.</p>
     {% endif %}
-    <div class="ws-sync">
-      {% if can_manage %}<button type="button" class="btn btn--primary" disabled aria-describedby="sync-reason">Sync now</button>{% endif %}
-      <span class="caption" id="sync-reason">Nothing to sync: connect a repository or a Jira project first.</span>
+    <div class="ws-sync"{% if sync_running %} data-ws-sync-poll="/api/workspaces/{{ workspace.id }}/sync/status"{% endif %}>
+      {% if not has_sources %}
+        {% if can_manage %}<button type="button" class="btn btn--primary" disabled aria-describedby="sync-reason">Sync now</button>{% endif %}
+        <span class="caption" id="sync-reason">Nothing to sync: connect a repository or a Jira project first.</span>
+      {% elif sync_running %}
+        {% if can_manage %}<button type="button" class="btn btn--primary" disabled>{{ i.icon("clock", 14) }} Syncing</button>{% endif %}
+        <span class="caption" role="status" data-ws-sync-note>A sync is running. This page updates when it finishes.</span>
+      {% else %}
+        {% if can_manage %}
+          <form method="post" action="/w/{{ workspace.id }}/sync">
+            <button type="submit" class="btn btn--primary">Sync now</button>
+          </form>
+        {% endif %}
+        <span class="caption">Syncs every 5 minutes on its own.</span>
+      {% endif %}
+      {% if sync_runs %}<a class="caption" href="/w/{{ workspace.id }}/syncs">Sync history</a>{% endif %}
     </div>
+    {% if sync_runs %}
+    <ul class="ws-runs">
+      {% for r in sync_runs %}
+        <li class="ws-runs__row">
+          <span class="ws-conn__name">{{ i.source_icon(r.source, 16) }} <span class="mono">{{ r.scope }}</span></span>
+          {% if r.status == "running" %}
+            <span class="badge badge--sm badge--unknown">Running</span>
+            <span class="caption">Started <time datetime="{{ r.started_at|iso_utc }}" title="{{ r.started_at|utc_title }}">{{ r.started_at|reltime(now) }}</time></span>
+          {% elif r.status == "failed" %}
+            <span class="badge badge--sm badge--blocked">Failed</span>
+            <span class="caption">{{ r.error_type|error_label|capitalize }}. The last good data is kept; it is not shown as empty.</span>
+          {% else %}
+            <span class="badge badge--sm badge--on-track">{{ "Synced" if r.status == "success" else "Synced, some skipped" }}</span>
+            <span class="caption"><time datetime="{{ (r.finished_at or r.started_at)|iso_utc }}" title="{{ (r.finished_at or r.started_at)|utc_title }}">{{ (r.finished_at or r.started_at)|reltime(now) }}</time>: {{ r.items_written }} written{% if r.items_skipped %}, {{ r.items_skipped }} skipped{% endif %}</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
   </div>
 </section>
 

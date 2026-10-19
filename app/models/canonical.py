@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -94,12 +94,15 @@ class Repository(Base):
     """A configured GitHub repository."""
 
     __tablename__ = "repository"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "full_name", name="uq_repository_org_full_name"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     organization_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("organization.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    full_name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     default_branch: Mapped[str] = mapped_column(String(255), default="main", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
@@ -116,12 +119,13 @@ class Project(Base):
     """A configured Jira project."""
 
     __tablename__ = "project"
+    __table_args__ = (UniqueConstraint("organization_id", "key", name="uq_project_org_key"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     organization_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("organization.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    key: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)
+    key: Mapped[str] = mapped_column(String(32), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 

@@ -70,6 +70,14 @@ class Workspace(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # The organization row this workspace's source data hangs off (W5): repositories,
+    # Jira projects and people are scoped by organization_id.
+    organization_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("organization.id", name="fk_workspace_organization"),
+        nullable=True,
+        unique=True,
+    )
     created_by_account_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("account.id", ondelete="SET NULL"), nullable=True
     )

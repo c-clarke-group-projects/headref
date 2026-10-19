@@ -170,6 +170,20 @@ def record_checks_state(
         pr.checks_state = state if state in CHECKS_STATES else "unknown"
 
 
+def cursor_key(scope: str, workspace_id: int | None) -> str:
+    """The sync_cursor scope. A workspace sync keeps its own cursor (w<id>:<scope>), so 2
+    workspaces syncing the same repository cannot skip each other's commits."""
+    return f"w{workspace_id}:{scope}" if workspace_id else scope
+
+
+def resolve_org_id(session: Session, organization_id: int | None) -> int:
+    """The organization a sync writes to: the workspace's, or the legacy first one."""
+    if organization_id is not None:
+        return organization_id
+    org = session.scalar(select(Organization).order_by(Organization.id))
+    return org.id if org else 1
+
+
 def sync_github(
     session: Session,
     team_id: int = 1,
@@ -177,16 +191,28 @@ def sync_github(
     reset_cursor: bool = False,
     gh_client: GitHubClient | None = None,
     auto_create_contributors: bool = False,
+    organization_id: int | None = None,
+    workspace_id: int | None = None,
 ) -> SyncRun:
-    """Run end-to-end GitHub ingestion, normalization, identity attribution and links."""
+    """Run end-to-end GitHub ingestion, normalization, identity attribution and links.
+
+    With organization_id and workspace_id (W5), everything is written to and read from
+    the workspace's organization, and the run and cursor belong to the workspace.
+    """
     scope = scope or _only_configured_scope(github_scopes(), "GitHub")
-    logger.info("Starting GitHub sync for scope=%s, team_id=%d", scope, team_id)
+    logger.info(
+        "Starting GitHub sync for scope=%s, team_id=%d, workspace_id=%s",
+        scope,
+        team_id,
+        workspace_id,
+    )
+    cursor_scope = cursor_key(scope, workspace_id)
 
     # 1. Reset cursor if requested
     if reset_cursor:
         stmt = delete(SyncCursor).where(
             SyncCursor.source == "github",
-            SyncCursor.scope == scope,
+            SyncCursor.scope == cursor_scope,
         )
         session.execute(stmt)
         session.flush()
@@ -198,6 +224,7 @@ def sync_github(
         scope=scope,
         status="running",
         started_at=start_time,
+        workspace_id=workspace_id,
     )
     session.add(sync_run)
     session.commit()
@@ -205,19 +232,20 @@ def sync_github(
     try:
         client = gh_client or GitHubClient()
 
-        # Find or create repository
-        repo_stmt = select(Repository).where(Repository.full_name == scope)
+        # Find or create repository, in this organization
+        org_id = resolve_org_id(session, organization_id)
+        repo_stmt = select(Repository).where(
+            Repository.full_name == scope, Repository.organization_id == org_id
+        )
         repo = session.scalar(repo_stmt)
         if not repo:
-            org = session.scalar(select(Organization))
-            org_id = org.id if org else 1
             raw_repo = client.get_repository(scope.split("/")[0], scope.split("/")[1])
             repos, _ = ingest_repositories(session, org_id, [raw_repo])
             repo = repos[0]
             session.commit()
 
         # Check cursor
-        cursor = get_or_create_cursor(session, "github", scope)
+        cursor = get_or_create_cursor(session, "github", cursor_scope)
         since_dt = parse_datetime(cursor.cursor_value) if cursor else None
 
         owner, repo_name = scope.split("/")
@@ -250,10 +278,20 @@ def sync_github(
 
         # Identity resolution
         attribute_pull_requests(
-            session, prs, raw_prs, auto_create=auto_create_contributors, team_id=team_id
+            session,
+            prs,
+            raw_prs,
+            auto_create=auto_create_contributors,
+            team_id=team_id,
+            organization_id=organization_id,
         )
         attribute_commits(
-            session, commits, raw_commits, auto_create=auto_create_contributors, team_id=team_id
+            session,
+            commits,
+            raw_commits,
+            auto_create=auto_create_contributors,
+            team_id=team_id,
+            organization_id=organization_id,
         )
         attribute_reviews(
             session,
@@ -261,12 +299,15 @@ def sync_github(
             all_raw_reviews,
             auto_create=auto_create_contributors,
             team_id=team_id,
+            organization_id=organization_id,
         )
 
-        # Link building
-        projects = session.scalars(select(Project)).all()
+        # Link building, within this organization only
+        projects = session.scalars(select(Project).where(Project.organization_id == org_id)).all()
         project_keys = [p.key for p in projects]
-        work_items = session.scalars(select(WorkItem)).all()
+        work_items = session.scalars(
+            select(WorkItem).join(Project).where(Project.organization_id == org_id)
+        ).all()
         wi_by_key = {wi.external_id: wi for wi in work_items}
 
         for pr in prs:
@@ -282,7 +323,7 @@ def sync_github(
         status = "partial" if skipped > 0 else "success"
 
         # Advance cursor only on success/partial
-        advance_cursor(session, "github", scope, datetime.now(UTC).isoformat())
+        advance_cursor(session, "github", cursor_scope, datetime.now(UTC).isoformat())
 
         sync_run.status = status
         sync_run.items_fetched = fetched
@@ -311,16 +352,28 @@ def sync_jira(
     scope: str | None = None,
     reset_cursor: bool = False,
     jira_client: JiraClient | None = None,
+    organization_id: int | None = None,
+    workspace_id: int | None = None,
 ) -> SyncRun:
-    """Run end-to-end Jira ingestion, normalization, dependencies and remote links."""
+    """Run end-to-end Jira ingestion, normalization, dependencies and remote links.
+
+    With organization_id and workspace_id (W5), projects, issues, people and links are
+    the workspace's, and only the projects named in scope are ingested.
+    """
     scope = scope or _only_configured_scope(jira_scopes(), "Jira")
-    logger.info("Starting Jira sync for scope=%s, team_id=%d", scope, team_id)
+    logger.info(
+        "Starting Jira sync for scope=%s, team_id=%d, workspace_id=%s",
+        scope,
+        team_id,
+        workspace_id,
+    )
+    cursor_scope = cursor_key(scope, workspace_id)
 
     # 1. Reset cursor if requested
     if reset_cursor:
         stmt = delete(SyncCursor).where(
             SyncCursor.source == "jira",
-            SyncCursor.scope == scope,
+            SyncCursor.scope == cursor_scope,
         )
         session.execute(stmt)
         session.flush()
@@ -332,6 +385,7 @@ def sync_jira(
         scope=scope,
         status="running",
         started_at=start_time,
+        workspace_id=workspace_id,
     )
     session.add(sync_run)
     session.commit()
@@ -341,13 +395,14 @@ def sync_jira(
 
         # Ingest projects
         raw_projects = client.list_projects()
-        org = session.scalar(select(Organization))
-        org_id = org.id if org else 1
+        org_id = resolve_org_id(session, organization_id)
+        scope_keys = [k.strip() for k in scope.split(",") if k.strip()]
+        if workspace_id is not None and scope.upper() != "ALL":
+            raw_projects = [p for p in raw_projects if p.get("key") in scope_keys]
         projects, proj_counts = ingest_projects(session, org_id, raw_projects)
         session.commit()
 
         # Search issues. The JQL must be bounded (Jira Cloud rejects an empty query).
-        scope_keys = [k.strip() for k in scope.split(",") if k.strip()]
         keys = [p.key for p in projects] if scope.upper() == "ALL" else scope_keys
         jql = project_jql(keys)
         raw_issues = client.search_issues(jql=jql, auto_paginate=True) if jql else []
@@ -376,14 +431,18 @@ def sync_jira(
             all_persisted_items.extend(items)
 
         # Attribute work items
-        attribute_work_items(session, all_persisted_items, raw_issues)
+        attribute_work_items(
+            session, all_persisted_items, raw_issues, organization_id=organization_id
+        )
 
         # Ingest blocking dependencies
         wi_by_key = {w.external_id: w for w in all_persisted_items}
         deps, dep_counts = ingest_dependencies(session, wi_by_key, raw_issues)
 
         # Fetch remote links and build WorkItemLink
-        all_prs = session.scalars(select(PullRequest)).all()
+        all_prs = session.scalars(
+            select(PullRequest).join(Repository).where(Repository.organization_id == org_id)
+        ).all()
         prs_by_url = {pr.source_url: pr for pr in all_prs}
 
         for raw_issue in raw_issues:
@@ -403,7 +462,7 @@ def sync_jira(
         status = "partial" if skipped > 0 else "success"
 
         # Advance cursor only on success/partial
-        advance_cursor(session, "jira", scope, datetime.now(UTC).isoformat())
+        advance_cursor(session, "jira", cursor_scope, datetime.now(UTC).isoformat())
 
         sync_run.status = status
         sync_run.items_fetched = fetched

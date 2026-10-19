@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from app.models.workspace import ROLE_RANK, Account, Workspace, WorkspaceMember
 from app.schemas.workspace import WorkspaceCreate, WorkspaceOut
 from app.web.auth import SESSION_COOKIE, DbDep, read_session
+from app.workspace_sync import ensure_organization
 
 logger = logging.getLogger(__name__)
 
@@ -173,6 +174,7 @@ def create_workspace(db: Session, account: Account, body: WorkspaceCreate) -> Wo
     )
     db.add(workspace)
     db.flush()
+    ensure_organization(db, workspace)
     db.add(WorkspaceMember(workspace_id=workspace.id, account_id=account.id, role="owner"))
     db.commit()
     logger.info("workspace created: workspace_id=%s account_id=%s", workspace.id, account.id)
