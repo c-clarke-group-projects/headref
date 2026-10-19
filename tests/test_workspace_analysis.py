@@ -182,6 +182,36 @@ async def test_current_work_with_1_evidence_item_is_worded_as_a_fact():
     assert "Likely" not in claim.claim
 
 
+@pytest.mark.anyio
+async def test_a_linked_pull_request_makes_current_work_an_inference():
+    """Found on real data (W11): HRS-7 with its open PR #8 still read as 1 record, because
+    pull request evidence names no issue key. The stored link ties them together."""
+    from unittest.mock import MagicMock
+
+    from tests.test_orchestrator import _link, _pull_request
+
+    tools, _, _ = make_tools(
+        health=[_health("jira"), _health("github")],
+        work_items=[_work_item(1).model_copy(update={"assignee_user_id": 5})],
+        pull_requests=[_pull_request(7).model_copy(update={"author_user_id": 5})],
+        links=[_link()],
+    )
+
+    insight = await run_agent(
+        MagicMock(),
+        subject_user_id=5,
+        team_id=10,
+        question_type="current_work",
+        tools=tools,
+        skip_llm=True,
+    )
+
+    claim = insight.likely_current_work
+    assert claim.classification == "inference"
+    assert claim.claim.startswith("Likely working on AUTH-1")
+    assert {e.entity_type for e in claim.evidence} == {"work_item", "pull_request"}
+
+
 # ---------------------------------------------------------------------------
 # Analysis scope
 # ---------------------------------------------------------------------------

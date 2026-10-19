@@ -16,7 +16,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.models.canonical import AppUser
-from app.models.identity import IdentityLink
+from app.models.identity import IdentityLink, UnmatchedEntity
 from app.models.work import Commit, PullRequest, Review, WorkItem
 
 logger = logging.getLogger("headref.people")
@@ -227,3 +227,38 @@ __all__ = [
     "split",
     "waiting_count",
 ]
+
+
+@dataclass
+class UnmatchedAccount:
+    """An account seen in the sources that belongs to nobody, so its activity is excluded."""
+
+    integration: str
+    handle: str
+    occurrences: int
+
+
+def unmatched_accounts(db: Session, org_id: int) -> list[UnmatchedAccount]:
+    """Accounts in the organization's unmatched queue that no person holds now.
+
+    A row stays in the queue after its account is linked to a person (by a later sync or a
+    merge); those are left out, so the list is what is excluded today.
+    """
+    linked = select(IdentityLink.id).where(
+        IdentityLink.organization_id == org_id,
+        IdentityLink.integration == UnmatchedEntity.integration,
+        IdentityLink.external_id == UnmatchedEntity.external_id,
+    )
+    rows = db.scalars(
+        select(UnmatchedEntity)
+        .where(UnmatchedEntity.organization_id == org_id, ~linked.exists())
+        .order_by(UnmatchedEntity.integration, func.lower(UnmatchedEntity.external_handle))
+    ).all()
+    return [
+        UnmatchedAccount(
+            integration=row.integration,
+            handle=row.external_handle or row.external_id,
+            occurrences=row.occurrence_count,
+        )
+        for row in rows
+    ]

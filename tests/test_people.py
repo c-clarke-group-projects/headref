@@ -330,3 +330,22 @@ def test_the_workspace_page_lists_confirmed_people_and_the_waiting_count(client,
     assert "zara" in html
     assert "1 person is waiting for confirmation." in html
     assert "Waiting Person" not in html
+
+
+def test_people_shows_accounts_nobody_holds_and_hides_linked_ones(client, db_session):
+    from app.integrations.identity_resolver import record_unmatched
+
+    workspace, org_id = _owned_workspace(db_session, client)
+    now = datetime.now(UTC)
+    record_unmatched(
+        db_session, "github", "commit-author:abc", "Outside (commit author)", now, org_id
+    )
+    # Seen as unmatched once, later linked to a person: no longer excluded.
+    record_unmatched(db_session, "jira", "acc-1", "Keshan", now, org_id)
+    _found(db_session, org_id, "jira", "acc-1", "Keshan")
+    db_session.commit()
+
+    html = client.get(f"/w/{workspace.id}/people").text
+
+    assert "Not matched to anyone (1)" in html
+    assert "Outside (commit author)" in html

@@ -358,3 +358,35 @@ def test_project_jql_is_bounded_and_quoted(keys, expected):
     from app.sync import project_jql
 
     assert project_jql(keys) == expected
+
+
+def test_commits_are_read_back_past_the_cursor(db_session: Session) -> None:
+    """A commit dated before the last sync but pushed after it must still be fetched."""
+    from datetime import UTC, datetime
+
+    from app.models.operations import SyncCursor
+    from app.sync import COMMIT_LOOKBACK, cursor_key, sync_github
+
+    last_sync = datetime(2026, 10, 19, 18, 34, 46, tzinfo=UTC)
+    db_session.add(
+        SyncCursor(
+            source="github",
+            scope=cursor_key("o/r", None),
+            cursor_value=last_sync.isoformat(),
+        )
+    )
+    db_session.commit()
+    client = MagicMock()
+    client.get_repository.return_value = {
+        "id": 1,
+        "name": "r",
+        "full_name": "o/r",
+        "default_branch": "main",
+    }
+    client.list_pull_requests.return_value = []
+    client.list_commits.return_value = []
+
+    sync_github(db_session, scope="o/r", gh_client=client)
+
+    since = client.list_commits.call_args.kwargs["since"]
+    assert since == last_sync - COMMIT_LOOKBACK

@@ -24,6 +24,7 @@ from app.models.connections import (
     WorkspaceRepository,
 )
 from app.models.operations import SyncCursor, SyncRun
+from app.models.work import WorkItem
 from app.models.workspace import Workspace
 from app.web import auth, workspace_pages
 from tests.conftest import log_in
@@ -203,6 +204,7 @@ def test_jira_uses_the_bearer_token_on_the_atlassian_gateway(db_session, github,
     connection = JiraConnection(
         workspace_id=workspace.id,
         cloud_id="cloud-1",
+        site_url="https://keshanuni.atlassian.net",
         access_token_enc="x",
         refresh_token_enc="y",
         expires_at=datetime.now(UTC) + timedelta(hours=1),
@@ -231,7 +233,19 @@ def test_jira_uses_the_bearer_token_on_the_atlassian_gateway(db_session, github,
             {"id": "10001", "key": "HRS", "name": "sandbox"},
             {"id": "10000", "key": "MP", "name": "Other project, not selected"},
         ]
-        jira.search_issues.return_value = []
+        jira.search_issues.return_value = [
+            {
+                "id": "1",
+                "key": "HRS-1",
+                "fields": {
+                    "summary": "Rotate refresh tokens",
+                    "status": {"name": "To Do", "statusCategory": {"key": "new"}},
+                    "project": {"key": "HRS"},
+                    "created": "2026-10-18T10:00:00.000+0000",
+                    "updated": "2026-10-18T10:00:00.000+0000",
+                },
+            }
+        ]
         jira.get_remote_links.return_value = []
         built["client"] = jira
         return jira
@@ -245,6 +259,9 @@ def test_jira_uses_the_bearer_token_on_the_atlassian_gateway(db_session, github,
     assert runs[0].scope == "HRS" and runs[0].status == "success"
     jql = built["client"].search_issues.call_args.kwargs["jql"]
     assert jql == 'project in ("HRS") ORDER BY key'
+    # Links open the site people use, never the API gateway or a placeholder (W11).
+    item = db_session.scalar(select(WorkItem))
+    assert item.source_url == "https://keshanuni.atlassian.net/browse/HRS-1"
 
 
 # ---------------------------------------------------------------------------
@@ -442,3 +459,19 @@ def test_the_workspace_page_shows_a_failure_and_polls_while_running(client, db_s
     assert f'data-ws-sync-poll="/api/workspaces/{workspace.id}/sync/status"' in html
     assert "Failed" in html and "not shown as empty" in html
     assert "Sync history" in html
+
+
+def test_a_sync_running_in_another_process_is_skipped(db_session, github, monkeypatch):
+    """The advisory lock is PostgreSQL only; here it reports another holder."""
+    from contextlib import contextmanager
+
+    workspace = _workspace_with_repo(db_session, "Payments", 101)
+
+    @contextmanager
+    def held_elsewhere(db, workspace_id):
+        yield False
+
+    monkeypatch.setattr(workspace_sync, "_workspace_lock", held_elsewhere)
+
+    assert workspace_sync.sync_workspace(db_session, workspace.id, app_client=FakeApp()) == []
+    assert db_session.scalar(select(SyncRun)) is None

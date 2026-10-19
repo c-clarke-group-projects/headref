@@ -656,10 +656,28 @@ async def run_agent(
         else (context.retrieval.work_items[0] if context.retrieval.work_items else None)
     )
     if target_item is not None:
+        # Evidence summaries carry structured fields only, never a title (untrusted text),
+        # so a pull request or commit is tied to the item through its stored link.
+        linked = {
+            (link.target_type, link.target_id)
+            for link in context.retrieval.links
+            if link.work_item_id == target_item.work_item_id
+        }
+        linked_urls = {
+            pr.source_url
+            for pr in context.retrieval.pull_requests
+            if ("pull_request", pr.pull_request_id) in linked
+        } | {
+            commit.source_url
+            for commit in context.retrieval.commits
+            if ("commit", commit.commit_id) in linked
+        }
         target_ev = [
             ev
             for ev in canonical_evidence
-            if ev.entity_key == target_item.external_id or target_item.external_id in ev.summary
+            if ev.entity_key == target_item.external_id
+            or target_item.external_id in ev.summary
+            or (ev.entity_type in ("pull_request", "commit") and ev.source_url in linked_urls)
         ]
         has_conf = any(c.work_item_external_id == target_item.external_id for c in conflicts)
         conf = evaluate_confidence(

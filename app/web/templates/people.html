@@ -1,7 +1,8 @@
 {#
   People of 1 workspace (W6, DEC-024).
   Context: base context plus workspace, groups ({status: list[Person]}), everyone
-  (list[Person]), can_manage (bool), message (fixed copy or None)
+  (list[Person]), can_manage (bool), message (fixed copy or None),
+  unmatched (list[UnmatchedAccount]: accounts no person holds, activity excluded)
   Alphabetical in every group. Counts are context for the decision, never a ranking.
 #}
 {% extends "base.html" %}
@@ -132,6 +133,20 @@
         <span>{{ p.display_name }}</span>
         <span class="badge badge--sm badge--outline">{{ "Bot" if p.status == "bot" else "Ignored" }}</span>
         {% if can_manage %}{{ status_button(p, "suggested", "Restore") }}{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% if unmatched %}
+<section class="section--loose" aria-labelledby="unmatched-title">
+  <h2 class="card__title" id="unmatched-title">Not matched to anyone ({{ unmatched|length }})</h2>
+  <p class="caption">Activity from these accounts is not in the analysis. A commit author with no
+    GitHub account cannot be confirmed here.</p>
+  <ul class="person__hidden">
+    {% for u in unmatched %}
+      <li>
+        <span class="badge badge--sm badge--outline">{{ i.source_icon(u.integration, 12) }} {{ u.handle }}</span>
       </li>
     {% endfor %}
   </ul>

@@ -6,6 +6,7 @@ no display-name matching exists anywhere in this module. Unmatched accounts are
 tracked in unmatched_entity with occurrence counts and timestamps.
 """
 
+import hashlib
 import logging
 from datetime import UTC, datetime
 from typing import Any
@@ -16,6 +17,9 @@ from sqlalchemy.orm import Session
 from app.models.canonical import AppUser, Organization, Team
 from app.models.identity import IdentityLink, UnmatchedEntity
 from app.models.work import Commit, PullRequest, Review, WorkItem
+
+# external_id prefix of an unmatched git commit author who has no GitHub account.
+COMMIT_AUTHOR_PREFIX = "commit-author:"
 
 logger = logging.getLogger("headref.integrations.identity_resolver")
 
@@ -274,12 +278,21 @@ def attribute_commits(
     team_id: int | None = None,
     organization_id: int | None = None,
 ) -> int:
-    """Resolve and assign author_app_user_id for commits."""
+    """Resolve and assign author_app_user_id for commits.
+
+    A commit whose git author has no GitHub account carries no account id. It stays
+    unattributed, and is recorded as unmatched so the exclusion is visible (FR-003,
+    EV-07), keyed by a hash of the commit email so the address itself is not stored.
+    """
     attributed = 0
     for commit, raw in zip(commits, raw_payloads, strict=False):
         author_data = raw.get("author") or {}
         gh_user_id = author_data.get("id")
         gh_login = author_data.get("login")
+        if not gh_user_id:
+            commit.author_app_user_id = None
+            _record_commit_author(session, raw, now, organization_id, team_id)
+            continue
         user_id = resolve_actor(
             session=session,
             integration="github",
@@ -294,6 +307,32 @@ def attribute_commits(
         if user_id is not None:
             attributed += 1
     return attributed
+
+
+def _record_commit_author(
+    session: Session,
+    raw: dict[str, Any],
+    now: datetime | None,
+    organization_id: int | None,
+    team_id: int | None,
+) -> None:
+    """Record a commit author with no GitHub account in the unmatched queue."""
+    git_author = (raw.get("commit") or {}).get("author") or {}
+    email = str(git_author.get("email") or "").strip().lower()
+    name = str(git_author.get("name") or "").strip() or None
+    if not email and not name:
+        return
+    digest = hashlib.sha256((email or name or "").encode()).hexdigest()[:16]
+    record_unmatched(
+        session=session,
+        integration="github",
+        external_id=f"{COMMIT_AUTHOR_PREFIX}{digest}",
+        external_handle=f"{name or 'Unknown'} (commit author, no GitHub account)",
+        current_time=now or datetime.now(UTC),
+        organization_id=(
+            organization_id if organization_id is not None else _legacy_org_id(session, team_id)
+        ),
+    )
 
 
 def attribute_reviews(

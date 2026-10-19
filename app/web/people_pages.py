@@ -61,13 +61,15 @@ def _org(db: Any, access: Any) -> int:
 @people_pages.get("/w/{workspace_id}/people", response_class=HTMLResponse)
 def people_page(request: Request, access: ViewerAccess, db: DbDep) -> HTMLResponse:
     """Who headref found in this workspace's sources, and what a manager decided."""
-    grouped = people.list_people(db, _org(db, access))
+    org_id = _org(db, access)
+    grouped = people.list_people(db, org_id)
     context = _base_context(request, db, access.account, "workspaces")
     context.update(
         {
             "workspace": access.workspace,
             "groups": grouped,
             "everyone": [p for group in grouped.values() for p in group],
+            "unmatched": people.unmatched_accounts(db, org_id),
             "can_manage": access.role in ("owner", "manager"),
             "message": PEOPLE_MESSAGES.get(request.query_params.get("people", "")),
         }

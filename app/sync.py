@@ -10,13 +10,13 @@ import argparse
 import logging
 import re
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from app.config import github_scopes, jira_scopes
+from app.config import get_settings, github_scopes, jira_scopes
 from app.db import get_sync_session
 from app.integrations.errors import IntegrationError
 from app.integrations.github import GitHubClient
@@ -119,6 +119,11 @@ def _only_configured_scope(scopes: list[str], source: str) -> str:
 
 
 CHECKS_STATES = frozenset({"passing", "failing", "unknown"})
+
+# GitHub's commits `since` compares the commit's own date, not when it was pushed. A
+# commit made before the cursor and pushed after it would be skipped for good, so each
+# sync reads this far back from the cursor again; commits upsert by sha (W11).
+COMMIT_LOOKBACK = timedelta(days=7)
 
 # Jira project keys: an uppercase letter, then letters, digits or underscores.
 _JIRA_KEY = re.compile(r"[A-Z][A-Z0-9_]{0,63}")
@@ -246,7 +251,7 @@ def sync_github(
 
         # Check cursor
         cursor = get_or_create_cursor(session, "github", cursor_scope)
-        since_dt = parse_datetime(cursor.cursor_value) if cursor else None
+        since_dt = parse_datetime(cursor.cursor_value) - COMMIT_LOOKBACK if cursor else None
 
         owner, repo_name = scope.split("/")
 
@@ -355,13 +360,20 @@ def sync_jira(
     organization_id: int | None = None,
     workspace_id: int | None = None,
     auto_create_people: bool = False,
+    site_url: str | None = None,
 ) -> SyncRun:
     """Run end-to-end Jira ingestion, normalization, dependencies and remote links.
 
     With organization_id and workspace_id (W5), projects, issues, people and links are
     the workspace's, and only the projects named in scope are ingested.
+
+    site_url is the Jira site people open (https://<site>.atlassian.net), used for every
+    issue's link. A workspace reaches Jira through Atlassian's API gateway, whose address
+    cannot open an issue, so it passes its connection's site; the legacy path uses
+    JIRA_BASE_URL.
     """
     scope = scope or _only_configured_scope(jira_scopes(), "Jira")
+    browse_base = site_url or get_settings().jira_base_url or ""
     logger.info(
         "Starting Jira sync for scope=%s, team_id=%d, workspace_id=%s",
         scope,
@@ -426,7 +438,9 @@ def sync_jira(
             proj = proj_by_key.get(pkey)
             if not proj:
                 continue
-            items, counts = ingest_work_items(session, proj.id, raw_group)
+            items, counts = ingest_work_items(
+                session, proj.id, raw_group, jira_base_url=browse_base
+            )
             total_wi_written += counts.written
             total_wi_skipped += counts.skipped
             all_persisted_items.extend(items)

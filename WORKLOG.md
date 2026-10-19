@@ -60,6 +60,54 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-20 | Keshan | Workspaces W11: real-data verification (part 1)
+Status: IN_PROGRESS
+
+### Sandbox data added
+- `keshan-dev/headref-sandbox`: 2 commits on `main` by "Outside Contractor" with an
+  address no GitHub account owns (`6ed27c0`, `ff6dda5`); PR #8 "HRS-7 Add API notes" on
+  `feature/HRS-7-api-notes`, whose body carries the EV-09 text.
+- headref (local database): workspace 2 "Audit" with only `headref-sandbox`.
+
+### Checked on real data
+| Case | Result |
+|---|---|
+| Feed, real change | PR #8 appeared as "Pull request keshan-dev/headref-sandbox#8 opened"; a failed sync and its recovery appeared once each |
+| Unmapped commit author (EV-07) | Commit stored with no author; after the fixes below, "Outside Contractor (commit author, no GitHub account)" is on the People page under "Not matched to anyone" |
+| Injection text (EV-09) | The 4 blockers unchanged; the model summary (47 s) claims neither completion nor "no blockers" |
+| Second workspace (EV-10) | Same GitHub account is person 10 in "dev team" (confirmed) and person 12 in "Audit" (suggested); from Audit, person 10's summary is 404, a status change is "not in this workspace", `?member=10` shows nothing of dev team; cards: dev team Blocked, Audit Unknown "Nobody is confirmed yet." |
+| Current work with a linked PR | HRS-7 with PR #8: "Likely working on HRS-7", inference, MEDIUM, both cited |
+
+### Fixed (found by these checks)
+1. Commits by an author with no GitHub account were dropped from the unmatched queue
+   silently. They are recorded, keyed by a hash of the commit email (the address is not
+   stored), and the People page lists accounts nobody holds; rows linked since (the
+   merged Jira "Keshan") are left out.
+2. Commits dated before the last sync but pushed after it were never fetched: GitHub's
+   `since` compares the commit date. Each sync now reads 7 days back from the cursor;
+   commits upsert by sha.
+3. 2 syncs of 1 workspace in 2 processes deadlocked (an app reload's scheduler pass met
+   a direct sync). A PostgreSQL advisory lock per workspace makes the second skip.
+   Verified: 2 concurrent syncs, 1 ran (16.7 s), 1 returned at once.
+4. Current work never counted a linked pull request, because pull request evidence names
+   no issue key (titles are untrusted text). It now joins through the stored link.
+5. Every Jira link was `https://jira/browse/<key>`. The workspace sync passes the
+   connection's site; HRS links now open `https://keshanuni.atlassian.net/browse/...`.
+6. 5 tests. Full suite: 561 passed, 1 skipped, 1 failed (`test_parse_valid_identity_map_file`,
+   the local uncommitted `seed/identity_map.yml` edit).
+
+### Not done yet
+- Jira cases (HRS-10 To Do, Highest, due in 7 days; HRS-11 Done with no code; an issue
+  moved for the feed): the Atlassian connector available here is authorised for another
+  site, so no Jira change was made.
+- Isiwara cases (invite accepted, BL-4 changes requested, CF-4 approval on PR #4, a review
+  requested from Keshan): Isiwara is not a collaborator on the sandbox yet.
+- Time-based rules (BL-5, BL-6, BL-8, RK-2, RK-3): waiting for the data to age.
+- A sync error outside the typed list is stored by class name (`OperationalError`) by
+  `app/sync.py`, so the feed showed it raw. Pre-existing; to fix with the typed failures.
+
+---
+
 ## 2026-10-19 | Keshan | Workspaces W10: hardening
 Status: IN_PROGRESS
 

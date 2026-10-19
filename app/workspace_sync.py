@@ -11,11 +11,12 @@ workspace that is already syncing, in this process or according to sync_run.
 
 import logging
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.integrations.atlassian import API_URL, AtlassianClient
@@ -41,6 +42,8 @@ logger = logging.getLogger("headref.workspace_sync")
 
 # A run still "running" after this long is treated as dead (process restarted mid-run).
 STUCK_AFTER = timedelta(minutes=15)
+# Advisory lock keys for workspace syncs: this number plus the workspace id.
+SYNC_LOCK_NAMESPACE = 7_310_000_000
 
 _running: set[int] = set()
 _running_lock = threading.Lock()
@@ -111,13 +114,54 @@ def _failed_run(
     return run
 
 
+@contextmanager
+def _workspace_lock(db: Session, workspace_id: int) -> Iterator[bool]:
+    """Hold a PostgreSQL advisory lock for 1 workspace's sync; yield whether it was got.
+
+    The running checks (_claim in this process, is_running in sync_run) leave a gap: 2
+    processes that check at the same moment both start, and their writes deadlock (seen
+    on 2026-10-19 when an app reload's scheduler pass met a manual sync). The lock closes
+    it. It lives on its own connection, because the session's connection can change at
+    every commit. Other databases (SQLite in tests) have no advisory locks: always got.
+    """
+    bind = db.get_bind()
+    if bind.dialect.name != "postgresql":
+        yield True
+        return
+    key = SYNC_LOCK_NAMESPACE + workspace_id
+    with bind.connect() as conn:
+        got = bool(conn.scalar(text("SELECT pg_try_advisory_lock(:key)"), {"key": key}))
+        # A session-level advisory lock outlives the transaction; commit so this
+        # connection does not sit idle in a transaction while the sync runs.
+        conn.commit()
+        try:
+            yield got
+        finally:
+            if got:
+                conn.scalar(text("SELECT pg_advisory_unlock(:key)"), {"key": key})
+            conn.commit()
+
+
 def sync_workspace(
     db: Session,
     workspace_id: int,
     app_client: Any = None,
     atlassian_client: Any = None,
 ) -> list[SyncRun]:
-    """Sync every selected Jira project and repository of 1 workspace. Returns the runs."""
+    """Sync every selected Jira project and repository of 1 workspace. Returns the runs.
+
+    Returns no runs, and changes nothing, when another process is syncing it already.
+    """
+    with _workspace_lock(db, workspace_id) as got:
+        if not got:
+            logger.info("workspace sync skipped, running elsewhere: workspace_id=%s", workspace_id)
+            return []
+        return _sync_workspace(db, workspace_id, app_client, atlassian_client)
+
+
+def _sync_workspace(
+    db: Session, workspace_id: int, app_client: Any, atlassian_client: Any
+) -> list[SyncRun]:
     workspace = db.get(Workspace, workspace_id)
     if workspace is None or workspace.archived_at is not None:
         return []
@@ -155,6 +199,7 @@ def sync_workspace(
                         organization_id=org_id,
                         workspace_id=workspace_id,
                         auto_create_people=True,
+                        site_url=connection.site_url,
                     )
                 )
             except IntegrationError as exc:
