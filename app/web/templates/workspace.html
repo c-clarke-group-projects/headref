@@ -11,7 +11,8 @@
     sync_runs (latest SyncRun per repository and project), sync_running (bool),
     has_sources (bool), sync_message (fixed copy or None), now,
     team (confirmed AppUser rows, alphabetical), waiting (count of suggested people),
-    selected (AppUser or None), analysis (WorkspaceAnalysis: members, health)
+    selected (AppUser or None), analysis (WorkspaceAnalysis: members, health),
+    feed (list[FeedItem], newest first; only the selected person's work when 1 is selected)
   Nothing here is invented: a section that has no data yet says why.
 #}
 {% extends "base.html" %}
@@ -281,9 +282,22 @@
 
 <section class="section">
   <div class="card card--pad-md" aria-labelledby="feed-title">
-    <h2 class="card__title" id="feed-title">What changed</h2>
-    <p class="empty-note" style="margin-top: var(--s-3)">No updates yet. Changes between syncs
-      appear here: new or cleared blockers, merged pull requests, moved issues.</p>
+    <h2 class="card__title" id="feed-title">What changed{% if selected %}: {{ selected.display_name }}'s work{% endif %}</h2>
+    <p class="caption">Differences between syncs, worked out by code. The first sync sets the starting point.</p>
+    {% if feed %}
+      <ul class="next-up">
+        {% for f in feed %}
+          <li>
+            {% if f.is_new %}<span class="badge badge--sm badge--outline">New</span>{% endif %}
+            <span class="caption"><time datetime="{{ f.occurred_at|iso_utc }}" title="{{ f.occurred_at|utc_title }}">{{ f.occurred_at|reltime(now) }}</time></span>
+            {% if f.source_url %}<a href="{{ f.source_url|external_url }}" target="_blank" rel="noopener noreferrer">{{ f.text }}</a>{% else %}{{ f.text }}{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="empty-note" style="margin-top: var(--s-3)">No changes recorded yet. After the next
+        sync, new or cleared blockers, merged pull requests and moved issues appear here.</p>
+    {% endif %}
   </div>
 </section>
 {% endblock %}

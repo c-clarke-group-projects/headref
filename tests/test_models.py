@@ -4,11 +4,12 @@ from app.models import Base
 
 
 def test_table_count_and_names() -> None:
-    """24 tables must be defined, and none named 'user' (DATA_AND_EVIDENCE.md 6.3).
+    """26 tables must be defined, and none named 'user' (DATA_AND_EVIDENCE.md 6.3).
 
     account, workspace and workspace_member added by migration 0002 (DEC-021);
     github_installation and workspace_repository by 0003 (DEC-022);
-    jira_connection and workspace_jira_project by 0004 (DEC-023).
+    jira_connection and workspace_jira_project by 0004 (DEC-023);
+    finding_snapshot and workspace_event by 0007 (DEC-025).
     """
     table_names = set(Base.metadata.tables.keys())
 
@@ -37,9 +38,11 @@ def test_table_count_and_names() -> None:
         "workspace_repository",
         "jira_connection",
         "workspace_jira_project",
+        "finding_snapshot",
+        "workspace_event",
     }
 
-    assert len(table_names) == 24
+    assert len(table_names) == 26
     assert table_names == expected_tables
     assert "user" not in table_names
     assert "app_user" in table_names

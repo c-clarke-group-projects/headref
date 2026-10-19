@@ -35,6 +35,7 @@ from app.models.connections import (
 from app.models.operations import SyncRun
 from app.models.workspace import Workspace
 from app.sync import sync_github, sync_jira
+from app.workspace_feed import record_changes, record_feed_failure
 
 logger = logging.getLogger("headref.workspace_sync")
 
@@ -192,6 +193,14 @@ def sync_workspace(
                 )
             finally:
                 client.close()
+
+    # 3. The feed: what changed since the previous sync. The synced data is already
+    # committed; if working out the changes fails, the feed says so (rule 9).
+    try:
+        record_changes(db, workspace_id, runs)
+    except Exception:
+        logger.exception("feed not recorded: workspace_id=%s", workspace_id)
+        record_feed_failure(db, workspace_id)
     logger.info(
         "workspace sync finished: workspace_id=%s runs=%s statuses=%s",
         workspace_id,

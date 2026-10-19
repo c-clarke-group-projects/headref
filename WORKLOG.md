@@ -60,6 +60,44 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-19 | Keshan | Workspaces W8: what changed between syncs
+Status: IN_PROGRESS
+
+### Completed
+1. Migration `0007_workspace_feed`: `finding_snapshot` (latest snapshot per subject),
+   `workspace_event` (feed lines), `workspace_member.last_seen_at`. Additive. Upgrade,
+   downgrade and upgrade verified on a copy of the local database, then applied locally.
+2. `app/workspace_feed.py`: after every workspace sync, snapshot per confirmed person (code
+   findings keyed by rule and entity) and for the workspace (issue status, pull request
+   state, sync outcome per source), diffed against the previous snapshot into code-written
+   lines. The first sync is a baseline. Unavailable sources never produce "no longer
+   detected" or issue changes; a failed feed computation is shown as a line. Lines older
+   than 90 days are removed.
+3. Workspace page: "What changed" lists the latest 50 lines, newest first, linked to the
+   source; with a member selected, only lines about their work. Lines since the viewer's
+   previous visit are marked New.
+4. DEC-025 amended (still Proposed): likely next as facts, feed keys, missing data rules.
+5. 14 tests. Full suite: 572 passed, 1 skipped, 1 failed (`test_parse_valid_identity_map_file`,
+   only because of the local uncommitted edit to `seed/identity_map.yml`).
+6. Real data, workspace "dev team": 2 syncs (14 s each), baseline then 0 lines, as nothing
+   changed in between. Snapshot: 9 issues, 7 pull requests, person 10 with BL-1 HRS-4, BL-2
+   HRS-5, BL-3 HRS-6, BL-7 PR #5, CF-1, CF-2, CF-3 and RK-1 HRS-8, matching the W7 analysis.
+
+### Discovered
+- Detection rule texts carry day counters, so findings cannot be compared by text.
+- The detection rules fail on SQLite's naive timestamps (BL-8); PostgreSQL returns aware
+  ones. The feed's finding test uses the orchestrator's fake read tools instead.
+
+### Not verified
+- A real change appearing on the feed (an issue moved in Jira or a pull request merged,
+  then a sync). Covered by tests only.
+- Browser layout of the section.
+
+### Next Step
+W9: settings, invites by GitHub username, roles, archive.
+
+---
+
 ## 2026-10-19 | Keshan | Workspaces W7: analysis and member panel
 Status: IN_PROGRESS
 

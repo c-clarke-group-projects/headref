@@ -12,6 +12,7 @@ from app.models.connections import (
     WorkspaceJiraProject,
     WorkspaceRepository,
 )
+from app.models.feed import FindingSnapshot, WorkspaceEvent
 from app.models.identity import IdentityLink, UnmatchedEntity
 from app.models.operations import SyncCursor, SyncRun
 from app.models.work import (
@@ -50,4 +51,6 @@ __all__ = [
     "WorkspaceRepository",
     "JiraConnection",
     "WorkspaceJiraProject",
+    "FindingSnapshot",
+    "WorkspaceEvent",
 ]

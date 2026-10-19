@@ -35,6 +35,7 @@ from app.web.workspaces import (
     list_workspaces_for,
 )
 from app.workspace_analysis import analyze_workspace, member_summary
+from app.workspace_feed import feed, mark_seen
 from app.workspace_sync import (
     ensure_organization,
     has_sources,
@@ -163,6 +164,7 @@ async def workspace_page(request: Request, access: ViewerAccess, db: DbDep) -> H
     analysis = await analyze_workspace(
         db, access.workspace, only_person_id=selected.id if selected else None
     )
+    last_seen = mark_seen(db, access.workspace.id, access.account.id)
     context = _base_context(request, db, access.account, "workspaces")
     context.update(
         {
@@ -193,6 +195,7 @@ async def workspace_page(request: Request, access: ViewerAccess, db: DbDep) -> H
             "team": team,
             "selected": selected,
             "analysis": analysis,
+            "feed": feed(db, access.workspace.id, last_seen, selected.id if selected else None),
             "waiting": waiting_count(db, org_id),
             "sync_running": is_running(db, access.workspace.id),
             "now": datetime.now(UTC),

@@ -1442,6 +1442,20 @@ Owner: Developer 1 for the diff and the rules, Developer 2 for the screen
 - Summaries stay on demand: the model writes a summary only when a person is opened, and it
   is cached by evidence hash (DEC-017, DEC-018).
 
+### Amended 2026-10-19 (W7, W8), still Proposed
+
+- **Likely next** is shown as facts with a stated order, not as an inference: each item is
+  1 record ("assigned, status To Do"), and an inference needs 2 or more evidence items
+  (`TESTING_AND_EVALUATION.md` 11.6). Reviews requested from the person are not included
+  yet.
+- **Feed keys**: a finding is keyed by rule and entity (`blocker:BL-5:owner/repo#5`), never
+  by its text, so a day counter ("open for 4 days") is not a change. RK-4 is left out of
+  the feed because the conflict line already reports it.
+- **Missing data is not a change**: a person whose sources are unavailable is skipped and
+  keeps the previous snapshot; issues and pull requests keep their previous state when
+  their source failed to sync. A sync failure is reported once, and its recovery once.
+- If working out the changes fails, the feed says so instead of showing nothing new.
+
 ### Related documents
 
 DEC-005, DEC-017, DEC-018, DEC-020.

@@ -114,6 +114,8 @@ class WorkspaceMember(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, nullable=False
     )
+    # When this account last opened the workspace, to mark newer feed items (W8).
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     workspace: Mapped["Workspace"] = relationship("Workspace", back_populates="members")
     account: Mapped["Account"] = relationship(
