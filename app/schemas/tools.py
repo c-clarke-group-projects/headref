@@ -299,7 +299,10 @@ class GetWorkItemLinksOutput(BaseModel):
 class GetSourceHealthInput(BaseModel):
     """Input parameters for get_source_health tool."""
 
-    team_id: int = Field(description="Internal team ID")
+    team_id: int | None = Field(default=None, description="Internal team ID (legacy path)")
+    workspace_id: int | None = Field(
+        default=None, description="Workspace whose sync history to read (W7)"
+    )
     sources: list[Literal["github", "jira"]] = Field(description="Sources to evaluate health for")
 
 

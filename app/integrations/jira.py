@@ -25,8 +25,25 @@ class JiraClient:
         email: str | None = None,
         api_token: str | None = None,
         transport: httpx.BaseTransport | None = None,
+        bearer_token: str | None = None,
     ) -> None:
-        """Initialize JiraClient with basic authentication and base URL."""
+        """Initialize with an Atlassian OAuth bearer token, or with basic authentication.
+
+        bearer_token (W5, DEC-023): base_url must be the workspace's site through the
+        Atlassian gateway, https://api.atlassian.com/ex/jira/<cloudId>. Otherwise the
+        email and API token from the arguments or the environment are used.
+        """
+        if bearer_token:
+            self._base_url = (base_url or "").rstrip("/")
+            if not self._base_url:
+                raise RuntimeError("A bearer-token Jira client needs the site base URL.")
+            self._headers = {
+                "Accept": "application/json",
+                "Authorization": f"Bearer {bearer_token}",
+            }
+            self._client = HttpClient(transport=transport)
+            return
+
         if settings is not None:
             self._base_url = (base_url or settings.jira_base_url or "").rstrip("/")
             self._email = email or settings.jira_email or ""

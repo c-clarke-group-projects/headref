@@ -28,13 +28,19 @@ def get_source_health(
     """Evaluate source freshness and operational availability from sync_run history."""
 
     def _query() -> GetSourceHealthOutput | ToolFailure:
-        team = session.get(Team, input_data.team_id)
-        if not team:
-            return ToolFailure(
-                tool_id="T-007",
-                error_type="NOT_FOUND",
-                detail=f"Team with ID {input_data.team_id} does not exist",
-            )
+        if input_data.workspace_id is not None:
+            # A workspace's health comes from its own sync runs only (W7).
+            in_scope = SyncRun.workspace_id == input_data.workspace_id
+        else:
+            team = session.get(Team, input_data.team_id) if input_data.team_id else None
+            if not team:
+                return ToolFailure(
+                    tool_id="T-007",
+                    error_type="NOT_FOUND",
+                    detail=f"Team with ID {input_data.team_id} does not exist",
+                )
+            # The legacy single-team path ignores workspace syncs.
+            in_scope = SyncRun.workspace_id.is_(None)
 
         now = datetime.now(UTC)
         source_healths: list[SourceHealthOut] = []
@@ -43,7 +49,7 @@ def get_source_health(
             # Query most recent sync attempt
             latest_attempt_stmt = (
                 select(SyncRun)
-                .where(SyncRun.source == source)
+                .where(SyncRun.source == source, in_scope)
                 .order_by(SyncRun.started_at.desc())
                 .limit(1)
             )
@@ -54,6 +60,7 @@ def get_source_health(
                 select(SyncRun)
                 .where(
                     SyncRun.source == source,
+                    in_scope,
                     SyncRun.status.in_(["success", "partial"]),
                 )
                 .order_by(SyncRun.finished_at.desc())
@@ -65,6 +72,9 @@ def get_source_health(
             last_success_at = (
                 last_success.finished_at if (last_success and last_success.finished_at) else None
             )
+            if last_success_at is not None and last_success_at.tzinfo is None:
+                # SQLite returns naive timestamps; every stored time is UTC.
+                last_success_at = last_success_at.replace(tzinfo=UTC)
 
             age_hours: float | None = None
             if last_success_at:

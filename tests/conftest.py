@@ -1,9 +1,12 @@
 """Pytest configuration and environment fixtures for headref."""
 
 import os
-from collections.abc import Generator
+from collections.abc import Generator, Iterator
+from typing import Any
 
 import pytest
+from fastapi import FastAPI
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 # Ensure dummy configuration secrets exist so app.config can load in test environments.
@@ -46,3 +49,20 @@ def log_in(client: TestClient, user_id: int) -> None:
     # TestClient serves http://testserver, which the cookie jar files under
     # "testserver.local". Using that domain lets the app's logout delete this cookie.
     client.cookies.set(SESSION_COOKIE, sign_session(user_id), domain="testserver.local")
+
+
+def iter_api_routes(application: FastAPI) -> Iterator[tuple[str, Any]]:
+    """Yield (full path, dependant) for every API route, including included routers.
+
+    FastAPI 0.143 keeps an included router as 1 ``_IncludedRouter`` entry in
+    ``app.routes``, so a plain ``isinstance(route, APIRoute)`` scan sees none of the
+    routes inside it and a coverage check passes without checking anything. Older
+    versions flatten them into APIRoute entries. Both layouts are handled.
+    """
+    for route in application.routes:
+        if isinstance(route, APIRoute):
+            yield route.path, route.dependant
+        elif hasattr(route, "effective_candidates"):
+            for candidate in route.effective_candidates():
+                if hasattr(candidate, "dependant"):
+                    yield candidate.path, candidate.dependant

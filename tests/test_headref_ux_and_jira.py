@@ -2,16 +2,13 @@
 
 Validates:
 1. Login page: No 'Select Person' stub dropdown, only GitHub OAuth.
-2. Repos page: Synced repositories appear first at top of list, Jira status card present.
-3. Team overview page: Multi-repo pillbar removed, unmatched accounts card/banner removed.
-4. Jira endpoints: GET /jira, POST /jira/sync, POST /jira/demo. Credentials cannot be
-   posted (connect and disconnect are removed).
+2. Jira credentials cannot be posted (connect and disconnect are removed). The team era
+   Repos and Jira pages went in W10 (DEC-026); workspaces connect Jira per workspace.
 """
 
 import os
 from collections.abc import Generator
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import status
@@ -113,123 +110,6 @@ def test_login_page_no_select_person_dropdown(
     assert "Sign in with GitHub" in html
 
 
-def test_team_page_no_repo_switcher_pillbar_and_no_unmatched_card(
-    client: TestClient, setup_user_and_repos: tuple[AppUser, list[Repository]]
-) -> None:
-    """Team overview page removes multi-repo switcher pillbar and unmatched accounts card."""
-    user, repos = setup_user_and_repos
-    client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
-
-    response = client.get(f"/?repo={repos[0].full_name}")
-    assert response.status_code == 200
-    html = response.text
-
-    # Verify no multi-repo pillbar with 'All (2)'
-    assert 'aria-label="Filter by repository"' not in html
-    assert "All (2)" not in html
-    assert "All (3)" not in html
-
-    # Verify no unmatched accounts card or banner
-    assert "unmatched-card" not in html
-    assert "unmatched account" not in html.lower()
-
-    # Verify team members heading and repo meta
-    assert repos[0].full_name in html
-    assert "Members" in html
-
-
-def test_repos_page_orders_synced_repos_at_top(
-    client: TestClient,
-    setup_user_and_repos: tuple[AppUser, list[Repository]],
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Repos page must order synced repositories at the top of the list."""
-    user, db_repos = setup_user_and_repos
-    client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
-    client.cookies.set(routes.GITHUB_TOKEN_COOKIE, "gho_test_token")
-
-    # Mock GitHubClient returning 3 repos: 1 unsynced, 1 synced, 1 unsynced
-    mock_gh = MagicMock()
-    mock_gh.list_organizations.return_value = []
-    mock_gh.list_repositories.return_value = [
-        {
-            "full_name": "unsynced/alpha",
-            "name": "alpha",
-            "owner": {"login": "unsynced"},
-            "private": False,
-        },
-        {
-            "full_name": "keshan-dev/headref",
-            "name": "headref",
-            "owner": {"login": "keshan-dev"},
-            "private": False,
-        },
-        {
-            "full_name": "unsynced/beta",
-            "name": "beta",
-            "owner": {"login": "unsynced"},
-            "private": False,
-        },
-    ]
-
-    with patch("app.web.routes.GitHubClient") as mock_gh_cls:
-        mock_gh_cls.return_value.__enter__.return_value = mock_gh
-        response = client.get("/repos")
-
-    assert response.status_code == 200
-    html = response.text
-
-    # Synced repo (headref) should appear before unsynced repos
-    pos_synced = html.find("keshan-dev/headref")
-    pos_alpha = html.find("unsynced/alpha")
-    assert pos_synced != -1
-    assert pos_alpha != -1
-    assert pos_synced < pos_alpha, "Synced repository should appear before unsynced repository"
-
-    # Verify Jira banner exists on /repos
-    assert "Atlassian Jira Integration" in html
-    assert "/jira" in html
-
-
-def test_jira_page_renders_cleanly(
-    client: TestClient, setup_user_and_repos: tuple[AppUser, list[Repository]]
-) -> None:
-    """GET /jira shows the configuration state and how to configure, with no form."""
-    user, _ = setup_user_and_repos
-    client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
-
-    response = client.get("/jira")
-    assert response.status_code == 200
-    html = response.text
-    assert "How to configure Jira" in html
-    assert "Load sample Jira data" in html
-    assert 'name="jira_api_token"' not in html
-    assert "/jira/connect" not in html
-    assert os.environ["JIRA_API_TOKEN"] not in html
-
-
-def test_jira_page_not_configured_says_so(
-    client: TestClient,
-    setup_user_and_repos: tuple[AppUser, list[Repository]],
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    user, _ = setup_user_and_repos
-    client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
-    cfg = Settings(
-        database_url="sqlite:///:memory:",
-        jira_base_url="",
-        jira_email="",
-        jira_api_token="",
-        _env_file=None,
-    )
-    monkeypatch.setattr(routes, "get_settings", lambda: cfg)
-
-    html = client.get("/jira").text
-    assert "Not configured" in html
-    assert "cannot be entered on this page" in html
-    assert 'action="/jira/sync"' not in html
-
-
 @pytest.mark.parametrize("path", ["/jira/connect", "/jira/disconnect"])
 def test_jira_credentials_cannot_be_changed_over_http(
     client: TestClient,
@@ -259,46 +139,3 @@ def test_jira_credentials_cannot_be_changed_over_http(
     assert response.status_code in (status.HTTP_404_NOT_FOUND, status.HTTP_405_METHOD_NOT_ALLOWED)
     assert os.environ["JIRA_API_TOKEN"] == token_before
     assert env_file.read_text(encoding="utf-8") == "JIRA_API_TOKEN=original\n"
-
-
-def test_jira_sync_not_configured_starts_nothing(
-    client: TestClient,
-    setup_user_and_repos: tuple[AppUser, list[Repository]],
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    user, _ = setup_user_and_repos
-    client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
-    cfg = Settings(
-        database_url="sqlite:///:memory:",
-        jira_base_url="",
-        jira_email="",
-        jira_api_token="",
-        _env_file=None,
-    )
-    monkeypatch.setattr(routes, "get_settings", lambda: cfg)
-
-    with patch("app.web.routes.sync_jira") as mock_sync_jira:
-        response = client.post("/jira/sync", follow_redirects=False)
-
-    assert response.status_code == status.HTTP_303_SEE_OTHER
-    assert response.headers["location"] == "/jira?error=not_configured"
-    mock_sync_jira.assert_not_called()
-
-
-def test_jira_sync_failure_never_puts_exception_text_in_the_url(
-    client: TestClient, setup_user_and_repos: tuple[AppUser, list[Repository]]
-) -> None:
-    user, _ = setup_user_and_repos
-    client.cookies.set(auth.SESSION_COOKIE, auth.sign_session(user.id))
-
-    with patch(
-        "app.web.routes.sync_jira", side_effect=RuntimeError("token=abc123 rejected upstream")
-    ):
-        response = client.post("/jira/sync", follow_redirects=False)
-
-    assert response.status_code == status.HTTP_303_SEE_OTHER
-    assert response.headers["location"] == "/jira?error=sync_failed"
-
-    page = client.get(response.headers["location"]).text
-    assert "The Jira sync failed" in page
-    assert "abc123" not in page

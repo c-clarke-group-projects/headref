@@ -1,0 +1,161 @@
+{#
+  People of 1 workspace (W6, DEC-024).
+  Context: base context plus workspace, groups ({status: list[Person]}), everyone
+  (list[Person]), can_manage (bool), message (fixed copy or None),
+  unmatched (list[UnmatchedAccount]: accounts no person holds, activity excluded)
+  Alphabetical in every group. Counts are context for the decision, never a ranking.
+#}
+{% extends "base.html" %}
+{% import "partials/icons.html" as i %}
+{% import "partials/illustrations.html" as ill %}
+
+{% macro accounts(p, can_split) -%}
+  <ul class="person__accounts">
+    {% for a in p.accounts %}
+      <li>
+        <span class="badge badge--sm badge--outline">{{ i.source_icon(a.integration, 12) }} {{ a.handle }}</span>
+        {% if can_split and p.accounts|length > 1 %}
+          <form method="post" action="/w/{{ workspace.id }}/people/{{ p.id }}/split" class="inline-form">
+            <input type="hidden" name="link" value="{{ a.link_id }}">
+            <button type="submit" class="linklike">Split off</button>
+          </form>
+        {% endif %}
+      </li>
+    {% else %}
+      <li class="caption">No linked account</li>
+    {% endfor %}
+  </ul>
+{%- endmacro %}
+
+{% macro activity(p) -%}
+  <p class="caption">Context, not a measure: {{ p.pull_requests }} pull request{{ "s" if p.pull_requests != 1 }}, {{ p.commits }} commit{{ "s" if p.commits != 1 }}, {{ p.work_items }} Jira item{{ "s" if p.work_items != 1 }}.</p>
+{%- endmacro %}
+
+{% macro status_button(p, value, label) -%}
+  <form method="post" action="/w/{{ workspace.id }}/people/{{ p.id }}/status" class="inline-form">
+    <input type="hidden" name="status" value="{{ value }}">
+    <button type="submit" class="btn btn--quiet btn--sm">{{ label }}</button>
+  </form>
+{%- endmacro %}
+
+{% macro merge_form(p) -%}
+  {% set others = everyone|rejectattr("id", "equalto", p.id)|rejectattr("status", "in", ["ignored", "bot"])|list %}
+  {% if others %}
+  <form method="post" action="/w/{{ workspace.id }}/people/merge" class="person__merge">
+    <input type="hidden" name="source" value="{{ p.id }}">
+    <label class="caption" for="merge-{{ p.id }}">Same person as</label>
+    <select id="merge-{{ p.id }}" name="target" required>
+      <option value="">Choose</option>
+      {% for o in others %}<option value="{{ o.id }}">{{ o.display_name }}{% for a in o.accounts %} ({{ a.integration|source_label }}){% endfor %}</option>{% endfor %}
+    </select>
+    <button type="submit" class="btn btn--quiet btn--sm">Merge</button>
+  </form>
+  {% endif %}
+{%- endmacro %}
+
+{% block title %}People, {{ workspace.name }}, Headref{% endblock %}
+
+{% block hero %}
+<section class="hero">
+  <div>
+    <a class="hero__back" href="/w/{{ workspace.id }}">{{ i.icon("arrow-left") }}Back to {{ workspace.name }}</a>
+    <h1 class="hero__title">People</h1>
+    <p class="hero__lead">Each account found in this workspace's repositories and Jira projects
+      is its own person until a manager decides. Confirm who is on the team, and merge a Jira
+      account into a GitHub account when they are the same human. Headref never matches people
+      by name.</p>
+  </div>
+</section>
+{% endblock %}
+
+{% block banners %}
+{% if message %}
+<div class="banners"><div class="banner" role="status"><span class="banner__dot" aria-hidden="true"></span><span>{{ message }}</span></div></div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<section aria-labelledby="suggested-title">
+  <div class="section-head">
+    <h2 class="section-head__title" id="suggested-title">Waiting for confirmation ({{ groups.suggested|length }})</h2>
+    <span class="caption">Not in the analysis until confirmed.</span>
+  </div>
+  {% if not groups.suggested %}
+    <p class="note-card note-card--clear">{{ ill.check_draw() }} Nobody is waiting. People appear here after a sync finds a new account.</p>
+  {% endif %}
+  <div class="grid-2">
+    {% for p in groups.suggested %}
+      <article class="card card--pad-md person">
+        <div class="person__head"><span class="avatar avatar--xs {{ p.id|avatar_tint }}" aria-hidden="true">{{ p.display_name|initials }}</span><h3 class="card__title">{{ p.display_name }}</h3></div>
+        {{ accounts(p, false) }}
+        {{ activity(p) }}
+        {% if can_manage %}
+          <div class="person__actions">
+            {{ status_button(p, "confirmed", "Confirm") }}
+            {{ status_button(p, "ignored", "Ignore") }}
+            {{ status_button(p, "bot", "Bot") }}
+          </div>
+          {{ merge_form(p) }}
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section aria-labelledby="confirmed-title">
+  <div class="section-head">
+    <h2 class="section-head__title" id="confirmed-title">On the team ({{ groups.confirmed|length }})</h2>
+    <span class="caption">Alphabetical. Headref does not rank or compare people.</span>
+  </div>
+  {% if not groups.confirmed %}
+    <p class="note-card">Nobody is confirmed yet.</p>
+  {% endif %}
+  <div class="grid-2">
+    {% for p in groups.confirmed %}
+      <article class="card card--pad-md person">
+        <div class="person__head"><span class="avatar avatar--xs {{ p.id|avatar_tint }}" aria-hidden="true">{{ p.display_name|initials }}</span><h3 class="card__title">{{ p.display_name }}</h3></div>
+        {{ accounts(p, can_manage) }}
+        {{ activity(p) }}
+        {% if can_manage %}
+          <div class="person__actions">{{ status_button(p, "ignored", "Remove from team") }}</div>
+          {{ merge_form(p) }}
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+</section>
+
+{% if groups.ignored or groups.bot %}
+<section aria-labelledby="hidden-title">
+  <div class="section-head">
+    <h2 class="section-head__title" id="hidden-title">Ignored and bots ({{ groups.ignored|length + groups.bot|length }})</h2>
+    <span class="caption">Left out of the analysis. Restore to decide again.</span>
+  </div>
+  <ul class="subtle-list">
+    {% for p in groups.ignored + groups.bot %}
+      <li>
+        <span>{{ p.display_name }}</span>
+        <span class="badge badge--sm badge--outline">{{ "Bot" if p.status == "bot" else "Ignored" }}</span>
+        {% if can_manage %}{{ status_button(p, "suggested", "Restore") }}{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% if unmatched %}
+<section aria-labelledby="unmatched-title">
+  <div class="section-head">
+    <h2 class="section-head__title" id="unmatched-title">Not matched to anyone ({{ unmatched|length }})</h2>
+    <span class="caption">Activity from these accounts is not in the analysis. A commit author with no
+    GitHub account cannot be confirmed here.</span>
+  </div>
+  <ul class="subtle-list subtle-list--plain">
+    {% for u in unmatched %}
+      <li>
+        <span class="badge badge--sm badge--outline">{{ i.source_icon(u.integration, 12) }} {{ u.handle }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

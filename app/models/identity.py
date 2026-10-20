@@ -18,13 +18,20 @@ class IdentityLink(Base):
     __tablename__ = "identity_link"
     __table_args__ = (
         UniqueConstraint(
+            "organization_id",
             "integration",
             "external_id",
-            name="uq_identity_link_integration_external",
+            name="uq_identity_link_org_integration_external",
         ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # The workspace's organization (W5). Lookups always filter on it.
+    organization_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("organization.id", ondelete="CASCADE", name="fk_identity_link_organization"),
+        nullable=True,
+    )
     app_user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("app_user.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -49,13 +56,19 @@ class UnmatchedEntity(Base):
     __tablename__ = "unmatched_entity"
     __table_args__ = (
         UniqueConstraint(
+            "organization_id",
             "integration",
             "external_id",
-            name="uq_unmatched_entity_integration_external",
+            name="uq_unmatched_entity_org_integration_external",
         ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("organization.id", ondelete="CASCADE", name="fk_unmatched_entity_organization"),
+        nullable=True,
+    )
     integration: Mapped[str] = mapped_column(String(32), nullable=False)  # github, jira
     external_id: Mapped[str] = mapped_column(String(255), nullable=False)
     external_handle: Mapped[str | None] = mapped_column(String(255), nullable=True)

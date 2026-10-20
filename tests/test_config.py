@@ -173,3 +173,17 @@ def test_startup_fails_without_secrets(monkeypatch: pytest.MonkeyPatch, tmp_path
             pass
 
     assert "Missing required configuration secrets" in str(exc_info.value)
+
+
+def test_blank_model_and_prompt_settings_fall_back_to_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A copied .env.example has "MODEL_ID=" and "PROMPT_VERSION=" with no value."""
+    for name in ("MODEL_ID", "OLLAMA_MODEL", "PROMPT_VERSION", "OLLAMA_URL", "OLLAMA_BASE_URL"):
+        monkeypatch.setenv(name, "")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.model_id == "llama3.2"
+    assert settings.prompt_version == "narrative_v2"
+    assert settings.ollama_url == "http://localhost:11434"

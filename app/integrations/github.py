@@ -21,6 +21,11 @@ logger = logging.getLogger("headref.integrations.github")
 # Regex to extract URL with rel="next" from RFC-5988 Link header
 _NEXT_LINK_REGEX = re.compile(r'<([^>]+)>;\s*rel="next"')
 
+# GitHub logins: letters, digits and hyphens, 1 to 39 characters, no hyphen at
+# either end. Checked before the login goes into a URL path.
+GITHUB_LOGIN_PATTERN = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
+GITHUB_API_URL = "https://api.github.com"
+
 
 def parse_next_page_url(link_header: str | None) -> str | None:
     """Extract the next page URL from a GitHub RFC-5988 Link response header."""
@@ -30,25 +35,47 @@ def parse_next_page_url(link_header: str | None) -> str | None:
     return match.group(1) if match else None
 
 
-_ACTIVE_GITHUB_TOKEN: str | None = None
-
-
-def set_active_github_token(token: str | None) -> None:
-    """Store the authenticated user's GitHub token in memory for sync operations."""
-    global _ACTIVE_GITHUB_TOKEN
-    _ACTIVE_GITHUB_TOKEN = token
-
-
 def get_active_github_token() -> str | None:
-    """Retrieve the active GitHub token from memory, env, or settings."""
-    if _ACTIVE_GITHUB_TOKEN:
-        return _ACTIVE_GITHUB_TOKEN
+    """The configured GITHUB_TOKEN, for the legacy configured-scope sync.
+
+    A signed-in user's token is never kept: sign-in asks for no scopes and drops its
+    token after reading the profile (DEC-026). Workspaces use GitHub App tokens.
+    """
     env_token = os.getenv("GITHUB_TOKEN")
     if env_token:
         return env_token
     if settings is not None and settings.github_token:
         return settings.github_token
     return None
+
+
+# Check run conclusions that mean the head commit failed CI (BL-7).
+_FAILING_CONCLUSIONS = frozenset(
+    {"failure", "timed_out", "cancelled", "action_required", "startup_failure"}
+)
+
+
+def summarize_checks(
+    check_runs: list[dict[str, Any]], combined_status: dict[str, Any] | None
+) -> str:
+    """Reduce check runs and the combined commit status to passing, failing or unknown.
+
+    Failing wins over everything. Nothing reported, or anything still running, is
+    unknown: "passing" would claim a result nobody has seen yet.
+    """
+    statuses = (combined_status or {}).get("statuses") or []
+    combined_state = (combined_status or {}).get("state")
+    if any(run.get("conclusion") in _FAILING_CONCLUSIONS for run in check_runs):
+        return "failing"
+    if statuses and combined_state in ("failure", "error"):
+        return "failing"
+    if not check_runs and not statuses:
+        return "unknown"
+    if any(run.get("status") != "completed" for run in check_runs):
+        return "unknown"
+    if statuses and combined_state != "success":
+        return "unknown"
+    return "passing"
 
 
 class GitHubClient:
@@ -180,6 +207,14 @@ class GitHubClient:
             params["sha"] = sha
         return self._paginate(url, params=params)
 
+    def get_checks_state(self, owner: str, repo: str, ref: str) -> str:
+        """passing, failing or unknown for a commit, from check runs and statuses."""
+        runs = self._http.get(
+            f"/repos/{owner}/{repo}/commits/{ref}/check-runs", params={"per_page": 100}
+        ).json()
+        status = self._http.get(f"/repos/{owner}/{repo}/commits/{ref}/status").json()
+        return summarize_checks(runs.get("check_runs") or [], status)
+
     def list_branches(
         self,
         owner: str,
@@ -189,3 +224,26 @@ class GitHubClient:
         url = f"/repos/{owner}/{repo}/branches"
         params = {"per_page": 100}
         return self._paginate(url, params=params)
+
+
+def lookup_github_user(login: str, transport: httpx.BaseTransport | None = None) -> dict[str, Any]:
+    """Return {"id", "login", "type"} of a GitHub account, from its public profile.
+
+    Used to turn an invited login into the numeric id an invite is matched on. No token:
+    GitHub allows 60 unauthenticated requests an hour per address, plenty for invites.
+    Raises ValueError for a malformed login, NotFoundError when there is no such account,
+    and the other typed IntegrationErrors when GitHub cannot be reached.
+    """
+    if not GITHUB_LOGIN_PATTERN.match(login):
+        raise ValueError("not a GitHub login")
+    headers = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
+    with HttpClient(
+        base_url=GITHUB_API_URL,
+        timeout=HTTP_TIMEOUT_SECONDS,
+        max_attempts=HTTP_MAX_ATTEMPTS,
+        transport=transport,
+        headers=headers,
+    ) as http:
+        data = http.get(f"/users/{login}").json()
+    logger.info("github user lookup: login=%s found_id=%s", login, data.get("id"))
+    return {"id": int(data["id"]), "login": str(data["login"]), "type": str(data.get("type"))}

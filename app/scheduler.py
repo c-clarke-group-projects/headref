@@ -23,9 +23,10 @@ from app.config import (
 )
 from app.db import get_sync_session
 from app.integrations.github import get_active_github_token
-from app.models.canonical import Repository
+from app.models.canonical import Repository, Team
 from app.models.operations import SyncRun
 from app.sync import sync_github, sync_jira
+from app.workspace_sync import sync_all_workspaces
 
 logger = logging.getLogger("headref.scheduler")
 
@@ -82,13 +83,24 @@ def recover_stuck_syncs(
 def resolve_team_scopes(
     team_id: int, session: Session | None = None
 ) -> tuple[list[str], list[str]]:
-    """GitHub and Jira scopes for a team, as (github, jira)."""
+    """GitHub and Jira scopes for a team, as (github, jira).
+
+    Only the team's own organization's repositories: workspaces sync their repositories
+    with their own GitHub App installation (DEC-022), never with this deployment's
+    GITHUB_TOKEN, so their rows must not feed this legacy path.
+    """
     gh = []
     if session is not None:
         try:
-            db_repos = session.scalars(select(Repository)).all()
-            if db_repos:
-                gh = [r.full_name for r in db_repos]
+            team = session.get(Team, team_id)
+            if team is not None:
+                gh = list(
+                    session.scalars(
+                        select(Repository.full_name)
+                        .where(Repository.organization_id == team.organization_id)
+                        .order_by(Repository.full_name)
+                    ).all()
+                )
         except Exception:
             logger.exception("Could not read onboarded repositories; using GITHUB_REPOS")
     if not gh:
@@ -189,6 +201,17 @@ def run_scheduled_tick(
     }
 
 
+def _tick(team_id: int) -> None:
+    """1 scheduler pass: the legacy configured scopes, then every workspace (W5)."""
+    session = get_sync_session()
+    try:
+        run_scheduled_tick(session, team_id=team_id)
+    finally:
+        session.close()
+    synced = sync_all_workspaces(get_sync_session)
+    logger.info("scheduled workspace syncs: %s", synced)
+
+
 async def scheduler_loop(
     interval_seconds: float,
     stop_event: asyncio.Event,
@@ -198,11 +221,9 @@ async def scheduler_loop(
     logger.info("Scheduler loop started with interval of %.1f seconds", interval_seconds)
     while not stop_event.is_set():
         try:
-            session = get_sync_session()
-            try:
-                run_scheduled_tick(session, team_id=team_id)
-            finally:
-                session.close()
+            # In a worker thread: a sync takes seconds to minutes, and running it on the
+            # event loop would stop the web app answering requests meanwhile.
+            await asyncio.to_thread(_tick, team_id)
         except Exception as exc:
             logger.error("Unexpected error in scheduler loop: %s", exc)
 

@@ -7,6 +7,7 @@ claim/confidence/evidence generation (DEC-001, DEC-018, FR-016, FR-022, FR-029).
 import json
 import logging
 import os
+import re
 import time
 from typing import Any
 
@@ -21,6 +22,9 @@ logger = logging.getLogger("headref.agent.narrative")
 # the 10 second HTTP_TIMEOUT_SECONDS used for the GitHub and Jira APIs.
 REQUEST_TIMEOUT_SECONDS = 30.0
 ATTEMPTS = 2
+# Prompt files are app/agent/prompts/narrative_v<n>.txt. The pattern keeps a
+# configured value from naming any other file.
+_PROMPT_VERSION = re.compile(r"narrative_v[0-9]+")
 
 
 def _default_ollama_url() -> str:
@@ -57,17 +61,19 @@ class NarrativeResult(BaseModel):
     raw_response: dict[str, Any] | None = None
 
 
-def load_prompt(findings_text: str) -> str:
-    """Load the versioned prompt template and substitute findings data."""
-    prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "narrative_v1.txt")
-    if os.path.exists(prompt_path):
-        with open(prompt_path, encoding="utf-8") as f:
-            template = f.read()
-        return template.replace("{findings}", findings_text)
-    return (
-        "Summarize these findings into 2 sentences and 1 attention line as JSON:\n"
-        f"{findings_text}"
-    )
+def load_prompt(findings_text: str, version: str | None = None) -> str:
+    """Load the configured prompt template (PROMPT_VERSION) and substitute the findings.
+
+    An unknown or missing version raises instead of silently using another prompt, so
+    agent_run.prompt_version always names the prompt that was actually sent.
+    """
+    version = version or get_settings().prompt_version
+    if not _PROMPT_VERSION.fullmatch(version):
+        raise ValueError(f"Invalid prompt version {version!r}")
+    prompt_path = os.path.join(os.path.dirname(__file__), "prompts", f"{version}.txt")
+    with open(prompt_path, encoding="utf-8") as f:
+        template = f.read()
+    return template.replace("{findings}", findings_text)
 
 
 def deterministic_fallback(

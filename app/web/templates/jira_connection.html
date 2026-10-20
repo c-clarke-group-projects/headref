@@ -1,0 +1,103 @@
+{#
+  Jira site and projects for 1 workspace (W4, DEC-023). Owner only.
+  Context: base context plus
+    workspace, connection (JiraConnection or None), sites (list[JiraSite], when choosing),
+    projects (list of {id, key, name}), selected (set of project ids),
+    error (typed error code or None), message (fixed copy or None), app_configured (bool)
+  A failure to read from Atlassian is shown as a failure, never as "no projects".
+#}
+{% extends "base.html" %}
+{% import "partials/icons.html" as i %}
+
+{% block title %}Jira, {{ workspace.name }}, Headref{% endblock %}
+
+{% block hero %}
+<section class="hero">
+  <div>
+    <a class="hero__back" href="/w/{{ workspace.id }}">{{ i.icon("arrow-left") }}Back to {{ workspace.name }}</a>
+    <h1 class="hero__title">Jira projects</h1>
+    <p class="hero__lead">Choose which Jira projects this workspace reads. Headref only reads
+      them, with read-only Atlassian permissions.</p>
+  </div>
+</section>
+{% endblock %}
+
+{% block banners %}
+{% if message %}
+<div class="banners"><div class="banner" role="status"><span class="banner__dot" aria-hidden="true"></span><span>{{ message }}</span></div></div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="section">
+  {% if connection is none or connection.status == "auth_failed" %}
+    <div class="card card--pad card--dashed">
+      {% if connection is none %}
+        <h2 class="card__title">No Jira site connected</h2>
+        <p class="empty-note" style="margin-top: var(--s-3)">Sign in to Atlassian and allow
+          headref to read Jira work items and users.</p>
+      {% else %}
+        <h2 class="card__title">Jira needs to be reconnected</h2>
+        <p class="empty-note" role="alert" style="margin-top: var(--s-3)">Atlassian no longer
+          accepts the stored connection for {{ connection.site_name or "this site" }}. Until it
+          is reconnected, Jira data for this workspace is unavailable, not empty.</p>
+      {% endif %}
+      {% if app_configured %}
+        <form method="post" action="/w/{{ workspace.id }}/connections/jira/start" style="margin-top: var(--s-5)">
+          <button type="submit" class="btn btn--primary">{{ i.source_icon("jira", 16) }} {{ "Reconnect Jira" if connection else "Connect Jira" }}</button>
+        </form>
+      {% else %}
+        <p class="caption" style="margin-top: var(--s-4)">The headref Atlassian app is not configured on this server.</p>
+      {% endif %}
+    </div>
+
+  {% elif error %}
+    <div class="card card--pad-md">
+      <p class="empty-note" role="alert">Jira could not be read from Atlassian
+        ({{ error|error_label }}). The saved selection is unchanged.</p>
+    </div>
+
+  {% elif connection.status == "pending_site" %}
+    <form method="post" action="/w/{{ workspace.id }}/connections/jira/site" class="card card--pad-md">
+      <h2 class="card__title">Choose a Jira site</h2>
+      <ul class="repo-pick">
+        {% for s in sites %}
+          <li><label class="repo-pick__row">
+            <input type="radio" name="cloud_id" value="{{ s.cloud_id }}" required>
+            <span>{{ s.name }}</span> <span class="caption mono">{{ s.url }}</span>
+          </label></li>
+        {% endfor %}
+      </ul>
+      <p style="margin-top: var(--s-4)"><button type="submit" class="btn btn--primary">Use this site</button></p>
+    </form>
+
+  {% else %}
+    <form method="post" action="/w/{{ workspace.id }}/connections/jira/projects" class="card card--pad-md">
+      <div class="card__head">
+        <h2 class="card__title">{{ i.source_icon("jira", 18) }} {{ connection.site_name }}</h2>
+        <span class="caption mono">{{ connection.site_url }}</span>
+      </div>
+      {% if not projects %}
+        <p class="empty-note" style="margin-top: var(--s-3)">This site has no Jira projects you
+          can read.</p>
+      {% else %}
+        <ul class="repo-pick">
+          {% for p in projects %}
+            <li><label class="repo-pick__row">
+              <input type="checkbox" name="project" value="{{ p.id }}"{% if p.id in selected %} checked{% endif %}>
+              <span class="mono">{{ p.key }}</span><span>{{ p.name }}</span>
+            </label></li>
+          {% endfor %}
+        </ul>
+        <p style="margin-top: var(--s-4)"><button type="submit" class="btn btn--primary">Save selection</button></p>
+      {% endif %}
+    </form>
+  {% endif %}
+
+  {% if connection is not none %}
+    <form method="post" action="/w/{{ workspace.id }}/connections/jira/disconnect" class="section">
+      <button type="submit" class="btn btn--quiet btn--sm">Disconnect Jira</button>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

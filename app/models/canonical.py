@@ -3,7 +3,15 @@
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -61,6 +69,11 @@ class AppUser(Base):
     """
 
     __tablename__ = "app_user"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('suggested', 'confirmed', 'ignored', 'bot')", name="ck_app_user_status"
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     organization_id: Mapped[int] = mapped_column(
@@ -72,6 +85,11 @@ class AppUser(Base):
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
     role_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # W6, DEC-024: suggested (discovered, exactly 1 external account), confirmed, ignored
+    # or bot. Only confirmed people appear in a workspace's analysis.
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="confirmed", server_default="confirmed"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),
@@ -94,12 +112,15 @@ class Repository(Base):
     """A configured GitHub repository."""
 
     __tablename__ = "repository"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "full_name", name="uq_repository_org_full_name"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     organization_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("organization.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    full_name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     default_branch: Mapped[str] = mapped_column(String(255), default="main", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
@@ -116,12 +137,13 @@ class Project(Base):
     """A configured Jira project."""
 
     __tablename__ = "project"
+    __table_args__ = (UniqueConstraint("organization_id", "key", name="uq_project_org_key"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     organization_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("organization.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    key: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)
+    key: Mapped[str] = mapped_column(String(32), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 

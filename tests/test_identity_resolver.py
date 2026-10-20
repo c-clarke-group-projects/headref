@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 
 from app.db import Base
 from app.integrations.identity_resolver import (
+    COMMIT_AUTHOR_PREFIX,
+    attribute_commits,
     attribute_pull_requests,
     attribute_work_items,
     record_inferred_link,
@@ -17,7 +19,7 @@ from app.integrations.identity_resolver import (
 )
 from app.models.canonical import AppUser, Organization, Project, Repository
 from app.models.identity import IdentityLink, UnmatchedEntity
-from app.models.work import PullRequest, WorkItem
+from app.models.work import Commit, PullRequest, WorkItem
 
 
 @pytest.fixture
@@ -269,3 +271,37 @@ def test_attribute_work_items_jira(db_session: Session) -> None:
     assert attributed == 1
     assert w1.assignee_app_user_id == user.id
     assert w2.assignee_app_user_id is None
+
+
+def test_a_commit_author_without_a_github_account_is_recorded_unmatched(
+    db_session: Session,
+) -> None:
+    """EV-07: the exclusion is visible. The email itself is never stored."""
+    org = Organization(name="W")
+    db_session.add(org)
+    db_session.flush()
+    repo = Repository(organization_id=org.id, full_name="o/r")
+    db_session.add(repo)
+    db_session.flush()
+    now = datetime.now(UTC)
+    commits = [
+        Commit(repository_id=repo.id, sha=sha, committed_at=now, source_url="https://x/c")
+        for sha in ("a1", "b2")
+    ]
+    db_session.add_all(commits)
+    db_session.flush()
+    raw = {
+        "author": None,
+        "commit": {"author": {"name": "Outside Contractor", "email": "Contractor@Example.invalid"}},
+    }
+
+    attribute_commits(db_session, commits, [raw, raw], auto_create=True, organization_id=org.id)
+
+    rows = db_session.scalars(select(UnmatchedEntity)).all()
+    assert len(rows) == 1
+    assert rows[0].external_id.startswith(COMMIT_AUTHOR_PREFIX)
+    assert "contractor@example.invalid" not in rows[0].external_id.lower()
+    assert rows[0].external_handle == "Outside Contractor (commit author, no GitHub account)"
+    assert rows[0].occurrence_count == 2
+    assert all(c.author_app_user_id is None for c in commits)
+    assert db_session.scalars(select(AppUser)).all() == []

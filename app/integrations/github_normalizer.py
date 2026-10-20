@@ -195,8 +195,11 @@ def normalize_review(
 
 
 def upsert_repository(session: Session, repo_dict: dict[str, Any]) -> Repository:
-    """Idempotently insert or update a repository record."""
-    stmt = select(Repository).where(Repository.full_name == repo_dict["full_name"])
+    """Idempotently insert or update a repository record, per organization (W5)."""
+    stmt = select(Repository).where(
+        Repository.organization_id == repo_dict["organization_id"],
+        Repository.full_name == repo_dict["full_name"],
+    )
     existing = session.scalar(stmt)
     if existing:
         existing.default_branch = repo_dict.get("default_branch", existing.default_branch)

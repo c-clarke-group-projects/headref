@@ -34,6 +34,11 @@ supersedes or amends it, not a workaround.
 | DEC-018 | The model writes the narrative, code produces the findings | Accepted |
 | DEC-019 | Lane rebalance: data and findings vs agent and interface | Accepted |
 | DEC-020 | Members are analysed from repository history without Jira | Proposed |
+| DEC-021 | Multi-workspace tenancy | Proposed |
+| DEC-022 | GitHub App for data access | Proposed |
+| DEC-023 | Atlassian OAuth and encrypted per-workspace credentials | Proposed |
+| DEC-024 | Identity confirmation in the UI | Proposed |
+| DEC-025 | Workspace feed and likely next task | Proposed |
 
 ---
 
@@ -1230,3 +1235,298 @@ not checked, rather than refusing to answer.
 ### Related documents
 
 DEC-007, DEC-010, DEC-018, FR-014, FR-020, FR-023.
+
+---
+
+## DEC-021: Multi-workspace tenancy
+
+Date: 2026-10-19
+Status: Proposed
+Owner: Developer 1, needs Developer 2 agreement
+
+### Context
+
+The MVP serves 1 team from 1 configuration. The users who will run it are team leads and
+project managers who look after several projects at once, each with its own repositories
+and Jira projects, and who must not see each other's data. `PROJECT_REQUIREMENTS.md` 2.8
+lists "SSO, RBAC, multi-tenancy" as Stage 2.
+
+### Options considered
+
+1. Keep 1 team per deployment. Each project needs its own deployment.
+2. Workspaces inside 1 deployment: the workspace is the isolation boundary.
+3. Full SaaS with organisations, billing and public sign-up.
+
+### Decision
+
+Option 2.
+
+- An **account** is a person who signs in with GitHub. A **person** is someone whose work
+  is described. They are separate tables; `app_user` becomes `person`.
+- A **workspace** owns its repositories, Jira projects, people, identity links, sync runs,
+  insights, findings and feed events. Every source row belongs to exactly 1 workspace.
+- `workspace_member` gives an account a role in a workspace: `owner`, `manager` or
+  `viewer`. Invites are by GitHub login.
+- Every route under `/w/{workspace_id}` resolves membership through 1 dependency. A
+  request for a workspace the account cannot open returns 404.
+- Uniqueness moves from global to per workspace: `(workspace_id, full_name)` for
+  repositories, `(workspace_id, key)` for Jira projects, `(workspace_id, integration,
+  external_id)` for identity links.
+- Source health and sync state become per workspace, which also removes the per-source
+  problem noted in DEC-020.
+
+### Reason
+
+Leads manage several projects. Separate deployments per project multiply setup and cannot
+give a portfolio view. Full SaaS adds billing and legal work (DR-1, DR-2) that no customer
+needs yet.
+
+### Consequences
+
+- A migration touches every table. Announced in `WORKLOG.md` before it is written (rule 11).
+- Every read tool takes `workspace_id`.
+- A test enumerates routes and fails if one skips the workspace dependency.
+- The `team` table is removed; a workspace is the team.
+
+### Amended 2026-10-19 (W9), still Proposed
+
+- An invite is made for a GitHub login but stored and matched by GitHub's numeric account
+  id, looked up once when the invite is made. A renamed login, or a login someone else
+  takes over later, does not carry the invite. The invited person accepts or declines on
+  their workspace list; nobody is added without accepting. Invites expire after 14 days.
+- Only the owner changes settings: details, invites, roles (manager or viewer), removing
+  access, archiving. The owner's own role does not change; transferring ownership is not
+  built.
+- Archiving needs the workspace name typed. It closes the workspace for everyone and stops
+  its syncs; the data is kept, and there is no unarchive in the app.
+
+### Related documents
+
+DEC-008, DEC-010, DEC-015, DEC-019, FR-001, FR-028, `impl/implementation_plan_workspaces.md`.
+
+---
+
+## DEC-022: GitHub App for data access
+
+Date: 2026-10-19
+Status: Proposed
+Owner: Developer 1
+
+### Context
+
+Sync uses the signed-in user's OAuth token, held in a cookie and in process memory. The
+scheduled sync stops when nobody is signed in or the process restarts, the token can see
+every repository the user can, and the `repo` scope is not read-only.
+
+### Options considered
+
+1. Keep the user's OAuth token, stored encrypted so background sync survives.
+2. A headref GitHub App installed per workspace.
+
+### Decision
+
+Option 2. The app requests Metadata, Contents, Pull requests and Checks, all read only, on
+the repositories the installer selects. headref mints a short-lived installation token per
+sync and never stores it. Sign-in stays GitHub OAuth with `read:user` only.
+
+### Reason
+
+Background sync works without a session, access is read-only and limited to chosen
+repositories (DEC-001), and rate limits are per installation. Listed as a Stage 2 item in
+`PROJECT_REQUIREMENTS.md` 2.8.
+
+### Consequences
+
+- New secrets in `.env`: `GITHUB_APP_ID`, `GITHUB_APP_SLUG`, `GITHUB_APP_PRIVATE_KEY`.
+- New dependency `PyJWT` (with `cryptography`) to sign the app JWT.
+- Installing on an organisation needs an organisation owner.
+- The in-memory token tracking added on 2026-10-18 is removed.
+
+### Related documents
+
+DEC-001, DEC-002, DEC-016, NFR-007.
+
+---
+
+## DEC-023: Atlassian OAuth and encrypted per-workspace credentials
+
+Date: 2026-10-19
+Status: Proposed
+Owner: Developer 1
+
+### Context
+
+Jira credentials come from `.env` for the whole deployment (rule 3). With workspaces, each
+workspace connects its own Atlassian site, and the credential is created at runtime by the
+user, so it cannot live in the environment.
+
+### Options considered
+
+1. 1 Jira site in `.env` for every workspace.
+2. An API token pasted per workspace, stored encrypted.
+3. Atlassian OAuth 2.0 (3LO) per user, refresh token stored encrypted.
+
+### Decision
+
+Option 3. Scopes `read:jira-work`, `read:jira-user`, `offline_access`. Requests go to
+`https://api.atlassian.com/ex/jira/{cloudId}`. The refresh token is encrypted at rest with
+`CREDENTIAL_ENCRYPTION_KEY` from the environment, decrypted only inside
+`app/integrations/`, and replaced atomically on every refresh, because Atlassian rotates it.
+
+This amends rule 3 for this 1 case: the encryption key and the app secrets still come from
+the environment only, and no credential appears in code, logs, error details, templates or
+URLs.
+
+### Reason
+
+Users never handle a raw token, access is read-only, and a workspace can be disconnected by
+revoking it.
+
+### Consequences
+
+- New secrets in `.env`: `ATLASSIAN_CLIENT_ID`, `ATLASSIAN_CLIENT_SECRET`,
+  `CREDENTIAL_ENCRYPTION_KEY`. New dependency `cryptography`.
+- A failed refresh surfaces as `AUTH_FAILED` with a Reconnect action, never as empty data.
+- The Jira client moves to `/rest/api/3/search/jql` with `nextPageToken` pagination in the
+  same change.
+
+### Related documents
+
+DEC-001, DEC-010, rule 3, NFR-007.
+
+---
+
+## DEC-024: Identity confirmation in the UI
+
+Date: 2026-10-19
+Status: Proposed
+Owner: Developer 1 for the logic, Developer 2 for the screen
+
+### Context
+
+DEC-008 bootstraps identity by editing `seed/identity_map.yml`. That does not scale to
+several workspaces and cannot be done by a manager.
+
+### Decision
+
+- Each account found in a workspace's repositories and Jira projects becomes a
+  **suggested** person holding exactly that 1 account (exact numeric GitHub id or Jira
+  accountId). Its activity is attached to it at once: that is not a guess, and rows store
+  only the person, so attribution deferred until confirmation could never be recovered
+  for commits already synced.
+- Joining accounts is the judgement call, and only a manager makes it: merge moves 1
+  person's accounts and activity into another. No suggestion to join accounts is made from
+  a display name. Split reverses a merge where the activity can be told apart.
+- A manager confirms, ignores or marks as a bot. **Only confirmed people appear in the
+  workspace's analysis and member list.** Accounts named `*[bot]` start as bots.
+- The YAML file remains for seeding tests and the demo.
+- Amended 2026-10-19 during W6, while still Proposed: the first draft said only confirmed
+  people are attributed work, which the stored data cannot support.
+
+### Reason
+
+Keeps G-5 and DEC-008 (never attribute from a display name, never guess) while making the
+step a click instead of a file edit.
+
+### Related documents
+
+DEC-008, FR-002, FR-003, G-5.
+
+---
+
+## DEC-025: Workspace feed and likely next task
+
+Date: 2026-10-19
+Status: Proposed
+Owner: Developer 1 for the diff and the rules, Developer 2 for the screen
+
+### Decision
+
+- After every sync, code computes findings per confirmed person and stores a snapshot. The
+  feed is the difference between consecutive snapshots plus source events (pull request
+  merged, issue moved, sync failed). No feed item is model output.
+- **Likely next task** is built by code from: assigned items not started, ordered by
+  priority then due date; reviews requested from the person; their draft pull requests. It
+  is always `inference`, cites its evidence, and says "not determined" when nothing
+  qualifies.
+- Feed items describe work, never people: no presence, hours, speed or comparison
+  (`PROJECT_REQUIREMENTS.md` 2.4).
+- Summaries stay on demand: the model writes a summary only when a person is opened, and it
+  is cached by evidence hash (DEC-017, DEC-018).
+
+### Amended 2026-10-19 (W7, W8), still Proposed
+
+- **Likely next** is shown as facts with a stated order, not as an inference: each item is
+  1 record ("assigned, status To Do"), and an inference needs 2 or more evidence items
+  (`TESTING_AND_EVALUATION.md` 11.6). Reviews requested from the person and still waiting
+  are included since W11 (`review_request`, migration 0009).
+- **Feed keys**: a finding is keyed by rule and entity (`blocker:BL-5:owner/repo#5`), never
+  by its text, so a day counter ("open for 4 days") is not a change. RK-4 is left out of
+  the feed because the conflict line already reports it.
+- **Missing data is not a change**: a person whose sources are unavailable is skipped and
+  keeps the previous snapshot; issues and pull requests keep their previous state when
+  their source failed to sync. A sync failure is reported once, and its recovery once.
+- If working out the changes fails, the feed says so instead of showing nothing new.
+
+### Related documents
+
+DEC-005, DEC-017, DEC-018, DEC-020.
+
+---
+
+## DEC-026: Team pages and team API removed; sign-in is identity only
+
+Date: 2026-10-19
+Status: Proposed
+Owner: Developer 1, needs Developer 2 agreement
+
+### Context
+
+W10 found that the single-team MVP routes leaked data across workspaces. A GitHub user
+whose work was synced into a workspace, on signing in, was bound to that workspace's
+person row and put in the legacy team; any other GitHub user who signed in joined the same
+team, and `GET /api/members/{id}/insight` then answered 200 with findings built from the
+first workspace's data (reproduced in a test). Sign-in also asked GitHub for `repo` and
+`read:org`, kept the user's token in a cookie for 8 hours, and the legacy routes copied it
+into a process-wide value that other requests could use.
+
+### Decision
+
+- The team pages (`/`, `/teams/{id}`, `/members/{id}` and its panel, `/admin/unmatched`,
+  `/repos`, `/jira`) and the team API (`/api/members/*`, `/api/teams/*`) are removed. `/`
+  redirects to `/workspaces`. Every page that shows people's work lives under
+  `/w/{workspace_id}` and its membership check (DEC-021). `can_view_member` and
+  `MemberGuard` go with them.
+- GitHub sign-in asks for no scopes. Its token reads the profile once and is dropped: no
+  cookie, no process-wide value. Each account acts as its own `app_user` in an accounts
+  organization that no workspace uses, never as a person found in a workspace's sources.
+- Connecting GitHub: an installation on the owner's own account is attached on the owner id
+  check alone. An installation on an organization sends the owner once through GitHub's
+  approval for `read:org`; the token is used for the admin check and dropped.
+- Cookies are `Secure` outside `APP_ENV=local`. Sign-out is POST only.
+- The legacy scheduled sync reads only its own team's repositories, never a workspace's.
+
+### Reason
+
+A second, team-based authorization system next to workspace membership is how data leaked.
+Removing it leaves 1 check to test. Holding a user token with repository write scope gave
+no benefit once the GitHub App reads repositories (DEC-022).
+
+### Consequences
+
+- Documented contracts change: `PROJECT_REQUIREMENTS.md`, `TASKS.md`, `BUILD_ORDER.md` and
+  `TESTING_AND_EVALUATION.md` still name `/api/members/{id}/insight` and
+  `/api/teams/{id}/sync`. The Phase 6 evaluation runs per workspace (W11) and needs those
+  references rewritten.
+- The FR-028 route test is replaced by the workspace route test in `tests/test_workspaces.py`
+  and the 2-workspace route sweep in `tests/test_isolation.py`. The enforcement table in
+  `CLAUDE.md` still names the old test; changing it follows "Changing a rule".
+- User actions that set up access (sign-in, connecting GitHub or Jira, checking an invited
+  username) wait on GitHub or Atlassian through `app/integrations/`. Reading work data
+  never does (DEC-002 still holds for it).
+- An existing account bound to a workspace person is moved to its own `app_user` at its
+  next sign-in.
+
+### Related documents
+
+DEC-002, DEC-021, DEC-022, DEC-023, FR-028.

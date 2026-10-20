@@ -6,7 +6,7 @@ Verifies:
    stylesheet references exists.
 3. A page route renders error.html; an API route still returns JSON.
 4. Two different users get two different avatar tint classes.
-5. GET / does not accept a team_id parameter.
+5. GET / takes no parameters and redirects to /workspaces.
 """
 
 import ast
@@ -22,7 +22,6 @@ from app.config import Settings
 from app.main import app
 from app.web import auth, routes
 from app.web.routes import safe_next
-from tests.conftest import log_in
 
 ROOT = Path(__file__).resolve().parents[1]
 STATIC = ROOT / "app" / "web" / "static"
@@ -84,7 +83,7 @@ def test_safe_next_rejects_anything_that_can_leave_this_origin(hostile):
     assert safe_next(hostile) == "/"
 
 
-@pytest.mark.parametrize("allowed", ["/", "/teams/10", "/members/2?question=risks"])
+@pytest.mark.parametrize("allowed", ["/", "/w/10", "/w/2?member=5"])
 def test_safe_next_keeps_a_same_site_path(allowed):
     assert safe_next(allowed) == allowed
 
@@ -111,21 +110,6 @@ def test_login_page_does_not_echo_a_hostile_next(client: TestClient):
     response = client.get("/login?next=https://evil.example/")
     assert response.status_code == 200
     assert "evil.example" not in response.text
-
-
-def test_error_handler_survives_a_non_decimal_member_id(client: TestClient):
-    """str.isdigit() is True for characters int() rejects, such as the superscript 2.
-
-    The 404 handler parses the member id out of the path, so a path like
-    /members/<superscript 2>/x would have raised inside the exception handler.
-    """
-    log_in(client, 1)
-    response = client.get("/members/²/panel", headers={"accept": "text/html"})
-
-    # FastAPI rejects the path parameter first, so this is a 422. What matters is
-    # that the error page renders instead of the handler raising a 500.
-    assert response.status_code == 422
-    assert "text/html" in response.headers["content-type"]
 
 
 # 2. Static assets ------------------------------------------------------------
@@ -158,33 +142,32 @@ def test_every_font_the_stylesheet_references_exists():
 # 3. Error pages --------------------------------------------------------------
 
 
-def test_page_route_renders_the_html_error_page(client: TestClient):
-    log_in(client, 3)  # Carol is on team 20
-    response = client.get("/teams/10", headers={"accept": "text/html"})
+def test_page_route_renders_the_html_error_page(client: TestClient, monkeypatch):
+    """A role too low for the route: error.html with fixed copy, never the detail."""
+    from fastapi import HTTPException
+
+    from app.web.workspaces import current_account
+
+    def refuse() -> None:
+        raise HTTPException(status_code=403, detail="internal detail")
+
+    app.dependency_overrides[current_account] = refuse
+    try:
+        response = client.get("/workspaces", headers={"accept": "text/html"})
+    finally:
+        app.dependency_overrides.pop(current_account)
 
     assert response.status_code == 403
     assert "text/html" in response.headers["content-type"]
     assert "Error 403" in response.text
-    # A team 403 must not borrow the member copy.
-    assert "You cannot view this page" in response.text
-    assert "You cannot view this member" not in response.text
-    # The exception detail never reaches the page.
-    assert "Not allowed to view overview" not in response.text
-
-
-def test_member_403_keeps_the_member_copy(client: TestClient):
-    log_in(client, 3)  # Carol is on team 20
-    response = client.get("/members/1", headers={"accept": "text/html"})
-
-    assert response.status_code == 403
-    assert "You cannot view this member" in response.text
+    assert "Your role cannot do this" in response.text
+    assert "internal detail" not in response.text
 
 
 def test_api_route_still_returns_json(client: TestClient):
-    log_in(client, 3)
-    response = client.get("/api/teams/10/overview", headers={"accept": "text/html"})
+    response = client.get("/api/workspaces", headers={"accept": "text/html"})
 
-    assert response.status_code == 403
+    assert response.status_code == 401
     assert "application/json" in response.headers["content-type"]
     assert response.json()["detail"]
 
@@ -202,12 +185,10 @@ def test_different_users_get_different_avatar_tints():
 # 5. Route surface ------------------------------------------------------------
 
 
-def test_home_route_declares_no_team_parameter():
-    """GET / must not accept team_id.
-
-    Stacking / and /teams/{team_id} on 1 handler with team_id defaulting to None
-    made team_id a query parameter on / as well.
-    """
+def test_home_redirects_to_the_workspaces():
+    """GET / takes no parameters and sends everyone to the portfolio (DEC-026)."""
     spec = app.openapi()["paths"]["/"]["get"]
-    names = {p["name"] for p in spec.get("parameters", [])}
-    assert "team_id" not in names
+    assert not spec.get("parameters")
+    with TestClient(app) as test_client:
+        response = test_client.get("/", follow_redirects=False)
+    assert response.headers["location"] == "/workspaces"

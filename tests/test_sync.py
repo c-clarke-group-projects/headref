@@ -314,6 +314,38 @@ def test_cli_main_entrypoint(monkeypatch: pytest.MonkeyPatch, db_session: Sessio
     assert exit_code == 0
 
 
+def test_open_pull_requests_record_their_checks_state() -> None:
+    """BL-7 needs checks_state from GitHub; a read failure is unknown, never passing."""
+    from app.integrations.errors import UpstreamError
+    from app.sync import record_checks_state
+
+    class PR:
+        def __init__(self, number: int, state: str) -> None:
+            self.number, self.state, self.checks_state = number, state, None
+
+    prs = [PR(1, "open"), PR(2, "open"), PR(3, "merged"), PR(4, "open")]
+    raw = [
+        {"number": 1, "head": {"sha": "s1"}},
+        {"number": 2, "head": {"sha": "s2"}},
+        {"number": 3, "head": {"sha": "s3"}},
+        {"number": 4, "head": {}},
+    ]
+    client = MagicMock()
+
+    def checks(owner: str, repo: str, sha: str) -> str:
+        if sha == "s2":
+            raise UpstreamError("GitHub 502", status_code=502)
+        return "failing"
+
+    client.get_checks_state.side_effect = checks
+
+    record_checks_state(client, "o", "r", prs, raw)
+
+    assert [p.checks_state for p in prs] == ["failing", "unknown", None, "unknown"]
+    called = [c.args[2] for c in client.get_checks_state.call_args_list]
+    assert called == ["s1", "s2"]
+
+
 @pytest.mark.parametrize(
     ("keys", "expected"),
     [
@@ -326,3 +358,35 @@ def test_project_jql_is_bounded_and_quoted(keys, expected):
     from app.sync import project_jql
 
     assert project_jql(keys) == expected
+
+
+def test_commits_are_read_back_past_the_cursor(db_session: Session) -> None:
+    """A commit dated before the last sync but pushed after it must still be fetched."""
+    from datetime import UTC, datetime
+
+    from app.models.operations import SyncCursor
+    from app.sync import COMMIT_LOOKBACK, cursor_key, sync_github
+
+    last_sync = datetime(2026, 10, 19, 18, 34, 46, tzinfo=UTC)
+    db_session.add(
+        SyncCursor(
+            source="github",
+            scope=cursor_key("o/r", None),
+            cursor_value=last_sync.isoformat(),
+        )
+    )
+    db_session.commit()
+    client = MagicMock()
+    client.get_repository.return_value = {
+        "id": 1,
+        "name": "r",
+        "full_name": "o/r",
+        "default_branch": "main",
+    }
+    client.list_pull_requests.return_value = []
+    client.list_commits.return_value = []
+
+    sync_github(db_session, scope="o/r", gh_client=client)
+
+    since = client.list_commits.call_args.kwargs["since"]
+    assert since == last_sync - COMMIT_LOOKBACK

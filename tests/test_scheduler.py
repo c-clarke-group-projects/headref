@@ -10,9 +10,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from app.db import Base
+from app.models.canonical import Organization, Repository, Team
 from app.models.operations import SyncRun
 from app.scheduler import (
     recover_stuck_syncs,
+    resolve_team_scopes,
     run_scheduled_tick,
     start_scheduler_task,
     stop_scheduler_task,
@@ -154,3 +156,23 @@ def test_scheduler_lifecycle_start_and_stop() -> None:
         assert task.done()
 
     asyncio.run(lifecycle())
+
+
+def test_the_legacy_tick_reads_only_its_own_teams_repositories(db_session: Session) -> None:
+    """Workspace repositories sync through their GitHub App, never this GITHUB_TOKEN path."""
+    legacy, workspace_org = Organization(name="Legacy"), Organization(name="Payments")
+    db_session.add_all([legacy, workspace_org])
+    db_session.flush()
+    team = Team(organization_id=legacy.id, name="Core")
+    db_session.add(team)
+    db_session.add_all(
+        [
+            Repository(organization_id=legacy.id, full_name="team/api"),
+            Repository(organization_id=workspace_org.id, full_name="tenant/private"),
+        ]
+    )
+    db_session.commit()
+
+    github, _ = resolve_team_scopes(team.id, session=db_session)
+
+    assert github == ["team/api"]

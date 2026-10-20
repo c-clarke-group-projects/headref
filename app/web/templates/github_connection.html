@@ -1,0 +1,94 @@
+{#
+  GitHub repositories for 1 workspace (W3, DEC-022). Owner only.
+  Context: base context plus
+    workspace, groups: list of {installation (GitHubInstallation), repos: list of
+    {id, full_name, private}, error: str or None}, selected: set of GitHub repo ids,
+    message: fixed copy or None, app_configured: bool
+  A group whose repositories could not be read shows the failure, never an empty list.
+#}
+{% extends "base.html" %}
+{% import "partials/icons.html" as i %}
+
+{% block title %}GitHub, {{ workspace.name }}, Headref{% endblock %}
+
+{% block hero %}
+<section class="hero">
+  <div>
+    <a class="hero__back" href="/w/{{ workspace.id }}">{{ i.icon("arrow-left") }}Back to {{ workspace.name }}</a>
+    <h1 class="hero__title">GitHub repositories</h1>
+    <p class="hero__lead">Choose which repositories this workspace reads. Headref only reads
+      them, through the headref GitHub App.</p>
+  </div>
+</section>
+{% endblock %}
+
+{% block banners %}
+{% if message %}
+<div class="banners"><div class="banner" role="status"><span class="banner__dot" aria-hidden="true"></span><span>{{ message }}</span></div></div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="section">
+  {% if not groups %}
+    <div class="card card--pad card--dashed">
+      <h2 class="card__title">No GitHub account connected</h2>
+      <p class="empty-note" style="margin-top: var(--s-3)">Install the headref GitHub App on
+        your account or organisation, and choose the repositories it may read.</p>
+      {% if app_configured %}
+        <form method="post" action="/w/{{ workspace.id }}/connections/github/start" style="margin-top: var(--s-5)">
+          <button type="submit" class="btn btn--primary">{{ i.source_icon("github", 16) }} Connect GitHub</button>
+        </form>
+      {% else %}
+        <p class="caption" style="margin-top: var(--s-4)">The headref GitHub App is not configured on this server.</p>
+      {% endif %}
+    </div>
+  {% else %}
+    <form method="post" action="/w/{{ workspace.id }}/connections/github/repos" class="stack">
+      {% for g in groups %}
+        <div class="card card--pad-md">
+          <div class="card__head">
+            <h2 class="card__title">{{ i.source_icon("github", 18) }} {{ g.installation.account_login }}</h2>
+            <span class="badge badge--sm badge--outline">{{ "Organisation" if g.installation.account_type == "Organization" else "Personal account" }}</span>
+          </div>
+          {% if g.error %}
+            <p class="empty-note" role="alert" style="margin-top: var(--s-3)">The repositories of
+              this installation could not be read from GitHub ({{ g.error|error_label }}). The
+              saved selection is unchanged.</p>
+          {% elif not g.repos %}
+            <p class="empty-note" style="margin-top: var(--s-3)">This installation can read no
+              repositories. Add some in the App's settings on GitHub.</p>
+          {% else %}
+            <ul class="repo-pick">
+              {% for r in g.repos %}
+                <li>
+                  <label class="repo-pick__row">
+                    <input type="checkbox" name="repo" value="{{ g.installation.id }}:{{ r.id }}"{% if r.id in selected %} checked{% endif %}>
+                    <span class="mono">{{ r.full_name }}</span>
+                    {% if r.private %}<span class="badge badge--sm badge--outline">Private</span>{% endif %}
+                  </label>
+                </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+      {% endfor %}
+      <p><button type="submit" class="btn btn--primary">Save selection</button></p>
+    </form>
+
+    <div class="section">
+      {% for g in groups %}
+        <form method="post" action="/w/{{ workspace.id }}/connections/github/{{ g.installation.id }}/disconnect"
+              data-confirm="Disconnect {{ g.installation.account_login }} from this workspace?">
+          <button type="submit" class="btn btn--quiet btn--sm">Disconnect {{ g.installation.account_login }}</button>
+        </form>
+      {% endfor %}
+      {% if app_configured %}
+        <form method="post" action="/w/{{ workspace.id }}/connections/github/start" style="margin-top: var(--s-3)">
+          <button type="submit" class="btn btn--quiet btn--sm">Connect another account or organisation</button>
+        </form>
+      {% endif %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

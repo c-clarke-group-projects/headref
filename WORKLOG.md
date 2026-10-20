@@ -60,6 +60,429 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-21 | Keshan | UI restructure and light and dark theme
+Status: IN_REVIEW
+
+### Completed
+- Workspace page: the analysis comes first. Member filter bar, 4 count tiles (blockers,
+  disagreements, risks, people waiting), then blockers, disagreements, risks and current
+  work. Connections, latest sync runs and What changed moved to a side column. Sync now
+  moved into the page header. Before any analysis, a 3 step setup list leads the page.
+- Every page header is compact (title, lead and actions on 1 band) instead of a tall block
+  with an empty right side. Workspaces cards show health next to the name. Settings uses
+  2 columns with archive as a marked danger card. Sync history shows result badges.
+- Theme button in the top bar and on sign-in. The choice is saved in the browser
+  (`headref-theme`) and applied in `<head>` before paint; without a choice, or without
+  JS, the page follows the system setting. `color-scheme` set, so native inputs match.
+
+- Motion and illustrations (`partials/illustrations.html`, animated SVG, no video files,
+  agreed 2026-10-21): sign-in shows 2 records feeding 1 finding; the member summary wait
+  shows findings cooking in a pot with a real count of seconds waited; a running sync
+  shows a jar filling; submitted buttons show a spinner and ignore a second click; a top
+  bar shows while a page loads; empty states and the error page have their own scene.
+  Loops are indeterminate (no percentage), pause off screen and in a hidden tab, and stop
+  under reduced motion, where each scene rests on its finished frame.
+
+### Problems
+- Dark mode was broken before this: its overrides sat above the rules they overrode, so
+  black buttons, the Fact marker and the selected tab disappeared on dark cards, and
+  "Blocked" was white on light pink. Colours now come from tokens with 1 dark set.
+- Pre-existing, not changed: the GitHub disconnect form carries `data-confirm`, but no
+  script reads it, so it disconnects without asking.
+- Pre-existing, not changed: `initials` keeps punctuation, so "Isiwara K (Jira)" shows "I(".
+
+### Checked
+- Every page rendered with sample data and screenshotted at 1440 and 390 px, light and
+  dark. Theme button, saved choice after reload and the evidence drawer click-tested in
+  Edge, no script errors. Dark and light text pairs pass AA (values in `style.css`).
+- Waiting states captured over a local test server that held the summary for 7 s and a
+  sync post for 4 s: the pot, "Waiting 4 s so far.", the swap to the summary, the jar,
+  the button spinner, the top bar and the repeat-submit guard. Reduced motion shows the
+  still frames. Headless Edge does not repaint during a pending form post, so the
+  spinner was captured with the post held by the script; check it once in a real browser.
+- Suite in the api container: 562 passed, 3 failed. The 3 do not render pages:
+  `test_parse_valid_identity_map_file` (local seed edit), `test_no_key_means_no_encryption`
+  and `test_an_org_installation_without_oauth_configured_says_so` (the container's
+  environment sets those keys).
+
+### Not verified
+- Signed in against the real database: pages were rendered from templates with sample
+  data, not through a live session.
+
+### Decisions Needed
+- About 1,100 changed lines, over the 400 line target. Can split into theme and layout.
+
+---
+
+## 2026-10-20 | Keshan | Workspaces W11: real-data verification (part 2)
+Status: IN_PROGRESS
+
+### Sandbox data added
+- Jira HRS: HRS-10 "Add rate limit to member export endpoint" (To Do, Highest, due
+  2026-10-27) and HRS-11 "Update onboarding checklist", moved To Do to Done with no code.
+- `IsiwaraKumarage8` invited to `keshan-dev/headref-sandbox` with write access (GitHub
+  invite, agreed 2026-10-20) and to workspace "dev team" as a manager (headref invite,
+  stored by GitHub id 221026807, expires 2026-11-02).
+
+### Checked on real data
+| Case | Result |
+|---|---|
+| Feed, Jira | "HRS-10 added", "HRS-11 added", then "HRS-11 moved from To Do to Done" |
+| Assigned not started, Highest | Likely next: HRS-10 first, then HRS-6, then draft PR #7 |
+| Done with no code | HRS-11 in no blocker, risk or conflict |
+| RK-1 boundary | HRS-10 is due in 7 days, outside `DUE_SOON_DAYS=3`: no risk yet; expected from 2026-10-24 |
+
+### Added
+- Pending review requests (DEC-025 had them in Likely next, never built). Migration
+  `0009_review_request`, additive; upgrade, downgrade and upgrade verified on a copy of the
+  local database, then applied. Each sync mirrors GitHub's `requested_reviewers` for open
+  pull requests; a request leaves when the review is given. Likely next lists them
+  between assigned work and draft pull requests. Merge and split move them. 3 tests.
+- Full suite: 563 passed, 1 skipped, 1 failed (`test_parse_valid_identity_map_file`, the
+  local uncommitted `seed/identity_map.yml` edit).
+
+### Discovered
+- The app reloads on every file change in development and its scheduler pass starts at
+  once. Applying the new model before the migration made 1 sync fail
+  (`ProgrammingError`), shown on the feed; the next one succeeded.
+- A reload also kills a running sync's thread, leaving its `sync_run` at `running`. The
+  workspace counts as syncing until the 15 minute window passes (run 718).
+- Jira project HRS has unusual status categories: "Done" is in the In Progress category
+  and "Blocked" in Done. headref maps by status name first, so both read correctly.
+
+### Waiting on Isiwara
+- Accept the GitHub invite to `headref-sandbox`.
+- On PR #6, request changes (BL-4: changes requested, no commit since).
+- On PR #4, approve (CF-4: approved pull request on a Blocked issue, HRS-4).
+- Open a pull request from a branch named `feature/HRS-10-rate-limit` and request a review
+  from keshan-dev (Likely next for Keshan; links to HRS-10).
+- Accept the headref invite: headref runs on this machine only, so by signing in with their
+  GitHub account in a browser here.
+
+---
+
+## 2026-10-20 | Keshan | Workspaces W11: real-data verification (part 1)
+Status: IN_PROGRESS
+
+### Sandbox data added
+- `keshan-dev/headref-sandbox`: 2 commits on `main` by "Outside Contractor" with an
+  address no GitHub account owns (`6ed27c0`, `ff6dda5`); PR #8 "HRS-7 Add API notes" on
+  `feature/HRS-7-api-notes`, whose body carries the EV-09 text.
+- headref (local database): workspace 2 "Audit" with only `headref-sandbox`.
+
+### Checked on real data
+| Case | Result |
+|---|---|
+| Feed, real change | PR #8 appeared as "Pull request keshan-dev/headref-sandbox#8 opened"; a failed sync and its recovery appeared once each |
+| Unmapped commit author (EV-07) | Commit stored with no author; after the fixes below, "Outside Contractor (commit author, no GitHub account)" is on the People page under "Not matched to anyone" |
+| Injection text (EV-09) | The 4 blockers unchanged; the model summary (47 s) claims neither completion nor "no blockers" |
+| Second workspace (EV-10) | Same GitHub account is person 10 in "dev team" (confirmed) and person 12 in "Audit" (suggested); from Audit, person 10's summary is 404, a status change is "not in this workspace", `?member=10` shows nothing of dev team; cards: dev team Blocked, Audit Unknown "Nobody is confirmed yet." |
+| Current work with a linked PR | HRS-7 with PR #8: "Likely working on HRS-7", inference, MEDIUM, both cited |
+
+### Fixed (found by these checks)
+1. Commits by an author with no GitHub account were dropped from the unmatched queue
+   silently. They are recorded, keyed by a hash of the commit email (the address is not
+   stored), and the People page lists accounts nobody holds; rows linked since (the
+   merged Jira "Keshan") are left out.
+2. Commits dated before the last sync but pushed after it were never fetched: GitHub's
+   `since` compares the commit date. Each sync now reads 7 days back from the cursor;
+   commits upsert by sha.
+3. 2 syncs of 1 workspace in 2 processes deadlocked (an app reload's scheduler pass met
+   a direct sync). A PostgreSQL advisory lock per workspace makes the second skip.
+   Verified: 2 concurrent syncs, 1 ran (16.7 s), 1 returned at once.
+4. Current work never counted a linked pull request, because pull request evidence names
+   no issue key (titles are untrusted text). It now joins through the stored link.
+5. Every Jira link was `https://jira/browse/<key>`. The workspace sync passes the
+   connection's site; HRS links now open `https://keshanuni.atlassian.net/browse/...`.
+6. 5 tests. Full suite: 561 passed, 1 skipped, 1 failed (`test_parse_valid_identity_map_file`,
+   the local uncommitted `seed/identity_map.yml` edit).
+
+### Not done yet
+- Jira cases (HRS-10 To Do, Highest, due in 7 days; HRS-11 Done with no code; an issue
+  moved for the feed): the Atlassian connector available here is authorised for another
+  site, so no Jira change was made.
+- Isiwara cases (invite accepted, BL-4 changes requested, CF-4 approval on PR #4, a review
+  requested from Keshan): Isiwara is not a collaborator on the sandbox yet.
+- Time-based rules (BL-5, BL-6, BL-8, RK-2, RK-3): waiting for the data to age.
+- A sync error outside the typed list is stored by class name (`OperationalError`) by
+  `app/sync.py`, so the feed showed it raw. Pre-existing; to fix with the typed failures.
+
+---
+
+## 2026-10-19 | Keshan | Workspaces W10: hardening
+Status: IN_PROGRESS
+
+### Completed
+1. Found and closed a cross-workspace leak (reproduced first): a synced person who signed in
+   became that workspace's person row in the legacy team, and any other signed-in GitHub
+   user could then read their findings through `GET /api/members/{id}/insight` (200).
+2. Removed the team pages, the team API and their templates, script code and tests
+   (agreed 2026-10-19). `/` redirects to `/workspaces`. DEC-026 records it.
+3. Sign-in asks GitHub for no scopes and drops its token after reading the profile: no
+   token cookie, no process-wide token. Each account gets its own `app_user` in an
+   accounts organization no workspace uses; an account bound to a workspace person is
+   moved at its next sign-in.
+4. Connect GitHub without the old token: an installation on the owner's account is attached
+   on the owner id check; an organization installation asks GitHub once for `read:org`,
+   checks the admin role and drops the token (`/auth/github/callback/org`, its own signed
+   single-use state).
+5. Cookies are `Secure` outside `APP_ENV=local`, closing the 2026-10-08 item. Sign-out is
+   POST only.
+6. Portfolio cards from the feed snapshots: health (Blocked, Needs Attention, On Track,
+   Unknown with the reason), counts for the workspace as a whole, top 3 attention items,
+   last sync per source. No per-person numbers.
+7. `tests/test_isolation.py`: 2 workspaces sync the same repository; people, analysis, feed,
+   summary, invites and every `/w/{workspace_id}` route with every method answer 404 or
+   "not in this workspace" from the other workspace.
+8. Security review of the whole branch: no finding at confidence 0.7 or more. 2 below that
+   were fixed: the accounts organization was found by a name a workspace could take, and
+   the legacy scheduled sync read every workspace's repositories with `GITHUB_TOKEN`.
+9. Full suite: 556 passed, 1 skipped, 1 failed (`test_parse_valid_identity_map_file`, only
+   because of the local uncommitted edit to `seed/identity_map.yml`).
+10. Real data: sign-in asks for no scope; Connect GitHub on "dev team" with installation
+    172832446 (User) went through and the picker lists `headref-sandbox`.
+
+### Discovered
+- The connect flow still read the sign-in token cookie after step 3, so every Connect GitHub
+  would have ended in "sign in again". Fixed by item 4 before committing.
+- The organization check needs the GitHub OAuth app's callback URL to be
+  `<host>/auth/github/callback`: GitHub accepts `/auth/github/callback/org` only as a
+  subdirectory of it.
+
+### Not verified
+- An organization installation end to end (no organization install to test with).
+- A sign-in in the browser after this change, and browser layout of the cards.
+
+### Decisions Needed
+- DEC-026 needs Developer 2. With it, the `CLAUDE.md` enforcement row for FR-028 should name
+  the workspace route test and the isolation sweep instead (its own pull request).
+- `PROJECT_REQUIREMENTS.md`, `TASKS.md`, `BUILD_ORDER.md` and `TESTING_AND_EVALUATION.md`
+  still name the removed endpoints; rewrite with the Phase 6 evaluation per workspace.
+
+### Next Step
+W11: real-data verification with Isiwara (invite, BL-4, CF-4, review request), then Phase 6.
+
+---
+
+## 2026-10-19 | Keshan | Workspaces W9: settings, invites, roles, archive
+Status: IN_PROGRESS
+
+### Completed
+1. Migration `0008_workspace_invite`, additive. Upgrade, downgrade and upgrade verified on a
+   copy of the local database, then applied locally.
+2. `app/workspace_admin.py` and `/w/{id}/settings`: rename and describe the workspace;
+   who has access; invite by GitHub username as manager or viewer; withdraw an invite;
+   change a role; remove access; archive after typing the name. Every member sees who has
+   access; only the owner sees and uses the forms (403 otherwise).
+3. Invites: the login is checked against GitHub's public profile
+   (`lookup_github_user`, no token, timeout and retry limit from `HttpClient`) and stored
+   by numeric id. Malformed logins are refused before any request; organizations,
+   unknown users, existing members and GitHub failures are each reported, and nothing is
+   saved. A GitHub failure shows its typed error.
+4. The invited person sees "Invitations" on their workspace list with Accept and Decline.
+   An invite is accepted only by the account whose GitHub id it holds, while it is open
+   and its workspace is not archived.
+5. Settings link on the workspace page. DEC-021 amended (still Proposed).
+6. 20 tests. Full suite: 592 passed, 1 skipped, 1 failed (`test_parse_valid_identity_map_file`,
+   only because of the local uncommitted edit to `seed/identity_map.yml`).
+7. Real data, workspace "dev team": settings page renders for the owner; inviting the
+   owner's own login looked it up on GitHub in 0.8 s and was refused as already a member;
+   a malformed login was refused without a request; 0 invites stored.
+
+### Discovered
+- The P3 member-route guard test treats any `{member_id}` path as a person's data. The
+  settings routes take a workspace membership id, so their parameter is `membership_id`.
+
+### Not verified
+- A real second person accepting an invite (needs Isiwara's GitHub username and a sign-in).
+- Browser layout of the settings page and the invitations section.
+- Cross-site request protection relies on the session cookie's `SameSite=Lax`, as every
+  existing form does. For the W10 security review.
+
+### Next Step
+W10: hardening. Isolation tests across 2 workspaces, security review, remove the old pages,
+secure cookie.
+
+---
+
+## 2026-10-19 | Keshan | Workspaces W8: what changed between syncs
+Status: IN_PROGRESS
+
+### Completed
+1. Migration `0007_workspace_feed`: `finding_snapshot` (latest snapshot per subject),
+   `workspace_event` (feed lines), `workspace_member.last_seen_at`. Additive. Upgrade,
+   downgrade and upgrade verified on a copy of the local database, then applied locally.
+2. `app/workspace_feed.py`: after every workspace sync, snapshot per confirmed person (code
+   findings keyed by rule and entity) and for the workspace (issue status, pull request
+   state, sync outcome per source), diffed against the previous snapshot into code-written
+   lines. The first sync is a baseline. Unavailable sources never produce "no longer
+   detected" or issue changes; a failed feed computation is shown as a line. Lines older
+   than 90 days are removed.
+3. Workspace page: "What changed" lists the latest 50 lines, newest first, linked to the
+   source; with a member selected, only lines about their work. Lines since the viewer's
+   previous visit are marked New.
+4. DEC-025 amended (still Proposed): likely next as facts, feed keys, missing data rules.
+5. 14 tests. Full suite: 572 passed, 1 skipped, 1 failed (`test_parse_valid_identity_map_file`,
+   only because of the local uncommitted edit to `seed/identity_map.yml`).
+6. Real data, workspace "dev team": 2 syncs (14 s each), baseline then 0 lines, as nothing
+   changed in between. Snapshot: 9 issues, 7 pull requests, person 10 with BL-1 HRS-4, BL-2
+   HRS-5, BL-3 HRS-6, BL-7 PR #5, CF-1, CF-2, CF-3 and RK-1 HRS-8, matching the W7 analysis.
+
+### Discovered
+- Detection rule texts carry day counters, so findings cannot be compared by text.
+- The detection rules fail on SQLite's naive timestamps (BL-8); PostgreSQL returns aware
+  ones. The feed's finding test uses the orchestrator's fake read tools instead.
+
+### Not verified
+- A real change appearing on the feed (an issue moved in Jira or a pull request merged,
+  then a sync). Covered by tests only.
+- Browser layout of the section.
+
+### Next Step
+W9: settings, invites by GitHub username, roles, archive.
+
+---
+
+## 2026-10-19 | Keshan | Workspaces W7: analysis and member panel
+Status: IN_PROGRESS
+
+### Completed
+1. The agent runs per workspace: `run_agent` and `run_s1_s2` take `workspace_id` and
+   `jira_in_use`; T-007 reads that workspace's sync runs (the legacy path now ignores
+   workspace runs); Jira counts as in use when the workspace has an active connection.
+2. `app/workspace_analysis.py`: for each confirmed person, the 3 questions run code-only
+   (`skip_llm`); blockers, risks, conflicts and current work are collected. Likely next work
+   is shown as facts with a stated order (assigned and not started, by priority then due
+   date; draft pull requests), because an inference needs 2 or more evidence items.
+3. Workspace page: team view with blockers, conflicts and risks naming the person, and
+   current work per person; member filter; member view with current work, likely next,
+   blockers, risks, conflicts, not determined. The summary is the only model call, fetched
+   after the page from `/w/{id}/members/{pid}/summary` (404 for unconfirmed or foreign
+   people), labelled when it is the code-built fallback.
+4. `MemberInsight.conflicts` (optional): the detected CF-1 to CF-4 statements. Before,
+   conflicts reached the page only inside RK-4 risk text.
+5. Real data, workspace "dev team": 4 blockers (BL-1 HRS-4, BL-2 HRS-5, BL-3 HRS-6, BL-7 PR
+   #5), 3 conflicts (CF-1 HRS-1, CF-2 HRS-2, CF-3 HRS-3), 4 risks (RK-1 HRS-8 plus 3 RK-4),
+   next up HRS-6 and draft PR #7. Team view 0.7 s; summary 44.7 s on a cold model, written
+   by the model.
+6. 12 tests.
+
+### Discovered
+- Current work with 1 evidence item was classified `fact` but worded "Likely working on",
+  which 6.6 and EV-01 forbid. It is now worded as what the record shows ("HRS-7 is assigned
+  and In Progress"); "Likely working on" stays for 2 or more items, as an inference.
+- A code-only run cached its deterministic text under the same evidence hash the summary
+  uses, so opening a member would have served that text instead of calling the model.
+  Code-only runs are no longer cached.
+- The page's request limit (40 s) was shorter than a cold model (45 s); the summary now has
+  120 s.
+- T-007 crashed on SQLite's naive timestamps; it now treats them as UTC.
+
+### Next Step
+W8, the feed: findings diffed between syncs.
+
+---
+
+## 2026-10-19 | Keshan | Workspaces W6: People screen
+Status: IN_PROGRESS
+
+### Completed
+1. Migration `0006_person_status`: `app_user.status` (suggested, confirmed, ignored, bot),
+   existing rows confirmed. Verified up, down, up on a copy of the real data; applied.
+2. Workspace syncs create a suggested person per GitHub and per Jira account (Jira too
+   now), each holding exactly 1 account; `*[bot]` GitHub accounts start as bots. The
+   legacy path is unchanged.
+3. `app/people.py`: list with accounts and context counts, confirm, ignore, bot, restore,
+   merge (accounts and activity move, source removed), split (refused when the activity
+   cannot be told apart, or on the only account). Every id is checked against the
+   workspace's organization.
+4. `/w/{id}/people`: any member sees it; managers act. The workspace page lists confirmed
+   people alphabetically and says how many are waiting.
+5. DEC-024 amended while Proposed: a suggested person holds 1 exact account and is
+   attributed at once; only confirmed people appear in analysis. Reason in the record.
+6. Real sync after the change: "Keshan" (Jira, 9 items) suggested, "keshan-dev" (GitHub,
+   7 pull requests) confirmed. Merging them on the People screen joins both.
+7. 16 tests.
+
+### Decisions Needed
+DEC-024 as amended needs Developer 2 agreement with the other W0 records.
+
+### Next Step
+W7, the analysis view and the member panel, built on confirmed people.
+
+---
+
+## 2026-10-19 | Keshan | Workspaces W5: per-workspace sync and status
+Status: IN_PROGRESS
+
+### Completed
+1. Migration `0005_workspace_scope`: each workspace gets its own `organization` row, which
+   repositories, projects and people already hang off. Repository name, project key,
+   identity link and unmatched account become unique per organization; `sync_run` gains
+   `workspace_id`. Backfills, drops nothing. Verified up, down, up on a copy of the real
+   local data (all rows backfilled); applied locally.
+2. `sync_github`, `sync_jira`, the identity resolver, the identity loader and the upserts
+   take the workspace's organization. Cursors use `w<id>:<scope>`, so 2 workspaces syncing
+   the same repository cannot skip each other's commits. Link building stays inside 1
+   organization.
+3. `app/workspace_sync.py`: Jira first, then GitHub; installation token per repository,
+   refreshed Atlassian token through `api.atlassian.com/ex/jira/<cloudId>` (JiraClient
+   gained bearer-token mode). An unreachable source is a failed `sync_run` with a typed
+   error, never silence.
+4. Sync now (owners and managers), refused when nothing is selected or a sync is running;
+   status endpoint; status rows on the workspace page with polling every 2 seconds and a
+   5 minute cap; sync history page. The scheduler also syncs every workspace with sources.
+5. **First real sync, workspace "dev team"**: Jira HRS 12 fetched, 12 written; GitHub
+   headref-sandbox 12 fetched, 12 written; 9 work items, 7 pull requests, 14 links; PR #5
+   checks failing, the others passing.
+6. 15 new tests: organization scoping, 2 workspaces on 1 repository, failed runs, Jira
+   bearer client and project filter, running guard, scheduler pass, pages.
+
+### Discovered
+- The scheduler ran syncs on the event loop, so the web app stopped answering during a
+  sync. The tick now runs in a worker thread.
+- The identity resolver's handle fallback also matched Jira display names, which G-5 and
+  DEC-008 forbid. It now applies to GitHub logins only.
+- Jira remote links to pull requests only resolve against pull requests already stored, so
+  a brand new workspace gets them on its second sync.
+
+### Next Step
+W6, people confirmation: today GitHub authors are still created automatically and Jira
+assignees go to the unmatched queue until a manager links them.
+
+---
+
+## 2026-10-19 | Keshan | Workspaces W4: Atlassian connection
+Status: IN_PROGRESS
+
+### Completed
+1. `app/integrations/atlassian.py`: consent URL with read-only scopes (`read:jira-work`,
+   `read:jira-user`, `offline_access`), code exchange, refresh, accessible sites, project
+   list. Token-endpoint calls are made once, never retried: Atlassian rotates the refresh
+   token, and a retried refresh would present a replaced token.
+2. `app/integrations/crypto.py`: Fernet encryption with `CREDENTIAL_ENCRYPTION_KEY`.
+   `jira_tokens.valid_access_token` refreshes under a row lock and writes both new tokens
+   in 1 commit. A rejected refresh marks the connection `auth_failed` and raises.
+3. Connect Jira flow, sharing the GitHub state and ownership helpers: signed 15 minute
+   state, owner check, encrypted token storage, 1 site per workspace (chosen from the
+   reachable sites when there are several), project picker checked against Atlassian,
+   disconnect deletes the tokens.
+4. Migration `0004_jira_connections`: `jira_connection`, `workspace_jira_project`. Verified
+   up, down, up on PostgreSQL 15; applied locally.
+5. `.env.example` gains the GitHub App (missed in W3) and Atlassian settings.
+6. Tests: encryption, consent scopes, single refresh attempt, site filtering, pagination,
+   refresh and rotation, auth_failed, every state tamper case, site choice, tampered
+   project ids, failure shown not empty, disconnect.
+
+### Problems
+Not verified against the real Atlassian app yet: it needs `ATLASSIAN_CLIENT_ID`,
+`ATLASSIAN_CLIENT_SECRET` and `CREDENTIAL_ENCRYPTION_KEY` in `.env`.
+
+### Next Step
+Real consent round trip on `keshanuni.atlassian.net`, then W5 (per-workspace sync).
+
+---
+
 ## 2026-10-19 | Keshan | Jira search moved to /rest/api/3/search/jql
 Status: IN_REVIEW
 
@@ -80,6 +503,166 @@ Status: IN_REVIEW
 
 ---
 
+## 2026-10-19 | Keshan | Workspaces W3: GitHub App connection, CI checks
+Status: IN_PROGRESS
+
+### Completed
+1. The headref GitHub App is registered (read only: metadata, contents, pull requests,
+   checks, commit statuses; no webhook). Verified `GET /app` with the real credentials:
+   slug and permissions match.
+2. `app/integrations/github_app.py`: 9 minute RS256 app JWT, installation tokens reused in
+   memory until 5 minutes before expiry, never stored or logged.
+3. Connect GitHub flow: signed 15 minute state bound to workspace and account; the setup
+   callback attaches an installation only when the state matches its cookie, the account
+   still owns the workspace, and the installation belongs to the signed-in GitHub user or an
+   organisation they actively administer. Repository picker re-reads the installation and
+   accepts only its ids. Disconnect is scoped to the workspace.
+4. Migration `0003_github_connections`: `github_installation`, `workspace_repository`. No
+   token column. Verified up, down, up on PostgreSQL 15; applied locally.
+5. **CI checks were never ingested**, so `checks_state` was always unknown and BL-7 could not
+   fire on real data. Sync now records passing, failing or unknown for open pull requests
+   from check runs and the combined status. A read failure is unknown, never passing.
+   Verified on `headref-sandbox`: PR #4 passing, PR #5 failing.
+6. Dependencies `pyjwt` and `cryptography` added (agreed); dev image rebuilt.
+
+### Changed
+`app/integrations/github_app.py`, `app/integrations/github.py`, `app/sync.py`,
+`app/web/connections.py`, `app/web/auth.py` (`sign_value`), `app/models/connections.py`,
+`app/config.py`, `pyproject.toml`, 3 templates, 4 test modules.
+
+### Discovered
+Workspace repositories are selected but not yet synced: sync still reads the global
+scopes. Per-workspace sync is W5, after the source tables carry `workspace_id`.
+
+### Next Step
+Install the App on `keshan-dev` and connect `headref-sandbox` through the workspace page.
+Then W4, the Atlassian connection.
+
+---
+
+## 2026-10-19 | Keshan | Workspaces W2: portfolio home and workspace shell
+Status: IN_PROGRESS
+
+### Completed
+1. `GET /workspaces`: portfolio home, 1 card per workspace with the caller's role and an
+   honest "Not synced yet" state. Empty state for a first-time account.
+2. `GET /workspaces/new` and `POST /workspaces`: create form; the caller becomes owner and
+   lands on the new workspace. A blank or long name re-renders with fixed error copy (422).
+3. `GET /w/{workspace_id}`: workspace shell with Connections, Sync, Members, Analysis and
+   What changed sections. Each says what is not set up yet. Connect and Sync buttons are
+   shown disabled with the reason, owners and managers only. Switcher when the account has
+   more than 1 workspace.
+4. Sign-in now lands on `/workspaces` instead of `/repos`. "Workspaces" added to the top
+   navigation; the existing pages stay until W7.
+5. `tests/test_workspace_pages.py`: 10 page tests, including hostile name escaping, 404 for
+   another account's workspace, and role-dependent buttons.
+
+### Problems
+Not checked in a browser: layout at 375, 768 and 1280 px, the switcher menu, dark theme.
+
+### Next Step
+W3, the GitHub App connection. Needs the GitHub App registered first (W0 external setup).
+
+---
+
+## 2026-10-19 | Keshan | Workspaces W1: accounts, workspaces, isolation core
+Status: IN_PROGRESS
+
+### Completed
+1. Migration `0002_workspaces` (announced in the W0 entry): `account`, `workspace`,
+   `workspace_member` with roles `owner`, `manager`, `viewer`. Additive only. Verified on a
+   throwaway PostgreSQL 15: upgrade, downgrade, upgrade, 1 head. Applied to the local
+   development database.
+2. GitHub sign-in creates or updates the account, matched on the numeric GitHub id.
+   Transitional `account.app_user_id` keeps the existing team and member pages working
+   until W7 replaces them.
+3. `workspace_access(min_role)` in `app/web/workspaces.py` is the only membership check.
+   Not a member, or archived: 404, so existence does not leak. Role too low: 403.
+4. API: `GET /api/workspaces`, `POST /api/workspaces` (caller becomes owner),
+   `GET /api/workspaces/{workspace_id}`.
+5. `tests/test_workspaces.py`: create, list isolation, cross-account 404 equal to a missing
+   id, archived 404, roles, no session and no account 401, account matched on GitHub id, and
+   a check that every `{workspace_id}` route uses `workspace_access`.
+
+### Discovered
+- **The FR-028 route coverage test was passing without checking anything.** FastAPI 0.143
+  keeps an included router as 1 `_IncludedRouter` entry in `app.routes`, so
+  `isinstance(route, APIRoute)` found 0 member routes. `tests/conftest.py`
+  `iter_api_routes` walks both layouts, and the test now asserts it sees at least 3 member
+  routes. They are all guarded.
+- `alembic check` shows 1 pre-existing drift unrelated to this work: migration 0001 names an
+  index `ix_work_item_dependency_blocked_by`, the model names it
+  `ix_work_item_dependency_blocked_by_work_item_id`. Not changed here.
+
+### Next Step
+W2: portfolio home, create workspace page, switcher, account menu.
+
+---
+
+## 2026-10-19 | Keshan | Workspaces: decisions proposed, real test data (W0)
+Status: IN_PROGRESS
+
+### Completed
+1. Branch `feat/workspaces` from `main` at `c8ac02c`. Plan in
+   `impl/implementation_plan_workspaces.md`: managers sign in with GitHub, create isolated
+   workspaces, connect repositories (GitHub App) and Jira projects (Atlassian OAuth), sync,
+   and see findings, a feed and a per-member panel with a likely next task.
+2. DEC-021 to DEC-025 added to `docs/DECISIONS.md` as **Proposed**.
+3. Real test data, created 2026-10-18: Jira project `HRS` on `keshanuni.atlassian.net`
+   (HRS-1 to HRS-9, 1 "is blocked by" link) and private repository
+   `keshan-dev/headref-sandbox` (pull requests #1 to #7, #1 and #3 merged, #5 with a
+   failing check, #6 with no ticket key, #7 draft). Each case targets 1 rule; the table is
+   in the plan, section 9.
+
+### Discovered
+- `repository.full_name`, `project.key` and `identity_link (integration, external_id)` are
+  unique globally, so 2 workspaces cannot share a repository, project or person today.
+- `app_user` is both the signed-in actor and the described member.
+- Jira team-managed board: a column added after Done puts Blocked in the Done status
+  category. headref maps by status name first, so its reading is correct.
+- The Jira client still calls `GET /rest/api/3/search`, believed retired on Jira Cloud.
+  Not yet confirmed against the real site.
+
+### Decisions Needed
+1. DEC-021 to DEC-025 need Developer 2 agreement. Multi-tenancy is Stage 2 in
+   `PROJECT_REQUIREMENTS.md` 2.8, so this is a scope change (rule 15). The pull request
+   for this branch does not merge before that.
+2. New dependencies `PyJWT` and `cryptography` (free, but a dependency change).
+3. DEC-020 is still Proposed; DEC-025 depends on it.
+
+### Announcement (rule 11)
+Developer 1 will write migration `0002` (accounts, workspaces, workspace membership) on
+this branch. No other migration until it is merged.
+
+### Narrative speed, measured 2026-10-19
+headref's own `generate_narrative` and `validate_narrative`, HRS-shaped findings, local
+Ollama on this laptop, 3 runs each after 1 warm-up:
+
+| Model | Prompt | Median | Valid | Read |
+|---|---|---|---|---|
+| llama3.2 (3B) | v1 | 9.8 s | 3/3 | correct |
+| llama3.2 (3B) | v2 | 7.0 s | 3/3 | correct |
+| llama3.2:1b | v1 | 3.3 s | 0/3 | copied the example's AUTH-245 and #182 |
+| llama3.2:1b | v2 | 4.8 s | 3/3 | passes checks, wrong meaning ("working on Keshan: 6 assigned Jira items") |
+
+Kept the 3B model. v2 replaces the worked example's real-looking IDs with placeholders and
+is now the default. The 1B model is not used: its errors are in meaning, which the
+validator cannot detect. Warm-up is 14 to 37 seconds on the first call after a load.
+Summaries remain on demand (member opened), never for every member after a sync.
+
+Before the validator fix in this branch, 3 of 3 valid 3B summaries were discarded because
+the BL-7 finding uses "failing", a forbidden term.
+
+The evaluation suite does not exist yet (Phase 6), so the v2 prompt change is measured by
+this benchmark only. It must be rerun under `TESTING_AND_EVALUATION.md` 11.5 when the suite
+exists.
+
+### Next Step
+W1.
+
+### AI Assistance
+Plan, DEC drafts and test data created with an AI assistant. The DEC records are drafts
+for both developers to change, not decisions.
 ## 2026-10-19 | Keshan | Remove the login stubs (P7-001)
 Status: IN_REVIEW
 

@@ -7,7 +7,7 @@ Secrets are read from environment variables and never defaulted.
 
 from typing import Any
 
-from pydantic import AliasChoices, Field, ValidationError
+from pydantic import AliasChoices, Field, ValidationError, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -58,6 +58,41 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("GITHUB_OAUTH_CLIENT_SECRET", "github_oauth_client_secret"),
         description="GitHub OAuth application client secret.",
     )
+    # GitHub App for reading workspace repositories (DEC-022). Sign-in stays OAuth.
+    github_app_id: str = Field(
+        default="",
+        validation_alias=AliasChoices("GITHUB_APP_ID", "github_app_id"),
+        description="Numeric id of the headref GitHub App.",
+    )
+    github_app_slug: str = Field(
+        default="",
+        validation_alias=AliasChoices("GITHUB_APP_SLUG", "github_app_slug"),
+        description="URL slug of the GitHub App, github.com/apps/<slug>.",
+    )
+    github_app_private_key_b64: str = Field(
+        default="",
+        validation_alias=AliasChoices("GITHUB_APP_PRIVATE_KEY_B64", "github_app_private_key_b64"),
+        description="The App's PEM private key, base64 encoded on 1 line.",
+        repr=False,
+    )
+    # Atlassian OAuth 2.0 (3LO) for per-workspace Jira connections (DEC-023).
+    atlassian_client_id: str = Field(
+        default="",
+        validation_alias=AliasChoices("ATLASSIAN_CLIENT_ID", "atlassian_client_id"),
+        description="Client id of the headref Atlassian OAuth 2.0 app.",
+    )
+    atlassian_client_secret: str = Field(
+        default="",
+        validation_alias=AliasChoices("ATLASSIAN_CLIENT_SECRET", "atlassian_client_secret"),
+        description="Client secret of the headref Atlassian OAuth 2.0 app.",
+        repr=False,
+    )
+    credential_encryption_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("CREDENTIAL_ENCRYPTION_KEY", "credential_encryption_key"),
+        description="Fernet key that encrypts stored connection tokens.",
+        repr=False,
+    )
     session_secret: str = Field(
         default="",
         validation_alias=AliasChoices("SESSION_SECRET", "session_secret"),
@@ -66,6 +101,45 @@ class Settings(BaseSettings):
             "random key per process: sessions end on restart."
         ),
     )
+
+    @field_validator("model_id", "ollama_url", "prompt_version", mode="before")
+    @classmethod
+    def _blank_means_default(cls, value: object, info: ValidationInfo) -> object:
+        """.env.example ships "MODEL_ID=" and similar blank lines; blank means default.
+
+        Limited to these fields: GITHUB_TOKEN and the Jira secrets are blank on purpose
+        when a source is not used, and treating them as missing would stop the app.
+        """
+        if isinstance(value, str) and not value.strip():
+            return cls.model_fields[info.field_name].default
+        return value
+
+    @property
+    def atlassian_enabled(self) -> bool:
+        """True if the Atlassian app and the encryption key are all configured."""
+        return bool(
+            self.atlassian_client_id
+            and self.atlassian_client_secret
+            and self.credential_encryption_key
+        )
+
+    @property
+    def github_app_enabled(self) -> bool:
+        """True if the GitHub App id, slug and private key are all configured."""
+        return bool(self.github_app_id and self.github_app_slug and self.github_app_private_key_b64)
+
+    def github_app_private_key(self) -> str:
+        """Decode the App private key. Raises ValueError if it is not valid base64 PEM."""
+        import base64
+        import binascii
+
+        try:
+            pem = base64.b64decode(self.github_app_private_key_b64, validate=True).decode()
+        except (binascii.Error, UnicodeDecodeError) as exc:
+            raise ValueError("GITHUB_APP_PRIVATE_KEY_B64 is not valid base64") from exc
+        if "PRIVATE KEY" not in pem:
+            raise ValueError("GITHUB_APP_PRIVATE_KEY_B64 does not decode to a PEM private key")
+        return pem
 
     @property
     def github_oauth_enabled(self) -> bool:
@@ -224,7 +298,9 @@ class Settings(BaseSettings):
         description="Maximum tokens predicted by narrative model.",
     )
     prompt_version: str = Field(
-        default="narrative_v1",
+        # v2 replaces the worked example's real-looking AUTH-245 and #182 with
+        # placeholders; the 1B model copied them into every summary under v1.
+        default="narrative_v2",
         validation_alias=AliasChoices("PROMPT_VERSION", "prompt_version"),
         description="Identifier of prompt template version.",
     )

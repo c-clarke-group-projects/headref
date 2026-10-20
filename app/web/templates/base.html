@@ -2,37 +2,39 @@
   Page shell for every authenticated page.
   Context (all pages):
     request, actor (ActorInfo), team_name, unmatched_count
-    nav_current: "team" | "unmatched" | "member"
+    nav_current: "workspaces" | "team" | "repos" | "jira" | "unmatched" | "member"
   Blocks: title, hero, banners, content
 #}
 {% import "partials/icons.html" as i %}
 {% import "partials/notices.html" as n %}
+{% import "partials/theme.html" as theme %}
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Headref{% endblock %}</title>
+  {{ theme.head_script() }}
   <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
   <script src="{{ url_for('static', path='app.js') }}"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
+  <div class="nav-progress" data-nav-progress aria-hidden="true"></div>
   <div class="page">
     <header class="topnav">
       <nav class="pillbar" aria-label="Main">
         <a class="brand" href="/">{{ i.glyph() }}Headref</a>
-        <a class="navlink" href="/"{% if nav_current == "team" %} aria-current="page"{% endif %}>Team Updates</a>
-        <a class="navlink" href="/repos"{% if nav_current == "repos" %} aria-current="page"{% endif %}>Repositories</a>
-        <a class="navlink" href="/jira"{% if nav_current == "jira" %} aria-current="page"{% endif %}>Connect Jira</a>
+        <a class="navlink" href="/workspaces"{% if nav_current == "workspaces" %} aria-current="page"{% endif %}>Workspaces</a>
       </nav>
       <div class="topnav__spacer"></div>
+      {{ theme.toggle() }}
       <div class="userchip">
         <span class="avatar avatar--xs {{ actor.user_id|avatar_tint }}" aria-hidden="true">{{ actor.display_name|initials }}</span>
         <span>Signed in as {{ actor.display_name }}</span>
         <form method="post" action="/logout" data-logout>
-          <button type="submit" class="navlink" style="border: 0; background: var(--mist); cursor: pointer">Log out</button>
+          <button type="submit" class="navlink navlink--button">Log out</button>
         </form>
       </div>
     </header>

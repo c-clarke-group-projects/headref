@@ -172,3 +172,31 @@ async def test_narrative_connection_refused_no_retry() -> None:
     assert result.fallback_used is True
     assert result.error_type == "UPSTREAM_ERROR"
     assert result.summary == "Fallback summary."
+
+
+def test_the_shipped_prompt_has_no_real_looking_entities_to_copy() -> None:
+    """Under v1 the 1B model copied the example's AUTH-245 and #182 into every summary."""
+    from app.agent.narrative import load_prompt
+    from app.agent.validation import extract_entities
+    from app.config import get_settings
+
+    prompt = load_prompt("{findings placeholder}")
+
+    assert get_settings().prompt_version == "narrative_v2"
+    assert extract_entities(prompt) == set()
+
+
+def test_load_prompt_substitutes_the_findings() -> None:
+    from app.agent.narrative import load_prompt
+
+    prompt = load_prompt("Blockers: HRS-4 is in Blocked status.", version="narrative_v2")
+
+    assert prompt.rstrip().endswith("Blockers: HRS-4 is in Blocked status.")
+
+
+@pytest.mark.parametrize("version", ["../../config", "narrative_v2.txt", "other", ""])
+def test_load_prompt_refuses_a_version_outside_the_prompt_files(version: str) -> None:
+    from app.agent.narrative import load_prompt
+
+    with pytest.raises(ValueError):
+        load_prompt("findings", version=version or "x")

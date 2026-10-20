@@ -1,0 +1,381 @@
+{#
+  Workspace page (W2 shell, DEC-021). Sections fill in later phases:
+    Connections (GitHub in W3, Jira in W4), Sync (W5), Members (W6), Analysis (W7),
+    What changed (W8).
+  Context: base context plus
+    workspace (Workspace), role ("owner" | "manager" | "viewer"),
+    can_manage (bool), is_owner (bool), my_workspaces (list[WorkspaceOut]),
+    github_accounts (list of installation account logins), github_repo_count (int),
+    github_message, jira_message (fixed copy or None),
+    jira (JiraConnection or None), jira_project_count (int),
+    sync_runs (latest SyncRun per repository and project), sync_running (bool),
+    has_sources (bool), sync_message (fixed copy or None), now,
+    team (confirmed AppUser rows, alphabetical), waiting (count of suggested people),
+    selected (AppUser or None), analysis (WorkspaceAnalysis: members, health),
+    feed (list[FeedItem], newest first; only the selected person's work when 1 is selected)
+  Layout: the analysis comes first, in the main column. Sources, sync runs and the feed
+  sit in the side column. Before there is any analysis, setup takes the main column.
+  Nothing here is invented: a section that has no data yet says why.
+#}
+{% extends "base.html" %}
+{% import "partials/icons.html" as i %}
+{% import "partials/illustrations.html" as ill %}
+
+{% block title %}{{ workspace.name }}, Headref{% endblock %}
+
+{% block hero %}
+<section class="hero">
+  <div>
+    <a class="hero__back" href="/workspaces">{{ i.icon("arrow-left") }}All workspaces</a>
+    <h1 class="hero__title">{{ workspace.name }}</h1>
+    {% if workspace.description %}<p class="hero__lead">{{ workspace.description }}</p>{% endif %}
+    <div class="hero__pills">
+      <span class="badge badge--sm badge--on-dark">You are {{ "an" if role == "owner" else "a" }} {{ role }}</span>
+      <a class="btn btn--on-dark btn--sm" href="/w/{{ workspace.id }}/people">{{ i.icon("people", 14) }} People</a>
+      <a class="btn btn--on-dark btn--sm" href="/w/{{ workspace.id }}/settings">{{ i.icon("settings", 14) }} Settings</a>
+      {% if my_workspaces|length > 1 %}
+      <details class="ws-switcher">
+        <summary class="btn btn--on-dark btn--sm">Switch workspace</summary>
+        <ul class="ws-switcher__list">
+          {% for w in my_workspaces %}
+            <li><a href="/w/{{ w.workspace_id }}"{% if w.workspace_id == workspace.id %} aria-current="page"{% endif %}>{{ w.name }}</a></li>
+          {% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+    </div>
+  </div>
+  <div class="hero__actions ws-sync"{% if sync_running %} data-ws-sync-poll="/api/workspaces/{{ workspace.id }}/sync/status"{% endif %}>
+    {% if not has_sources %}
+      <span class="caption" id="sync-reason">Nothing to sync: connect a repository or a Jira project first.</span>
+      {% if can_manage %}<button type="button" class="btn btn--mint" disabled aria-describedby="sync-reason">Sync now</button>{% endif %}
+    {% elif sync_running %}
+      {{ ill.filling() }}
+      <span class="caption" role="status" data-ws-sync-note>A sync is running. This page updates when it finishes.</span>
+      {% if can_manage %}<button type="button" class="btn btn--mint is-pending" disabled>Syncing</button>{% endif %}
+    {% else %}
+      <span class="caption">Syncs every 5 minutes on its own.</span>
+      {% if can_manage %}
+        <form method="post" action="/w/{{ workspace.id }}/sync">
+          <button type="submit" class="btn btn--mint">{{ i.icon("refresh", 14) }} Sync now</button>
+        </form>
+      {% endif %}
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block banners %}
+{% for message in [github_message, jira_message, sync_message] if message %}
+<div class="banners"><div class="banner" role="status"><span class="banner__dot" aria-hidden="true"></span><span>{{ message }}</span></div></div>
+{% endfor %}
+{% endblock %}
+
+{% block content %}
+{% macro claims(items, label, prefix) -%}
+  {% for owner, insight in items %}
+    {% with insight = insight, claim_id = prefix ~ "-" ~ loop.index0, label = label ~ ": " ~ owner.display_name %}{% include "partials/claim.html" %}{% endwith %}
+  {% endfor %}
+{%- endmacro %}
+
+{% macro waiting_note() -%}
+  {% if waiting %}<strong class="waiting"><span class="banner__dot" aria-hidden="true"></span>{{ waiting }} {{ "person is" if waiting == 1 else "people are" }} waiting for confirmation.</strong>{% endif %}
+  <a href="/w/{{ workspace.id }}/people">{{ "Review people" if waiting else "People" }}</a>
+{%- endmacro %}
+
+{% macro sources_card() -%}
+<section class="card side-card" aria-labelledby="connections-title">
+  <div class="side-card__head">
+    <h2 class="side-card__title" id="connections-title">Connections</h2>
+  </div>
+  <p class="caption">Read only. Headref never writes to GitHub or Jira.</p>
+  <div class="ws-conn">
+    <div class="ws-conn__row">
+      <span class="ws-conn__name">{{ i.source_icon("github", 18) }} GitHub</span>
+      {% if github_accounts %}
+        <span class="badge badge--sm badge--on-track">Connected</span>
+        <span class="caption">{{ github_accounts|join(", ") }}: {{ github_repo_count }} repositor{{ "y" if github_repo_count == 1 else "ies" }} selected{% if github_repo_count == 0 %}. Choose at least 1 to sync{% endif %}.</span>
+        {% if is_owner %}<a class="btn btn--quiet btn--sm" href="/w/{{ workspace.id }}/connections/github">Manage repositories</a>{% endif %}
+      {% else %}
+        <span class="badge badge--sm badge--unknown">Not connected</span>
+        <span class="caption">No repositories in this workspace yet.</span>
+        {% if is_owner %}
+          <form method="post" action="/w/{{ workspace.id }}/connections/github/start">
+            <button type="submit" class="btn btn--primary btn--sm">Connect GitHub</button>
+          </form>
+        {% endif %}
+      {% endif %}
+    </div>
+    <div class="ws-conn__row">
+      <span class="ws-conn__name">{{ i.source_icon("jira", 18) }} Jira</span>
+      {% if jira and jira.status == "active" %}
+        <span class="badge badge--sm badge--on-track">Connected</span>
+        <span class="caption">{{ jira.site_name }}: {{ jira_project_count }} project{{ "s" if jira_project_count != 1 }} selected{% if jira_project_count == 0 %}. Choose at least 1 to sync{% endif %}.</span>
+        {% if is_owner %}<a class="btn btn--quiet btn--sm" href="/w/{{ workspace.id }}/connections/jira">Manage projects</a>{% endif %}
+      {% elif jira and jira.status == "pending_site" %}
+        <span class="badge badge--sm badge--unknown">Choose a site</span>
+        <span class="caption">Signed in to Atlassian; no Jira site chosen yet.</span>
+        {% if is_owner %}<a class="btn btn--quiet btn--sm" href="/w/{{ workspace.id }}/connections/jira">Choose site</a>{% endif %}
+      {% elif jira and jira.status == "auth_failed" %}
+        <span class="badge badge--sm badge--blocked">Reconnect needed</span>
+        <span class="caption">Atlassian no longer accepts this connection. Jira data is unavailable, not empty.</span>
+        {% if is_owner %}<a class="btn btn--primary btn--sm" href="/w/{{ workspace.id }}/connections/jira">Reconnect</a>{% endif %}
+      {% else %}
+        <span class="badge badge--sm badge--unknown">Not connected</span>
+        <span class="caption">No Jira projects in this workspace yet.</span>
+        {% if is_owner %}
+          <form method="post" action="/w/{{ workspace.id }}/connections/jira/start">
+            <button type="submit" class="btn btn--primary btn--sm">Connect Jira</button>
+          </form>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  {% if not is_owner %}
+  <p class="caption" style="margin-top: var(--s-3)">The workspace owner connects repositories and Jira projects.</p>
+  {% endif %}
+
+  {% if sync_runs %}
+  <div class="side-card__head" style="margin-top: var(--s-5)">
+    <h3 class="side-card__title">Latest sync</h3>
+    <a class="caption" href="/w/{{ workspace.id }}/syncs">Sync history</a>
+  </div>
+  <ul class="ws-runs">
+    {% for r in sync_runs %}
+      <li class="ws-runs__row">
+        <span class="ws-conn__name">{{ i.source_icon(r.source, 16) }} <span class="mono">{{ r.scope }}</span></span>
+        {% if r.status == "running" %}
+          <span class="badge badge--sm badge--unknown">Running</span>
+          <span class="caption">Started <time datetime="{{ r.started_at|iso_utc }}" title="{{ r.started_at|utc_title }}">{{ r.started_at|reltime(now) }}</time></span>
+        {% elif r.status == "failed" %}
+          <span class="badge badge--sm badge--blocked">Failed</span>
+          <span class="caption">{{ r.error_type|error_label|capitalize }}. The last good data is kept; it is not shown as empty.</span>
+        {% else %}
+          <span class="badge badge--sm badge--on-track">{{ "Synced" if r.status == "success" else "Synced, some skipped" }}</span>
+          <span class="caption"><time datetime="{{ (r.finished_at or r.started_at)|iso_utc }}" title="{{ (r.finished_at or r.started_at)|utc_title }}">{{ (r.finished_at or r.started_at)|reltime(now) }}</time>: {{ r.items_written }} written{% if r.items_skipped %}, {{ r.items_skipped }} skipped{% endif %}</span>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{%- endmacro %}
+
+{% macro feed_card() -%}
+<section class="card side-card" aria-labelledby="feed-title">
+  <h2 class="side-card__title" id="feed-title">What changed{% if selected %}: {{ selected.display_name }}'s work{% endif %}</h2>
+  <p class="caption">Differences between syncs, worked out by code. The first sync sets the starting point.</p>
+  {% if feed %}
+    <ul class="feed">
+      {% for f in feed %}
+        <li class="feed__item{% if f.is_new %} feed__item--new{% endif %}">
+          <span class="feed__when">
+            {% if f.is_new %}<span class="badge badge--sm badge--needs-attention">New</span>{% endif %}
+            <span class="caption"><time datetime="{{ f.occurred_at|iso_utc }}" title="{{ f.occurred_at|utc_title }}">{{ f.occurred_at|reltime(now) }}</time></span>
+          </span>
+          {% if f.source_url %}<a href="{{ f.source_url|external_url }}" target="_blank" rel="noopener noreferrer">{{ f.text }}</a>{% else %}{{ f.text }}{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="empty-scene">
+      {{ ill.listening() }}
+      <p class="empty-note">No changes recorded yet. After the next
+        sync, new or cleared blockers, merged pull requests and moved issues appear here.</p>
+    </div>
+  {% endif %}
+</section>
+{%- endmacro %}
+
+{% if team %}
+<nav class="filterbar" aria-label="Filter by member">
+  <span class="filterbar__label">Showing</span>
+  <ul class="ws-people">
+    <li><a class="badge badge--lg {{ 'badge--selected' if not selected else 'badge--outline' }}" href="/w/{{ workspace.id }}"{% if not selected %} aria-current="page"{% endif %}>Whole team</a></li>
+    {% for person in team %}
+      <li><a class="badge badge--lg {{ 'badge--selected' if selected and selected.id == person.id else 'badge--outline' }}" href="/w/{{ workspace.id }}?member={{ person.id }}"{% if selected and selected.id == person.id %} aria-current="page"{% endif %}><span class="avatar avatar--xs {{ person.id|avatar_tint }}" aria-hidden="true" style="width: 24px; height: 24px; font-size: 10px; margin-left: -8px">{{ person.display_name|initials }}</span>{{ person.display_name }}</a></li>
+    {% endfor %}
+  </ul>
+  <span class="filterbar__more">{{ waiting_note() }}</span>
+</nav>
+{% endif %}
+
+{% if analysis.members and not selected %}
+{% set n_blockers = analysis.blockers()|length %}
+{% set n_conflicts = analysis.conflicts()|length %}
+{% set n_risks = analysis.risks()|length %}
+<nav class="stats" aria-label="This workspace at a glance">
+  <a class="stat{% if n_blockers %} stat--alert{% endif %}" href="#blockers-title">
+    <span class="stat__num">{{ n_blockers }}</span>
+    <span class="stat__label">Blocker{{ "s" if n_blockers != 1 }}</span>
+    <span class="stat__hint">Work that cannot move</span>
+  </a>
+  <a class="stat{% if n_conflicts %} stat--warn{% endif %}" href="#conflicts-title">
+    <span class="stat__num">{{ n_conflicts }}</span>
+    <span class="stat__label">Disagreement{{ "s" if n_conflicts != 1 }}</span>
+    <span class="stat__hint">Jira and GitHub differ</span>
+  </a>
+  <a class="stat{% if n_risks %} stat--warn{% endif %}" href="#risks-title">
+    <span class="stat__num">{{ n_risks }}</span>
+    <span class="stat__label">Risk{{ "s" if n_risks != 1 }}</span>
+    <span class="stat__hint">Delivery may slip</span>
+  </a>
+  <a class="stat" href="/w/{{ workspace.id }}/people">
+    <span class="stat__num">{{ waiting }}</span>
+    <span class="stat__label">Waiting for confirmation</span>
+    <span class="stat__hint">People found by sync</span>
+  </a>
+</nav>
+{% endif %}
+
+<div class="layout-main">
+  <div>
+  {% if selected and analysis.members %}
+  {% set m = analysis.members[0] %}
+  <section aria-labelledby="member-title">
+    <div class="section-head">
+      <span class="avatar avatar--xs {{ m.person_id|avatar_tint }}" aria-hidden="true">{{ m.display_name|initials }}</span>
+      <h2 class="section-head__title" id="member-title">{{ m.display_name }}</h2>
+      <a class="caption" href="/w/{{ workspace.id }}">Back to the whole team</a>
+    </div>
+
+    <div class="card card--pad-md" data-summary-src="/w/{{ workspace.id }}/members/{{ m.person_id }}/summary">
+      <div class="loading-scene">
+        {{ ill.cooking() }}
+        <div>
+          <h3 class="card__title">Summary</h3>
+          <p class="caption" data-summary-status role="status">Writing a short summary with the local model. The findings below are already complete.</p>
+          <p class="caption loading-scene__elapsed" data-summary-elapsed aria-hidden="true"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      {% if m.current_work %}
+        {% with insight = m.current_work, claim_id = "current-0", label = "Likely current work" %}{% include "partials/claim.html" %}{% endwith %}
+      {% else %}
+        <section class="unknown-claim"><p class="claim__label">Likely current work</p>
+          <p class="claim__text">No recent Jira or GitHub activity is recorded. Work not tracked in these tools is not visible to Headref.</p></section>
+      {% endif %}
+    </div>
+
+    <div class="card card--pad-md section">
+      <h3 class="card__title">Likely next</h3>
+      <p class="caption">Assigned and not started, by priority then due date; reviews requested from them; their draft pull requests. Headref cannot know what someone will pick up next.</p>
+      {% if m.next_up %}
+        <ul class="feed">
+          {% for item in m.next_up %}
+            <li class="feed__item"><a href="{{ item.evidence.source_url|external_url }}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; gap: var(--s-2); align-items: center">{{ i.source_icon(item.evidence.source, 14) }} {{ item.text }}</a></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty-note" style="margin-top: var(--s-3)">Nothing assigned and waiting, and no draft pull requests.</p>
+      {% endif %}
+    </div>
+
+    <div class="section-head"><h3 class="section-head__title">Blockers ({{ m.blockers|length }})</h3></div>
+    {% for b in m.blockers %}{% with insight = b, claim_id = "blocker-" ~ loop.index0, label = "Blocker" %}{% include "partials/claim.html" %}{% endwith %}
+    {% else %}<p class="note-card note-card--clear">{{ ill.check_draw() }} No blockers detected.</p>{% endfor %}
+
+    <div class="section-head"><h3 class="section-head__title">Risks ({{ m.risks|length }})</h3></div>
+    {% for r in m.risks %}{% with insight = r, claim_id = "risk-" ~ loop.index0, label = "Risk" %}{% include "partials/claim.html" %}{% endwith %}
+    {% else %}<p class="note-card note-card--clear">{{ ill.check_draw() }} No delivery risks detected.</p>{% endfor %}
+
+    {% if m.conflicts %}
+      <div class="section-head"><h3 class="section-head__title">Jira and GitHub disagree ({{ m.conflicts|length }})</h3></div>
+      <ul class="conflict-list">{% for c in m.conflicts %}<li><span class="conflict-list__icon">{{ i.icon("warning", 14) }}</span><span>{{ c }}</span></li>{% endfor %}</ul>
+      <p class="conflict__note">Headref does not choose. Check which one is out of date.</p>
+    {% endif %}
+
+    {% if m.unknowns %}
+      <section class="card card--dashed card--pad-md section">
+        <h3 class="card__title">Not determined</h3>
+        <ul class="feed">{% for u in m.unknowns %}<li class="feed__item">{{ u }}</li>{% endfor %}</ul>
+      </section>
+    {% endif %}
+  </section>
+
+  {% elif analysis.members %}
+  <section aria-labelledby="analysis-title">
+    <h2 class="visually-hidden" id="analysis-title">Analysis</h2>
+
+    <div class="section-head">
+      <h3 class="section-head__title" id="blockers-title">Blockers ({{ analysis.blockers()|length }})</h3>
+      <span class="caption">Built by code from the latest sync. Every item links to its evidence.</span>
+    </div>
+    {{ claims(analysis.blockers(), "Blocker", "blocker") }}
+    {% if not analysis.blockers() %}<p class="note-card note-card--clear">{{ ill.check_draw() }} No blockers detected for confirmed people.</p>{% endif %}
+
+    <div class="section-head">
+      <h3 class="section-head__title" id="conflicts-title">Jira and GitHub disagree ({{ analysis.conflicts()|length }})</h3>
+    </div>
+    {% if analysis.conflicts() %}
+      <ul class="conflict-list">
+        {% for owner, c in analysis.conflicts() %}<li><span class="conflict-list__icon">{{ i.icon("warning", 14) }}</span><span><strong>{{ owner.display_name }}:</strong> {{ c }}</span></li>{% endfor %}
+      </ul>
+      <p class="conflict__note">Headref does not choose. Check which one is out of date.</p>
+    {% else %}<p class="note-card note-card--clear">{{ ill.check_draw() }} No conflicts detected.</p>{% endif %}
+
+    <div class="section-head">
+      <h3 class="section-head__title" id="risks-title">Risks ({{ analysis.risks()|length }})</h3>
+    </div>
+    {{ claims(analysis.risks(), "Risk", "risk") }}
+    {% if not analysis.risks() %}<p class="note-card note-card--clear">{{ ill.check_draw() }} No delivery risks detected.</p>{% endif %}
+
+    <div class="section-head">
+      <h3 class="section-head__title">Likely current work</h3>
+      <span class="caption">Alphabetical. Headref does not rank or compare people.</span>
+    </div>
+    <div class="grid-auto">
+      {% for m in analysis.members %}
+        {% if m.current_work %}
+          {% with insight = m.current_work, claim_id = "current-" ~ loop.index0, label = m.display_name %}{% include "partials/claim.html" %}{% endwith %}
+        {% else %}
+          <section class="unknown-claim"><p class="claim__label">{{ m.display_name }}</p>
+            <p class="claim__text">No recent Jira or GitHub activity is recorded.</p></section>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+
+  {% else %}
+  <section class="card card--pad-md" aria-labelledby="analysis-title">
+    <h2 class="card__title" id="analysis-title">Get this workspace ready</h2>
+    <p class="empty-note" style="margin-top: var(--s-2)">No analysis yet. It covers confirmed people:
+      sync, then confirm who is on the team on the People screen.</p>
+    <ol class="setup">
+      {% set connected = github_repo_count or jira_project_count %}
+      <li class="setup__step{% if connected %} setup__step--done{% endif %}">
+        <span class="setup__num">{% if connected %}{{ i.icon("check") }}{% else %}1{% endif %}</span>
+        <div class="setup__body">
+          <p class="setup__title">Choose what to read from GitHub, Jira or both</p>
+          <p class="caption">Choose the repositories and projects this workspace reads, in Connections.</p>
+        </div>
+      </li>
+      <li class="setup__step{% if sync_runs %} setup__step--done{% endif %}">
+        <span class="setup__num">{% if sync_runs %}{{ i.icon("check") }}{% else %}2{% endif %}</span>
+        <div class="setup__body">
+          <p class="setup__title">Sync</p>
+          <p class="caption">Each workspace syncs every 5 minutes on its own. A manager can also start a sync at the top of this page.</p>
+        </div>
+      </li>
+      <li class="setup__step{% if team %} setup__step--done{% endif %}">
+        <span class="setup__num">{% if team %}{{ i.icon("check") }}{% else %}3{% endif %}</span>
+        <div class="setup__body">
+          <p class="setup__title">Confirm who is on the team</p>
+          {% if not team %}<p class="caption">Nobody is confirmed yet. People appear after a sync; a manager confirms who is on the team.</p>{% endif %}
+          <p class="caption">{{ waiting_note() }}</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+  <div class="section">{{ sources_card() }}</div>
+  {% endif %}
+  </div>
+
+  <aside class="aside-stack" aria-label="Activity and sources">
+    {{ feed_card() }}
+    {% if analysis.members %}{{ sources_card() }}{% endif %}
+  </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{#
+  Sync history for 1 workspace (W5). Any member.
+  Context: base context plus workspace, runs (newest 50 SyncRun rows), now
+  A failed run shows its typed error, never exception text.
+#}
+{% extends "base.html" %}
+{% import "partials/icons.html" as i %}
+
+{% block title %}Sync history, {{ workspace.name }}, Headref{% endblock %}
+
+{% block hero %}
+<section class="hero">
+  <div>
+    <a class="hero__back" href="/w/{{ workspace.id }}">{{ i.icon("arrow-left") }}Back to {{ workspace.name }}</a>
+    <h1 class="hero__title">Sync history</h1>
+    <p class="hero__lead">The last {{ runs|length }} sync run{{ "s" if runs|length != 1 }} for this workspace, newest first.</p>
+  </div>
+</section>
+{% endblock %}
+
+{% block content %}
+<section class="card section" style="padding: var(--s-2) var(--s-5) var(--s-4)">
+  {% if not runs %}
+    <p class="empty-note" style="padding: var(--s-4)">This workspace has not synced yet.</p>
+  {% else %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th scope="col">Source</th><th scope="col">Scope</th><th scope="col">Started</th><th scope="col">Result</th><th scope="col">Written</th><th scope="col">Skipped</th></tr></thead>
+      <tbody>
+        {% for r in runs %}
+        <tr>
+          <td><span class="cell-source">{{ i.source_icon(r.source, 14) }} {{ r.source|source_label }}</span></td>
+          <td class="mono">{{ r.scope }}</td>
+          <td class="num"><time datetime="{{ r.started_at|iso_utc }}" title="{{ r.started_at|utc_title }}" data-local="short">{{ r.started_at|fmt_short }}</time></td>
+          <td>
+            {% if r.status == "failed" %}<span class="badge badge--sm badge--blocked">Failed</span> <span class="caption">{{ r.error_type|error_label|capitalize }}</span>
+            {% elif r.status == "running" %}<span class="badge badge--sm badge--unknown">Running</span>
+            {% elif r.status == "partial" %}<span class="badge badge--sm badge--on-track">Synced, some skipped</span>
+            {% else %}<span class="badge badge--sm badge--on-track">Synced</span>{% endif %}
+          </td>
+          <td class="num">{{ r.items_written }}</td>
+          <td class="num">{{ r.items_skipped }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

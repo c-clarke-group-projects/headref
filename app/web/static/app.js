@@ -2,10 +2,14 @@
   Headref app.js. Vanilla JS, 1 file, no build step.
   Allowed jobs only (DESIGN.md 4):
     1. open and close the evidence drawer
-    2. switch question tabs without a full reload (progressive enhancement)
-    3. start a refresh and poll the sync status
+    2. poll a running workspace sync and reload when it ends
+    3. load a member's summary after the page
+    4. switch between the light and dark theme, and remember the choice
+    5. show that something is on its way: a pending button, a top bar while a page
+       loads, the seconds a summary has been cooking
+    6. pause looping illustrations off screen and in a hidden tab
   plus 1 helper: rewrite <time data-local> to the viewer's local time.
-  Every page works without this file except the Refresh button.
+  Every page works without this file; the summary then shows its loading note.
 */
 
 // Named constants, keep at the top.
@@ -14,17 +18,15 @@ const SYNC_POLL_TIMEOUT_MS = 5 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 10000;
 const REQUEST_MAX_RETRIES = 2;
 const ANSWER_SLOW_MS = 20000;
+// The member summary is the 1 model call. A cold local model measured 45 s on this
+// machine (W7), so it gets a longer limit than other requests.
+const SUMMARY_TIMEOUT_MS = 120000;
 const DRAWER_ANIMATION_MS = 150;
+const THEME_STORAGE_KEY = "headref-theme";
+const THEME_FADE_MS = 300;
+// The elapsed count appears only once a wait is long enough to need reassurance.
+const ELAPSED_SHOW_AFTER_S = 3;
 
-const ERROR_LABELS = {
-  TIMEOUT: "the request timed out",
-  RATE_LIMITED: "rate limited by the source",
-  AUTH_FAILED: "access token rejected",
-  NOT_FOUND: "the project or repository was not found",
-  UPSTREAM_ERROR: "the source returned an error",
-  SCHEMA_INVALID: "some records could not be read and were left out",
-};
-const SOURCE_LABELS = { github: "GitHub", jira: "Jira" };
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 document.documentElement.classList.add("js");
@@ -69,9 +71,9 @@ async function requestJSON(url, options = {}) {
   throw lastError || new Error("request failed");
 }
 
-async function requestText(url) {
+async function requestText(url, timeoutMs = ANSWER_SLOW_MS * 2) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ANSWER_SLOW_MS * 2);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, { credentials: "same-origin", signal: controller.signal });
     return { status: res.status, ok: res.ok, text: await res.text() };
@@ -216,168 +218,117 @@ const drawer = {
   },
 };
 
-// Tabs ---------------------------------------------------------------------------
+// Theme ---------------------------------------------------------------------------
 
 /*
-  Tabs are real links. With JS: arrow keys move focus (WAI ARIA tabs), and if
-  the PROPOSED fragment route exists the panel swaps in place. If the fragment
-  request fails, fall back to a normal page load.
+  The saved choice is applied in <head> by partials/theme.html before the first
+  paint. With no saved choice the page follows the system setting. Storage can be
+  blocked (private windows); the switch then still works for this page.
 */
-const tabs = {
-  USE_FRAGMENT_ROUTE: true, // set false if GET /members/{id}/panel is not agreed
+function currentTheme() {
+  const chosen = document.documentElement.getAttribute("data-theme");
+  if (chosen === "light" || chosen === "dark") return chosen;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
 
-  init() {
-    const list = document.querySelector("[data-tabs]");
-    if (!list) return;
-    const items = [...list.querySelectorAll('[role="tab"]')];
+function labelThemeToggles() {
+  const next = currentTheme() === "dark" ? "light" : "dark";
+  document.querySelectorAll("[data-theme-toggle]").forEach((btn) => {
+    btn.setAttribute("aria-label", `Use ${next} theme`);
+    btn.setAttribute("title", `Use ${next} theme`);
+  });
+}
 
-    list.addEventListener("keydown", (e) => {
-      const i = items.indexOf(document.activeElement);
-      if (i < 0) return;
-      let next = null;
-      if (e.key === "ArrowRight") next = items[(i + 1) % items.length];
-      if (e.key === "ArrowLeft") next = items[(i - 1 + items.length) % items.length];
-      if (e.key === "Home") next = items[0];
-      if (e.key === "End") next = items[items.length - 1];
-      if (next) {
-        e.preventDefault();
-        next.focus();
-      }
-    });
-
-    if (!this.USE_FRAGMENT_ROUTE) return;
-    list.addEventListener("click", (e) => {
-      const tab = e.target.closest('[role="tab"]');
-      if (!tab || e.metaKey || e.ctrlKey || e.shiftKey) return;
-      e.preventDefault();
-      this.select(list, items, tab);
-    });
-  },
-
-  async select(list, items, tab) {
-    const panel = document.querySelector("[data-panel]");
-    const memberId = list.getAttribute("data-member-id");
-    const question = tab.getAttribute("data-question");
-    items.forEach((t) => {
-      const on = t === tab;
-      t.setAttribute("aria-selected", on ? "true" : "false");
-      t.setAttribute("tabindex", on ? "0" : "-1");
-    });
-    panel.setAttribute("aria-labelledby", tab.id);
-    panel.setAttribute("aria-busy", "true");
-    panel.innerHTML =
-      '<div class="skeleton layout-main"><div><div class="skeleton__bar skeleton__bar--w60"></div>' +
-      '<div class="skeleton__bar skeleton__bar--w90"></div><div class="skeleton__bar skeleton__bar--w90"></div>' +
-      '<p class="skeleton__text" data-loading-text>Building the answer from recorded data. This can take up to 20 seconds.</p></div></div>';
-    const slow = setTimeout(() => {
-      const t = panel.querySelector("[data-loading-text]");
-      if (t) t.textContent += " Still working.";
-    }, ANSWER_SLOW_MS);
-
-    try {
-      const res = await requestText(`/members/${memberId}/panel?question=${encodeURIComponent(question)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      panel.innerHTML = res.text; // server rendered and autoescaped by Jinja
-      history.replaceState(null, "", tab.getAttribute("href"));
-      localizeTimes(panel);
-      panel.querySelectorAll("[data-claim] [data-ev-open][hidden]").forEach((b) => b.removeAttribute("hidden"));
-      panel.querySelector("[data-panel-heading]")?.focus();
-    } catch (err) {
-      console.warn("[headref] panel swap failed, loading the page", err);
-      window.location.assign(tab.getAttribute("href"));
-    } finally {
-      clearTimeout(slow);
-      panel.removeAttribute("aria-busy");
-    }
-  },
-};
-
-// Refresh --------------------------------------------------------------------------
-
-const refresh = {
-  init() {
-    document.querySelectorAll("[data-refresh]").forEach((btn) => {
-      btn.addEventListener("click", () => this.start(btn));
-    });
-  },
-
-  setState(btn, busy, statusText) {
-    const label = btn.querySelector("[data-refresh-label]");
-    const icon = btn.querySelector("[data-refresh-icon]");
-    btn.disabled = busy;
-    btn.setAttribute("aria-busy", busy ? "true" : "false");
-    if (label) label.textContent = busy ? "Refreshing" : "Refresh";
-    if (icon) icon.innerHTML = busy ? '<span class="btn__spinner" aria-hidden="true"></span>' : icon.dataset.idle || icon.innerHTML;
-    const status = document.getElementById("refresh-status");
-    if (status && statusText !== undefined) status.textContent = statusText;
-  },
-
-  showBanner(text) {
-    const banner = document.querySelector("[data-refresh-banner]");
-    if (!banner) return;
-    banner.querySelector("[data-refresh-banner-text]").textContent = text;
-    banner.hidden = false;
-  },
-
-  async start(btn) {
-    const teamId = btn.getAttribute("data-team-id");
-    const icon = btn.querySelector("[data-refresh-icon]");
-    if (icon && !icon.dataset.idle) icon.dataset.idle = icon.innerHTML;
-    this.setState(btn, true, "Starting sync");
-
-    let res;
-    try {
-      res = await requestJSON(`/api/teams/${teamId}/sync`, { method: "POST" });
-    } catch (err) {
-      this.setState(btn, false, "");
-      this.showBanner("Refresh failed: the request timed out. Showing data from the last successful sync.");
-      return;
-    }
-    if (res.status === 403) {
-      this.setState(btn, false, "");
-      this.showBanner("You can only refresh your own team.");
-      return;
-    }
-    if (res.status !== 202 && !res.ok) {
-      this.setState(btn, false, "");
-      this.showBanner("Refresh failed: the source returned an error. Showing data from the last successful sync.");
-      return;
-    }
-
-    // started is false when a run was already in flight for this team's scopes. The
-    // server starts nothing in that case, so say so rather than implying we did.
-    const alreadyRunning = res.body && res.body.started === false;
-    this.setState(btn, true, alreadyRunning ? "A sync is already running" : "Syncing GitHub and Jira");
-    const started = Date.now();
-    let status = res.body;
-    while (!status?.all_finished) {
-      if (Date.now() - started > SYNC_POLL_TIMEOUT_MS) {
-        this.setState(btn, false, "");
-        this.showBanner("Refresh is taking longer than expected. It will continue in the background.");
-        return;
-      }
-      await wait(SYNC_POLL_INTERVAL_MS);
+function initThemeToggle() {
+  document.querySelectorAll("[data-theme-toggle]").forEach((btn) => {
+    btn.removeAttribute("hidden");
+    btn.addEventListener("click", () => {
+      const next = currentTheme() === "dark" ? "light" : "dark";
+      const root = document.documentElement;
+      // Fade the colours across instead of snapping, only for this switch.
+      root.classList.add("theme-switching");
+      setTimeout(() => root.classList.remove("theme-switching"), THEME_FADE_MS);
+      root.setAttribute("data-theme", next);
       try {
-        const poll = await requestJSON(`/api/teams/${teamId}/sync/status`);
-        if (poll.ok) status = poll.body;
+        localStorage.setItem(THEME_STORAGE_KEY, next);
       } catch (err) {
-        console.warn("[headref] status poll failed, will retry", err);
+        console.warn("[headref] theme choice not saved", err.name || err);
       }
-    }
+      labelThemeToggles();
+    });
+  });
+  labelThemeToggles();
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", labelThemeToggles);
+}
 
-    const failed = (status.runs || []).filter((r) => r.status === "failed");
-    if (failed.length) {
-      // A failed refresh never blanks the page. Cached data stays.
-      const parts = failed.map((r) => `${SOURCE_LABELS[r.source] || r.source}, ${ERROR_LABELS[r.error_type] || "the source returned an error"}`);
-      this.setState(btn, false, "");
-      this.showBanner(`Refresh failed: ${parts.join("; ")}. Showing data from the last successful sync.`);
+// Waiting feedback -----------------------------------------------------------------
+
+/*
+  A submitted form shows a spinner on the button that sent it, and a second click is
+  ignored rather than posting twice. The button is not disabled: a disabled submitter
+  can drop out of the posted form data. Any page load also shows the top bar (after
+  a short delay in CSS, so fast pages never flash it). Coming back with the Back
+  button restores the page as it was, so the pending state is cleared there.
+*/
+function setNavProgress(active) {
+  const bar = document.querySelector("[data-nav-progress]");
+  if (bar) bar.classList.toggle("is-active", active);
+}
+
+function initPendingStates() {
+  document.addEventListener("submit", (e) => {
+    const form = e.target;
+    if (e.defaultPrevented || !(form instanceof HTMLFormElement) || form.hasAttribute("data-logout")) return;
+    if (form.dataset.pending === "1") {
+      e.preventDefault();
+      console.info("[headref] skipped a repeat submit", form.action);
       return;
     }
-    const skipped = (status.runs || []).reduce((sum, r) => sum + (r.items_skipped || 0), 0);
-    if (skipped > 0) sessionStorage.setItem("headref-skipped", String(skipped));
-    window.location.reload();
-  },
-};
+    form.dataset.pending = "1";
+    const button = e.submitter || form.querySelector('button[type="submit"], button:not([type])');
+    if (button) {
+      button.classList.add("is-pending");
+      button.setAttribute("aria-busy", "true");
+    }
+    setNavProgress(true);
+  });
+
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest("a[href]");
+    if (!link || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (link.target && link.target !== "_self") return;
+    if (link.hasAttribute("download") || link.hasAttribute("data-ev-open")) return;
+    const url = new URL(link.href, window.location.href);
+    if (url.origin !== window.location.origin) return;
+    if (url.pathname === window.location.pathname && url.search === window.location.search && url.hash) return;
+    setNavProgress(true);
+  });
+
+  window.addEventListener("pageshow", (e) => {
+    if (!e.persisted) return;
+    setNavProgress(false);
+    document.querySelectorAll("form[data-pending]").forEach((form) => delete form.dataset.pending);
+    document.querySelectorAll(".is-pending").forEach((b) => {
+      b.classList.remove("is-pending");
+      b.removeAttribute("aria-busy");
+    });
+  });
+}
+
+// Looping illustrations stop when nobody can see them.
+function initLoopPausing() {
+  const loops = document.querySelectorAll("[data-loop]");
+  if (!loops.length) return;
+  if ("IntersectionObserver" in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => entry.target.classList.toggle("is-paused", !entry.isIntersecting));
+    });
+    loops.forEach((el) => observer.observe(el));
+  }
+  const syncHidden = () => document.documentElement.classList.toggle("tab-hidden", document.hidden);
+  document.addEventListener("visibilitychange", syncHidden);
+  syncHidden();
+}
 
 // Logout --------------------------------------------------------------------------
 
@@ -394,23 +345,67 @@ function initLogout() {
   });
 }
 
-function showSkippedNote() {
-  let skipped = null;
-  try {
-    skipped = sessionStorage.getItem("headref-skipped");
-    sessionStorage.removeItem("headref-skipped");
-  } catch (err) {
-    return;
+// Workspace sync (W5): while a sync runs, poll its status and reload once it ends.
+// Stops after SYNC_POLL_TIMEOUT_MS rather than polling forever.
+async function pollWorkspaceSync() {
+  const box = document.querySelector("[data-ws-sync-poll]");
+  if (!box) return;
+  const url = box.getAttribute("data-ws-sync-poll");
+  const note = box.querySelector("[data-ws-sync-note]");
+  const started = Date.now();
+  while (Date.now() - started < SYNC_POLL_TIMEOUT_MS) {
+    await wait(SYNC_POLL_INTERVAL_MS);
+    try {
+      const status = await requestJSON(url);
+      if (status && status.running === false) {
+        window.location.reload();
+        return;
+      }
+    } catch (err) {
+      // Status is unknown now, so the filling jar would claim more than headref knows.
+      box.querySelector(".ill-fill")?.remove();
+      if (note) note.textContent = "Sync status could not be read. Reload the page to check again.";
+      return;
+    }
   }
-  const status = document.getElementById("refresh-status");
-  if (skipped && status) status.textContent = `Last sync skipped ${skipped} records.`;
+  if (note) note.textContent = "The sync is taking longer than expected. Reload the page to check again.";
+}
+
+// Member summary (W7): the only model call, fetched after the page so the findings,
+// already complete, never wait for it.
+async function loadMemberSummary() {
+  const box = document.querySelector("[data-summary-src]");
+  if (!box) return;
+  const status = box.querySelector("[data-summary-status]");
+  const elapsed = box.querySelector("[data-summary-elapsed]");
+  const started = Date.now();
+  // A real count of seconds waited, not an estimate of how long is left.
+  const ticker = setInterval(() => {
+    const seconds = Math.floor((Date.now() - started) / 1000);
+    if (elapsed && seconds >= ELAPSED_SHOW_AFTER_S) elapsed.textContent = `Waiting ${seconds} s so far.`;
+  }, 1000);
+  try {
+    const res = await requestText(box.getAttribute("data-summary-src"), SUMMARY_TIMEOUT_MS);
+    if (!res.ok) throw new Error(`summary ${res.status}`);
+    const doc = new DOMParser().parseFromString(res.text, "text/html");
+    box.replaceChildren(...doc.body.childNodes);
+  } catch (err) {
+    console.warn("[headref] summary not loaded", err.name || err);
+    box.querySelector(".ill-cook")?.remove();
+    if (elapsed) elapsed.textContent = "";
+    if (status) status.textContent = "The summary could not be loaded. The findings below are complete without it.";
+  } finally {
+    clearInterval(ticker);
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   localizeTimes();
+  pollWorkspaceSync();
+  loadMemberSummary();
   drawer.init();
-  tabs.init();
-  refresh.init();
   initLogout();
-  showSkippedNote();
+  initThemeToggle();
+  initPendingStates();
+  initLoopPausing();
 });

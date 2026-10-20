@@ -1,13 +1,11 @@
-"""Session cookie and the authorization seam (P3-001, FR-028, NFR-009).
+"""Session cookie and who is asking (P3-001, NFR-009).
 
 Signing in happens only through GitHub OAuth (``/auth/github/login`` in routes.py),
-which sets the signed session cookie defined here. The P3-001 login stub, which
-trusted any user id it was given, is removed.
+which sets the signed session cookie defined here.
 
-The authorization seam: ``can_view_member`` is the only place the rule
-"a person may view members of their own team" is written. Every route that returns
-member data MUST take the ``MemberGuard`` dependency, which calls it, answers 403
-and logs on denial. A test fails if a member route does not.
+Authorization is per workspace: ``workspace_access`` in app/web/workspaces.py checks
+membership and role on every route under /w/{workspace_id} (DEC-021). The team rule
+``can_view_member`` and its MemberGuard went with the team pages in W10 (DEC-026).
 """
 
 import hashlib
@@ -25,6 +23,17 @@ logger = logging.getLogger(__name__)
 
 SESSION_COOKIE = "headref_session"
 SESSION_MAX_AGE_SECONDS = 8 * 60 * 60
+
+
+def cookie_secure() -> bool:
+    """True outside APP_ENV=local: cookies then travel over HTTPS only.
+
+    Local development serves plain http://localhost, where a Secure cookie is not sent.
+    """
+    from app.config import get_settings
+
+    return get_settings().app_env != "local"
+
 
 # Minimum length of SESSION_SECRET. 32 characters keeps the HMAC key at 256 bits or
 # more for a random hex or base64 value.
@@ -79,6 +88,23 @@ def _signature(payload: str) -> str:
     return hmac.new(_get_signing_key(), payload.encode(), hashlib.sha256).hexdigest()
 
 
+def sign_value(payload: str) -> str:
+    """Return payload with an HMAC signature, for values that must round-trip unchanged."""
+    return f"{payload}~{_signature(payload)}"
+
+
+def read_signed_value(token: str | None) -> str | None:
+    """Return the payload of a sign_value token, or None if missing or forged."""
+    if not token:
+        return None
+    payload, separator, signature = token.rpartition("~")
+    if not separator or not payload:
+        return None
+    if not hmac.compare_digest(signature.encode(), _signature(payload).encode()):
+        return None
+    return payload
+
+
 def sign_session(user_id: int) -> str:
     """Return a cookie value carrying user_id that cannot be edited undetected."""
     payload = str(user_id)
@@ -126,7 +152,7 @@ DbDep = Annotated[Session, Depends(get_db)]
 
 
 # ---------------------------------------------------------------------------
-# Who is asking, and are they allowed to see this person
+# Who is asking
 # ---------------------------------------------------------------------------
 
 
@@ -142,36 +168,6 @@ def current_actor(request: Request, db: DbDep) -> Member:
 
 
 ActorDep = Annotated[Member, Depends(current_actor)]
-
-
-def can_view_member(actor: Member, subject: Member) -> bool:
-    """Return True if actor may view subject's data.
-
-    MVP rule: same team. A person with no team can view nobody, not even another
-    person with no team, because "no team" is not a team.
-    """
-    if actor.team_id is None or subject.team_id is None:
-        return False
-    return actor.team_id == subject.team_id
-
-
-def require_member_access(member_id: int, actor: ActorDep, db: DbDep) -> Member:
-    """Load the member named in the URL and check the actor may view them.
-
-    Answers 404 if there is no such member, and 403 (logged) if the actor may not
-    view them. Routes should use MemberGuard rather than calling this directly.
-    """
-    subject = load_user(db, member_id)
-    if subject is None:
-        raise HTTPException(status_code=404, detail="Member not found")
-    if not can_view_member(actor, subject):
-        logger.warning("access denied: actor_id=%s subject_id=%s", actor.id, subject.id)
-        raise HTTPException(status_code=403, detail="Not allowed to view this member")
-    return subject
-
-
-# Every route with {member_id} in its path takes this as a parameter.
-MemberGuard = Annotated[Member, Depends(require_member_access)]
 
 
 # ---------------------------------------------------------------------------

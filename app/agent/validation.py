@@ -57,11 +57,16 @@ def validate_narrative(
     attention_needed: bool,
     allowed_entities: set[str],
     fallback_text: str,
+    findings_text: str = "",
 ) -> ValidatedNarrative:
     """Validate narrative output against invented entities, forbidden terms, and bounds.
 
     Under DEC-018: A validation rejection discards the narrative and substitutes
     the deterministic summary without modifying underlying findings.
+
+    findings_text is the code-built text the model summarised. A forbidden term that
+    already appears there describes work, not a person ("pull request #5 has failing
+    CI checks"), so the narrative may repeat it. A term the model adds is rejected.
     """
     # Check 1: Shape and length constraints
     if not summary or len(summary.strip()) < 20 or not needs_attention:
@@ -91,9 +96,11 @@ def validate_narrative(
 
     # Check 3: Forbidden language (person-judgment terms)
     combined_lower = f"{summary} {needs_attention}".lower()
+    findings_lower = findings_text.lower()
     matched_forbidden = []
     for term in FORBIDDEN_TERMS:
-        if re.search(rf"\b{re.escape(term)}\b", combined_lower):
+        pattern = rf"\b{re.escape(term)}\b"
+        if re.search(pattern, combined_lower) and not re.search(pattern, findings_lower):
             matched_forbidden.append(term)
 
     if matched_forbidden:

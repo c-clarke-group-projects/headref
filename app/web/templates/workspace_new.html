@@ -1,0 +1,41 @@
+{#
+  Create workspace (W2, DEC-021).
+  Context: base context plus name, description (values to refill), error (fixed copy or None)
+#}
+{% extends "base.html" %}
+{% import "partials/icons.html" as i %}
+
+{% block title %}Create workspace, Headref{% endblock %}
+
+{% block hero %}
+<section class="hero">
+  <div>
+    <a class="hero__back" href="/workspaces">{{ i.icon("arrow-left") }}Back to workspaces</a>
+    <h1 class="hero__title">Create workspace</h1>
+    <p class="hero__lead">Use 1 workspace per team or project. You become its owner and can
+      invite other managers later.</p>
+  </div>
+</section>
+{% endblock %}
+
+{% block content %}
+<section class="section">
+  <form class="card card--pad-md ws-form" method="post" action="/workspaces">
+    {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+    <div class="field">
+      <label for="ws-name">Name</label>
+      <input id="ws-name" name="name" type="text" required maxlength="100" value="{{ name }}"
+             placeholder="Payments team" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="ws-description">Description <span class="caption">(optional)</span></label>
+      <input id="ws-description" name="description" type="text" maxlength="500"
+             value="{{ description }}" placeholder="Card and refund services" autocomplete="off">
+    </div>
+    <p class="form-actions">
+      <button type="submit" class="btn btn--primary">Create workspace</button>
+      <a class="btn btn--quiet" href="/workspaces">Cancel</a>
+    </p>
+  </form>
+</section>
+{% endblock %}

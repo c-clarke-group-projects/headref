@@ -4,7 +4,14 @@ from app.models import Base
 
 
 def test_table_count_and_names() -> None:
-    """17 tables must be defined, and none named 'user' (DATA_AND_EVIDENCE.md 6.3)."""
+    """28 tables must be defined, and none named 'user' (DATA_AND_EVIDENCE.md 6.3).
+
+    account, workspace and workspace_member added by migration 0002 (DEC-021);
+    github_installation and workspace_repository by 0003 (DEC-022);
+    jira_connection and workspace_jira_project by 0004 (DEC-023);
+    finding_snapshot and workspace_event by 0007 (DEC-025);
+    workspace_invite by 0008 (DEC-021); review_request by 0009 (DEC-025).
+    """
     table_names = set(Base.metadata.tables.keys())
 
     expected_tables = {
@@ -25,9 +32,20 @@ def test_table_count_and_names() -> None:
         "agent_run",
         "sync_run",
         "sync_cursor",
+        "account",
+        "workspace",
+        "workspace_member",
+        "github_installation",
+        "workspace_repository",
+        "jira_connection",
+        "workspace_jira_project",
+        "finding_snapshot",
+        "workspace_event",
+        "workspace_invite",
+        "review_request",
     }
 
-    assert len(table_names) == 17
+    assert len(table_names) == 28
     assert table_names == expected_tables
     assert "user" not in table_names
     assert "app_user" in table_names
@@ -52,19 +70,21 @@ def test_external_data_freshness_columns() -> None:
 
 def test_unique_constraints_exist() -> None:
     """Key natural uniqueness constraints must exist for idempotency (ARCHITECTURE.md 6)."""
-    # 1. identity_link(integration, external_id)
+    # Unique per workspace organization since migration 0005 (DEC-021): 2 workspaces may
+    # each map the same external account.
+    # 1. identity_link(organization_id, integration, external_id)
     id_link = Base.metadata.tables["identity_link"]
     unique_cols = [
         {c.name for c in uq.columns} for uq in id_link.constraints if getattr(uq, "columns", None)
     ]
-    assert {"integration", "external_id"} in unique_cols
+    assert {"organization_id", "integration", "external_id"} in unique_cols
 
-    # 2. unmatched_entity(integration, external_id)
+    # 2. unmatched_entity(organization_id, integration, external_id)
     unmatched = Base.metadata.tables["unmatched_entity"]
     unique_cols = [
         {c.name for c in uq.columns} for uq in unmatched.constraints if getattr(uq, "columns", None)
     ]
-    assert {"integration", "external_id"} in unique_cols
+    assert {"organization_id", "integration", "external_id"} in unique_cols
 
     # 3. commit(repository_id, sha)
     commit = Base.metadata.tables["commit"]
