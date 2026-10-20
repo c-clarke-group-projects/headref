@@ -9,6 +9,7 @@
 #}
 {% extends "base.html" %}
 {% import "partials/icons.html" as i %}
+{% import "partials/illustrations.html" as ill %}
 
 {% block title %}Workspaces, Headref{% endblock %}
 
@@ -23,7 +24,7 @@
     <p class="hero__lead">Each workspace keeps its own repositories, Jira projects and people.
       Nothing in one workspace is visible from another.</p>
   </div>
-  <div class="stack" style="justify-content: flex-end">
+  <div class="hero__actions">
     <a class="btn btn--mint" href="/workspaces/new">{{ i.icon("arrow-right", 14) }} Create workspace</a>
   </div>
 </section>
@@ -43,18 +44,20 @@
 <section class="section" aria-labelledby="invites-title">
   <div class="card card--pad-md">
     <h2 class="card__title" id="invites-title">Invitations ({{ invites|length }})</h2>
-    <ul class="next-up">
+    <ul class="next-up next-up--rows">
       {% for inv in invites %}
         <li>
           <strong>{{ inv.workspace_name }}</strong>
           <span class="badge badge--sm badge--outline">{{ inv.role|capitalize }}</span>
           <span class="caption">{% if inv.invited_by %}From {{ inv.invited_by }}. {% endif %}Expires {{ inv.expires_at|utc_title }}</span>
+          <span class="row-actions">
           <form method="post" action="/invites/{{ inv.invite_id }}/accept" class="inline-form">
             <button type="submit" class="btn btn--primary btn--sm">Accept</button>
           </form>
           <form method="post" action="/invites/{{ inv.invite_id }}/decline" class="inline-form">
             <button type="submit" class="linklike">Decline</button>
           </form>
+          </span>
         </li>
       {% endfor %}
     </ul>
@@ -63,23 +66,27 @@
 {% endif %}
 <section class="section">
   {% if not workspaces %}
-    <div class="card card--pad card--dashed">
-      <h2 class="card__title">No workspaces yet</h2>
-      <p class="empty-note" style="margin-top: var(--s-3)">Create a workspace for a team or a
-        project, then connect its GitHub repositories and Jira projects. If someone invites you
-        by your GitHub username, the invitation appears here.</p>
-      <p style="margin-top: var(--s-5)"><a class="btn btn--primary" href="/workspaces/new">Create your first workspace</a></p>
+    <div class="card card--pad card--dashed empty-hero">
+      {{ ill.stacking() }}
+      <div>
+        <h2 class="card__title">No workspaces yet</h2>
+        <p class="empty-note" style="margin-top: var(--s-3)">Create a workspace for a team or a
+          project, then connect its GitHub repositories and Jira projects. If someone invites you
+          by your GitHub username, the invitation appears here.</p>
+        <p style="margin-top: var(--s-5)"><a class="btn btn--primary" href="/workspaces/new">Create your first workspace</a></p>
+      </div>
     </div>
   {% else %}
     <div class="grid-2">
       {% for w in workspaces %}
         <a class="card card--pad-md ws-card" href="/w/{{ w.workspace_id }}">
-          <div class="card__head">
-            <h2 class="card__title">{{ w.name }}</h2>
-            <span class="badge badge--sm badge--outline">{{ w.role|capitalize }}</span>
+          {% set c = cards[w.workspace_id] %}
+          {% set badge = {"Blocked": "badge--blocked", "Needs Attention": "badge--needs-attention", "On Track": "badge--on-track"}.get(c.health, "badge--unknown") %}
+          <div class="card__head" style="align-items: center">
+            <h2 class="card__title ws-card__name">{{ w.name }}</h2>
+            <span class="badge {{ badge }}">{{ c.health }}</span>
           </div>
           {% if w.description %}<p class="caption ws-card__desc">{{ w.description }}</p>{% endif %}
-          {% set c = cards[w.workspace_id] %}
           {% if c.health != "Unknown" or c.attention %}
             <p class="caption">{{ c.blockers }} blocker{{ "s" if c.blockers != 1 }}, {{ c.conflicts }} Jira and GitHub conflict{{ "s" if c.conflicts != 1 }}, {{ c.risks }} risk{{ "s" if c.risks != 1 }}</p>
           {% endif %}
@@ -89,8 +96,7 @@
             </ul>
           {% endif %}
           <p class="ws-card__status">
-            {% set badge = {"Blocked": "badge--blocked", "Needs Attention": "badge--needs-attention", "On Track": "badge--on-track"}.get(c.health, "badge--unknown") %}
-            <span class="badge badge--sm {{ badge }}">{{ c.health }}</span>
+            <span class="badge badge--sm badge--outline">{{ w.role|capitalize }}</span>
             {% if c.unknown_reason %}<span class="caption">{{ c.unknown_reason }}</span>{% endif %}
             {% for source, at in c.last_sync|dictsort %}
               <span class="caption">{{ source|source_label }} synced <time datetime="{{ at|iso_utc }}" title="{{ at|utc_title }}">{{ at|reltime(now) }}</time></span>

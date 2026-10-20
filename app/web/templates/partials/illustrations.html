@@ -1,0 +1,124 @@
+{#
+  Animated SVG scenes, drawn locally. No video files, no remote assets.
+    {% import "partials/illustrations.html" as ill %}
+  Rules for every scene here:
+  - The SVG's resting state is the finished picture. Keyframes start from the hidden
+    or moved state, so with reduced motion (animations off) the picture stays whole.
+  - Loops never show progress they do not know: no percentage, no bar that ends.
+  - Loops carry data-loop; app.js pauses them off screen and in a hidden tab.
+  - Colours come from style.css classes (ill-*), so both themes work.
+  - Decorative only: aria-hidden. The text next to each scene says what is happening.
+#}
+
+{# Sign-in focal scene: 2 records feed 1 finding, the way every finding is built. #}
+{% macro evidence_chain() -%}
+<svg class="ill ill-chain" data-loop viewBox="0 0 480 260" width="480" height="260" aria-hidden="true" focusable="false">
+  <g class="ill-chain__src ill-chain__src--a">
+    <rect x="8" y="22" width="168" height="84" rx="18" class="ill-dark-tile"></rect>
+    <rect x="26" y="40" width="44" height="18" rx="9" class="ill-mint"></rect>
+    <text x="48" y="53" class="ill-mono" text-anchor="middle">EV-01</text>
+    <text x="80" y="53" class="ill-label">Jira issue</text>
+    <rect x="26" y="70" width="124" height="8" rx="4" class="ill-bar"></rect>
+    <rect x="26" y="86" width="84" height="8" rx="4" class="ill-bar"></rect>
+  </g>
+  <g class="ill-chain__src ill-chain__src--b">
+    <rect x="8" y="154" width="168" height="84" rx="18" class="ill-dark-tile"></rect>
+    <rect x="26" y="172" width="44" height="18" rx="9" class="ill-mint"></rect>
+    <text x="48" y="185" class="ill-mono" text-anchor="middle">EV-02</text>
+    <text x="80" y="185" class="ill-label">Pull request</text>
+    <rect x="26" y="202" width="116" height="8" rx="4" class="ill-bar"></rect>
+    <rect x="26" y="218" width="70" height="8" rx="4" class="ill-bar"></rect>
+  </g>
+
+  <path class="ill-chain__wire ill-chain__wire--a" d="M176 64 C 236 64, 236 116, 292 116" pathLength="100"></path>
+  <path class="ill-chain__wire ill-chain__wire--b" d="M176 196 C 236 196, 236 144, 292 144" pathLength="100"></path>
+  <path class="ill-chain__pulse ill-chain__pulse--a" d="M176 64 C 236 64, 236 116, 292 116" pathLength="100"></path>
+  <path class="ill-chain__pulse ill-chain__pulse--b" d="M176 196 C 236 196, 236 144, 292 144" pathLength="100"></path>
+
+  <g class="ill-chain__claim">
+    <rect x="292" y="58" width="180" height="144" rx="22" class="ill-card"></rect>
+    <text x="312" y="88" class="ill-label ill-label--ink">Finding</text>
+    <rect class="ill-chain__line ill-chain__line--1" x="312" y="102" width="138" height="10" rx="5"></rect>
+    <rect class="ill-chain__line ill-chain__line--2" x="312" y="120" width="100" height="10" rx="5"></rect>
+    <g class="ill-chain__ev ill-chain__ev--a"><rect x="312" y="146" width="44" height="18" rx="9" class="ill-mint ill-mint--edge"></rect><text x="334" y="159" class="ill-mono" text-anchor="middle">EV-01</text></g>
+    <g class="ill-chain__ev ill-chain__ev--b"><rect x="362" y="146" width="44" height="18" rx="9" class="ill-mint ill-mint--edge"></rect><text x="384" y="159" class="ill-mono" text-anchor="middle">EV-02</text></g>
+    <g class="ill-chain__conf"><rect x="312" y="174" width="58" height="16" rx="8" class="ill-ink-fill"></rect><text x="341" y="186" class="ill-tiny" text-anchor="middle">Fact</text></g>
+  </g>
+</svg>
+{%- endmacro %}
+
+{# Member summary wait: findings go into the pot, the summary cooks. #}
+{% macro cooking() -%}
+<svg class="ill ill-cook" data-loop viewBox="0 0 120 100" width="120" height="100" aria-hidden="true" focusable="false">
+  <path class="ill-cook__steam ill-cook__steam--1" d="M44 30 c -6 -6, 6 -10, 0 -18"></path>
+  <path class="ill-cook__steam ill-cook__steam--2" d="M60 28 c -6 -6, 6 -10, 0 -18"></path>
+  <path class="ill-cook__steam ill-cook__steam--3" d="M76 30 c -6 -6, 6 -10, 0 -18"></path>
+  <rect class="ill-cook__drop ill-cook__drop--1 ill-mint ill-mint--edge" x="34" y="2" width="20" height="10" rx="5"></rect>
+  <rect class="ill-cook__drop ill-cook__drop--2 ill-mint ill-mint--edge" x="58" y="2" width="20" height="10" rx="5"></rect>
+  <rect class="ill-cook__drop ill-cook__drop--3 ill-mint ill-mint--edge" x="46" y="2" width="20" height="10" rx="5"></rect>
+  <path class="ill-stroke" d="M14 50 h 14 M92 50 h 14"></path>
+  <path class="ill-cook__pot" d="M24 46 h 72 v 30 a 16 16 0 0 1 -16 16 h -40 a 16 16 0 0 1 -16 -16 Z"></path>
+  <path class="ill-cook__surface" d="M28 54 q 8 -4 16 0 t 16 0 t 16 0 t 16 0"></path>
+  <path class="ill-stroke" d="M20 46 h 80"></path>
+</svg>
+{%- endmacro %}
+
+{# Sync running: the jar fills and fills again. It never says how full the sync is. #}
+{% macro filling(size=44) -%}
+<svg class="ill ill-fill" data-loop viewBox="0 0 44 44" width="{{ size }}" height="{{ size }}" aria-hidden="true" focusable="false">
+  <defs><clipPath id="ill-fill-jar"><rect x="9" y="7" width="26" height="32" rx="9"></rect></clipPath></defs>
+  <g clip-path="url(#ill-fill-jar)">
+    <g class="ill-fill__level">
+      <path class="ill-fill__wave" d="M-26 22 q 6.5 -4 13 0 t 13 0 t 13 0 t 13 0 t 13 0 t 13 0 V 60 H -26 Z"></path>
+    </g>
+  </g>
+  <rect x="9" y="7" width="26" height="32" rx="9" class="ill-fill__jar"></rect>
+  <path class="ill-fill__neck" d="M15 4 h 14"></path>
+</svg>
+{%- endmacro %}
+
+{# Feed with no changes yet: headref is listening for the next sync. #}
+{% macro listening() -%}
+<svg class="ill ill-listen" data-loop viewBox="0 0 64 64" width="64" height="64" aria-hidden="true" focusable="false">
+  <circle class="ill-listen__ring ill-listen__ring--1" cx="32" cy="32" r="28"></circle>
+  <circle class="ill-listen__ring ill-listen__ring--2" cx="32" cy="32" r="28"></circle>
+  <circle cx="32" cy="32" r="12" class="ill-mint ill-mint--edge"></circle>
+  <path class="ill-stroke ill-stroke--ink" d="M26.5 32 h 7 M31 29 l 3 3 -3 3"></path>
+</svg>
+{%- endmacro %}
+
+{# Nothing found: the check draws itself once. #}
+{% macro check_draw(size=20) -%}
+<svg class="ill-check" viewBox="0 0 20 20" width="{{ size }}" height="{{ size }}" aria-hidden="true" focusable="false">
+  <circle cx="10" cy="10" r="9" class="ill-check__ring"></circle>
+  <path d="M6 10.5 l 2.8 2.8 L 14.2 7.4" class="ill-check__mark" pathLength="100"></path>
+</svg>
+{%- endmacro %}
+
+{# No workspaces yet: cards settle into a stack, once. #}
+{% macro stacking() -%}
+<svg class="ill ill-stack" viewBox="0 0 180 120" width="180" height="120" aria-hidden="true" focusable="false">
+  <g class="ill-stack__card ill-stack__card--3"><rect x="40" y="16" width="120" height="68" rx="16" class="ill-card ill-card--mist"></rect></g>
+  <g class="ill-stack__card ill-stack__card--2"><rect x="30" y="30" width="120" height="68" rx="16" class="ill-card ill-card--mist"></rect></g>
+  <g class="ill-stack__card ill-stack__card--1">
+    <rect x="20" y="44" width="120" height="68" rx="16" class="ill-card"></rect>
+    <rect x="36" y="60" width="64" height="9" rx="4.5" class="ill-bar ill-bar--ink"></rect>
+    <rect x="36" y="78" width="44" height="7" rx="3.5" class="ill-bar ill-bar--soft"></rect>
+    <circle cx="140" cy="44" r="15" class="ill-mint ill-mint--edge"></circle>
+    <path class="ill-stroke ill-stroke--ink" d="M140 37.5 v 13 M133.5 44 h 13"></path>
+  </g>
+</svg>
+{%- endmacro %}
+
+{# 404: the chain to this page is broken. Sits on the dark header. #}
+{% macro broken_chain() -%}
+<svg class="ill ill-broken" data-loop viewBox="0 0 200 120" width="200" height="120" aria-hidden="true" focusable="false">
+  <rect x="12" y="42" width="72" height="36" rx="18" class="ill-broken__link"></rect>
+  <path d="M60 60 h 26" class="ill-broken__bar"></path>
+  <g class="ill-broken__swing">
+    <rect x="116" y="42" width="72" height="36" rx="18" class="ill-broken__link"></rect>
+    <path d="M114 60 h 26" class="ill-broken__bar"></path>
+  </g>
+  <path class="ill-broken__spark" d="M100 34 v 10 M100 76 v 10 M90 40 l 5 6 M110 40 l -5 6"></path>
+</svg>
+{%- endmacro %}

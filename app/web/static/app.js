@@ -4,6 +4,10 @@
     1. open and close the evidence drawer
     2. poll a running workspace sync and reload when it ends
     3. load a member's summary after the page
+    4. switch between the light and dark theme, and remember the choice
+    5. show that something is on its way: a pending button, a top bar while a page
+       loads, the seconds a summary has been cooking
+    6. pause looping illustrations off screen and in a hidden tab
   plus 1 helper: rewrite <time data-local> to the viewer's local time.
   Every page works without this file; the summary then shows its loading note.
 */
@@ -18,6 +22,10 @@ const ANSWER_SLOW_MS = 20000;
 // machine (W7), so it gets a longer limit than other requests.
 const SUMMARY_TIMEOUT_MS = 120000;
 const DRAWER_ANIMATION_MS = 150;
+const THEME_STORAGE_KEY = "headref-theme";
+const THEME_FADE_MS = 300;
+// The elapsed count appears only once a wait is long enough to need reassurance.
+const ELAPSED_SHOW_AFTER_S = 3;
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -210,6 +218,118 @@ const drawer = {
   },
 };
 
+// Theme ---------------------------------------------------------------------------
+
+/*
+  The saved choice is applied in <head> by partials/theme.html before the first
+  paint. With no saved choice the page follows the system setting. Storage can be
+  blocked (private windows); the switch then still works for this page.
+*/
+function currentTheme() {
+  const chosen = document.documentElement.getAttribute("data-theme");
+  if (chosen === "light" || chosen === "dark") return chosen;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function labelThemeToggles() {
+  const next = currentTheme() === "dark" ? "light" : "dark";
+  document.querySelectorAll("[data-theme-toggle]").forEach((btn) => {
+    btn.setAttribute("aria-label", `Use ${next} theme`);
+    btn.setAttribute("title", `Use ${next} theme`);
+  });
+}
+
+function initThemeToggle() {
+  document.querySelectorAll("[data-theme-toggle]").forEach((btn) => {
+    btn.removeAttribute("hidden");
+    btn.addEventListener("click", () => {
+      const next = currentTheme() === "dark" ? "light" : "dark";
+      const root = document.documentElement;
+      // Fade the colours across instead of snapping, only for this switch.
+      root.classList.add("theme-switching");
+      setTimeout(() => root.classList.remove("theme-switching"), THEME_FADE_MS);
+      root.setAttribute("data-theme", next);
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, next);
+      } catch (err) {
+        console.warn("[headref] theme choice not saved", err.name || err);
+      }
+      labelThemeToggles();
+    });
+  });
+  labelThemeToggles();
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", labelThemeToggles);
+}
+
+// Waiting feedback -----------------------------------------------------------------
+
+/*
+  A submitted form shows a spinner on the button that sent it, and a second click is
+  ignored rather than posting twice. The button is not disabled: a disabled submitter
+  can drop out of the posted form data. Any page load also shows the top bar (after
+  a short delay in CSS, so fast pages never flash it). Coming back with the Back
+  button restores the page as it was, so the pending state is cleared there.
+*/
+function setNavProgress(active) {
+  const bar = document.querySelector("[data-nav-progress]");
+  if (bar) bar.classList.toggle("is-active", active);
+}
+
+function initPendingStates() {
+  document.addEventListener("submit", (e) => {
+    const form = e.target;
+    if (e.defaultPrevented || !(form instanceof HTMLFormElement) || form.hasAttribute("data-logout")) return;
+    if (form.dataset.pending === "1") {
+      e.preventDefault();
+      console.info("[headref] skipped a repeat submit", form.action);
+      return;
+    }
+    form.dataset.pending = "1";
+    const button = e.submitter || form.querySelector('button[type="submit"], button:not([type])');
+    if (button) {
+      button.classList.add("is-pending");
+      button.setAttribute("aria-busy", "true");
+    }
+    setNavProgress(true);
+  });
+
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest("a[href]");
+    if (!link || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (link.target && link.target !== "_self") return;
+    if (link.hasAttribute("download") || link.hasAttribute("data-ev-open")) return;
+    const url = new URL(link.href, window.location.href);
+    if (url.origin !== window.location.origin) return;
+    if (url.pathname === window.location.pathname && url.search === window.location.search && url.hash) return;
+    setNavProgress(true);
+  });
+
+  window.addEventListener("pageshow", (e) => {
+    if (!e.persisted) return;
+    setNavProgress(false);
+    document.querySelectorAll("form[data-pending]").forEach((form) => delete form.dataset.pending);
+    document.querySelectorAll(".is-pending").forEach((b) => {
+      b.classList.remove("is-pending");
+      b.removeAttribute("aria-busy");
+    });
+  });
+}
+
+// Looping illustrations stop when nobody can see them.
+function initLoopPausing() {
+  const loops = document.querySelectorAll("[data-loop]");
+  if (!loops.length) return;
+  if ("IntersectionObserver" in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => entry.target.classList.toggle("is-paused", !entry.isIntersecting));
+    });
+    loops.forEach((el) => observer.observe(el));
+  }
+  const syncHidden = () => document.documentElement.classList.toggle("tab-hidden", document.hidden);
+  document.addEventListener("visibilitychange", syncHidden);
+  syncHidden();
+}
+
 // Logout --------------------------------------------------------------------------
 
 function initLogout() {
@@ -242,6 +362,8 @@ async function pollWorkspaceSync() {
         return;
       }
     } catch (err) {
+      // Status is unknown now, so the filling jar would claim more than headref knows.
+      box.querySelector(".ill-fill")?.remove();
       if (note) note.textContent = "Sync status could not be read. Reload the page to check again.";
       return;
     }
@@ -255,13 +377,25 @@ async function loadMemberSummary() {
   const box = document.querySelector("[data-summary-src]");
   if (!box) return;
   const status = box.querySelector("[data-summary-status]");
+  const elapsed = box.querySelector("[data-summary-elapsed]");
+  const started = Date.now();
+  // A real count of seconds waited, not an estimate of how long is left.
+  const ticker = setInterval(() => {
+    const seconds = Math.floor((Date.now() - started) / 1000);
+    if (elapsed && seconds >= ELAPSED_SHOW_AFTER_S) elapsed.textContent = `Waiting ${seconds} s so far.`;
+  }, 1000);
   try {
     const res = await requestText(box.getAttribute("data-summary-src"), SUMMARY_TIMEOUT_MS);
     if (!res.ok) throw new Error(`summary ${res.status}`);
     const doc = new DOMParser().parseFromString(res.text, "text/html");
     box.replaceChildren(...doc.body.childNodes);
   } catch (err) {
+    console.warn("[headref] summary not loaded", err.name || err);
+    box.querySelector(".ill-cook")?.remove();
+    if (elapsed) elapsed.textContent = "";
     if (status) status.textContent = "The summary could not be loaded. The findings below are complete without it.";
+  } finally {
+    clearInterval(ticker);
   }
 }
 
@@ -271,4 +405,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadMemberSummary();
   drawer.init();
   initLogout();
+  initThemeToggle();
+  initPendingStates();
+  initLoopPausing();
 });
