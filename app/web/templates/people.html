@@ -7,6 +7,7 @@
 #}
 {% extends "base.html" %}
 {% import "partials/icons.html" as i %}
+{% import "partials/illustrations.html" as ill %}
 
 {% macro accounts(p, can_split) -%}
   <ul class="person__accounts">
@@ -74,18 +75,18 @@
 {% endblock %}
 
 {% block content %}
-<section class="section" aria-labelledby="suggested-title">
-  <div class="card__head">
-    <h2 class="card__title" id="suggested-title">Waiting for confirmation ({{ groups.suggested|length }})</h2>
+<section aria-labelledby="suggested-title">
+  <div class="section-head">
+    <h2 class="section-head__title" id="suggested-title">Waiting for confirmation ({{ groups.suggested|length }})</h2>
     <span class="caption">Not in the analysis until confirmed.</span>
   </div>
   {% if not groups.suggested %}
-    <p class="empty-note" style="margin-top: var(--s-3)">Nobody is waiting. People appear here after a sync finds a new account.</p>
+    <p class="note-card note-card--clear">{{ ill.check_draw() }} Nobody is waiting. People appear here after a sync finds a new account.</p>
   {% endif %}
-  <div class="grid-2" style="margin-top: var(--s-4)">
+  <div class="grid-2">
     {% for p in groups.suggested %}
       <article class="card card--pad-md person">
-        <h3 class="card__title">{{ p.display_name }}</h3>
+        <div class="person__head"><span class="avatar avatar--xs {{ p.id|avatar_tint }}" aria-hidden="true">{{ p.display_name|initials }}</span><h3 class="card__title">{{ p.display_name }}</h3></div>
         {{ accounts(p, false) }}
         {{ activity(p) }}
         {% if can_manage %}
@@ -101,18 +102,18 @@
   </div>
 </section>
 
-<section class="section--loose" aria-labelledby="confirmed-title">
-  <div class="card__head">
-    <h2 class="card__title" id="confirmed-title">On the team ({{ groups.confirmed|length }})</h2>
+<section aria-labelledby="confirmed-title">
+  <div class="section-head">
+    <h2 class="section-head__title" id="confirmed-title">On the team ({{ groups.confirmed|length }})</h2>
     <span class="caption">Alphabetical. Headref does not rank or compare people.</span>
   </div>
   {% if not groups.confirmed %}
-    <p class="empty-note" style="margin-top: var(--s-3)">Nobody is confirmed yet.</p>
+    <p class="note-card">Nobody is confirmed yet.</p>
   {% endif %}
-  <div class="grid-2" style="margin-top: var(--s-4)">
+  <div class="grid-2">
     {% for p in groups.confirmed %}
       <article class="card card--pad-md person">
-        <h3 class="card__title">{{ p.display_name }}</h3>
+        <div class="person__head"><span class="avatar avatar--xs {{ p.id|avatar_tint }}" aria-hidden="true">{{ p.display_name|initials }}</span><h3 class="card__title">{{ p.display_name }}</h3></div>
         {{ accounts(p, can_manage) }}
         {{ activity(p) }}
         {% if can_manage %}
@@ -125,9 +126,12 @@
 </section>
 
 {% if groups.ignored or groups.bot %}
-<section class="section--loose" aria-labelledby="hidden-title">
-  <h2 class="card__title" id="hidden-title">Ignored and bots ({{ groups.ignored|length + groups.bot|length }})</h2>
-  <ul class="person__hidden">
+<section aria-labelledby="hidden-title">
+  <div class="section-head">
+    <h2 class="section-head__title" id="hidden-title">Ignored and bots ({{ groups.ignored|length + groups.bot|length }})</h2>
+    <span class="caption">Left out of the analysis. Restore to decide again.</span>
+  </div>
+  <ul class="subtle-list">
     {% for p in groups.ignored + groups.bot %}
       <li>
         <span>{{ p.display_name }}</span>
@@ -139,11 +143,13 @@
 </section>
 {% endif %}
 {% if unmatched %}
-<section class="section--loose" aria-labelledby="unmatched-title">
-  <h2 class="card__title" id="unmatched-title">Not matched to anyone ({{ unmatched|length }})</h2>
-  <p class="caption">Activity from these accounts is not in the analysis. A commit author with no
-    GitHub account cannot be confirmed here.</p>
-  <ul class="person__hidden">
+<section aria-labelledby="unmatched-title">
+  <div class="section-head">
+    <h2 class="section-head__title" id="unmatched-title">Not matched to anyone ({{ unmatched|length }})</h2>
+    <span class="caption">Activity from these accounts is not in the analysis. A commit author with no
+    GitHub account cannot be confirmed here.</span>
+  </div>
+  <ul class="subtle-list subtle-list--plain">
     {% for u in unmatched %}
       <li>
         <span class="badge badge--sm badge--outline">{{ i.source_icon(u.integration, 12) }} {{ u.handle }}</span>

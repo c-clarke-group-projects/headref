@@ -1,0 +1,20 @@
+{#
+  Light and dark theme.
+    {% import "partials/theme.html" as theme %}
+    {{ theme.head_script() }} inside <head>, before the stylesheet: applies the saved
+      choice before the first paint, so a dark page never flashes light.
+    {{ theme.toggle() }}: the button. app.js unhides it and saves the choice.
+  Without a saved choice, or without JS, the page follows the system setting.
+#}
+{% import "partials/icons.html" as i %}
+
+{% macro head_script() -%}
+<script>try{var t=localStorage.getItem("headref-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+{%- endmacro %}
+
+{% macro toggle(extra_class="") -%}
+<button type="button" class="theme-toggle {{ extra_class }}" data-theme-toggle aria-label="Use dark theme" title="Use dark theme" hidden>
+  <span class="theme-toggle__light">{{ i.icon("moon", 18) }}</span>
+  <span class="theme-toggle__dark">{{ i.icon("sun", 18) }}</span>
+</button>
+{%- endmacro %}

@@ -4,21 +4,28 @@
 #}
 {% import "partials/icons.html" as i %}
 {% import "partials/badges.html" as b %}
+{% import "partials/theme.html" as theme %}
+{% import "partials/illustrations.html" as ill %}
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sign in, Headref</title>
+  {{ theme.head_script() }}
   <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+  <script src="{{ url_for('static', path='app.js') }}"></script>
 </head>
 <body>
+  <div class="nav-progress" data-nav-progress aria-hidden="true"></div>
+  {{ theme.toggle("login__theme") }}
   <main class="login">
     <section class="login__intro">
       <p class="brand" style="align-self: flex-start">{{ i.glyph(18) }}Headref</p>
       <h1 class="login__tagline">The current state of your team's work, with the evidence.</h1>
-      <div class="login__promises" style="margin-top: var(--s-8)">
+      <div class="login__scene">{{ ill.evidence_chain() }}</div>
+      <div class="login__promises" style="margin-top: var(--s-6)">
         <span class="pill-dark">{{ i.icon("check", 14) }}Every statement cites its records</span>
         <span class="pill-dark">{{ i.icon("check", 14) }}Read only for Jira and GitHub</span>
         <span class="pill-dark">{{ i.icon("check", 14) }}No rankings, no scores</span>
@@ -35,7 +42,7 @@
 
       <div style="margin-top: 32px">
         {% if oauth_enabled %}
-          <a href="/auth/github/login?next={{ (next or '/')|urlencode }}" class="btn btn--primary btn--block" style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; min-height: 54px;">
+          <a href="/auth/github/login?next={{ (next or '/')|urlencode }}" class="btn btn--primary btn--block" style="gap: 10px; font-size: 16px; min-height: 54px">
             {{ i.icon("github", 20) }}
             <span>Sign in with GitHub</span>
           </a>

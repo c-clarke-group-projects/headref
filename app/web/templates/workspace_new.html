@@ -20,7 +20,7 @@
 
 {% block content %}
 <section class="section">
-  <form class="card card--pad ws-form" method="post" action="/workspaces">
+  <form class="card card--pad-md ws-form" method="post" action="/workspaces">
     {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
     <div class="field">
       <label for="ws-name">Name</label>
@@ -32,7 +32,7 @@
       <input id="ws-description" name="description" type="text" maxlength="500"
              value="{{ description }}" placeholder="Card and refund services" autocomplete="off">
     </div>
-    <p style="margin-top: var(--s-6)">
+    <p class="form-actions">
       <button type="submit" class="btn btn--primary">Create workspace</button>
       <a class="btn btn--quiet" href="/workspaces">Cancel</a>
     </p>

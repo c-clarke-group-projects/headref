@@ -60,6 +60,60 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-21 | Keshan | UI restructure and light and dark theme
+Status: IN_REVIEW
+
+### Completed
+- Workspace page: the analysis comes first. Member filter bar, 4 count tiles (blockers,
+  disagreements, risks, people waiting), then blockers, disagreements, risks and current
+  work. Connections, latest sync runs and What changed moved to a side column. Sync now
+  moved into the page header. Before any analysis, a 3 step setup list leads the page.
+- Every page header is compact (title, lead and actions on 1 band) instead of a tall block
+  with an empty right side. Workspaces cards show health next to the name. Settings uses
+  2 columns with archive as a marked danger card. Sync history shows result badges.
+- Theme button in the top bar and on sign-in. The choice is saved in the browser
+  (`headref-theme`) and applied in `<head>` before paint; without a choice, or without
+  JS, the page follows the system setting. `color-scheme` set, so native inputs match.
+
+- Motion and illustrations (`partials/illustrations.html`, animated SVG, no video files,
+  agreed 2026-10-21): sign-in shows 2 records feeding 1 finding; the member summary wait
+  shows findings cooking in a pot with a real count of seconds waited; a running sync
+  shows a jar filling; submitted buttons show a spinner and ignore a second click; a top
+  bar shows while a page loads; empty states and the error page have their own scene.
+  Loops are indeterminate (no percentage), pause off screen and in a hidden tab, and stop
+  under reduced motion, where each scene rests on its finished frame.
+
+### Problems
+- Dark mode was broken before this: its overrides sat above the rules they overrode, so
+  black buttons, the Fact marker and the selected tab disappeared on dark cards, and
+  "Blocked" was white on light pink. Colours now come from tokens with 1 dark set.
+- Pre-existing, not changed: the GitHub disconnect form carries `data-confirm`, but no
+  script reads it, so it disconnects without asking.
+- Pre-existing, not changed: `initials` keeps punctuation, so "Isiwara K (Jira)" shows "I(".
+
+### Checked
+- Every page rendered with sample data and screenshotted at 1440 and 390 px, light and
+  dark. Theme button, saved choice after reload and the evidence drawer click-tested in
+  Edge, no script errors. Dark and light text pairs pass AA (values in `style.css`).
+- Waiting states captured over a local test server that held the summary for 7 s and a
+  sync post for 4 s: the pot, "Waiting 4 s so far.", the swap to the summary, the jar,
+  the button spinner, the top bar and the repeat-submit guard. Reduced motion shows the
+  still frames. Headless Edge does not repaint during a pending form post, so the
+  spinner was captured with the post held by the script; check it once in a real browser.
+- Suite in the api container: 562 passed, 3 failed. The 3 do not render pages:
+  `test_parse_valid_identity_map_file` (local seed edit), `test_no_key_means_no_encryption`
+  and `test_an_org_installation_without_oauth_configured_says_so` (the container's
+  environment sets those keys).
+
+### Not verified
+- Signed in against the real database: pages were rendered from templates with sample
+  data, not through a live session.
+
+### Decisions Needed
+- About 1,100 changed lines, over the 400 line target. Can split into theme and layout.
+
+---
+
 ## 2026-10-20 | Keshan | Workspaces W11: real-data verification (part 2)
 Status: IN_PROGRESS
 
