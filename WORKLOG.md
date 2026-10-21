@@ -60,6 +60,28 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Isiwara | P7-002 A cache hit makes no model call
+Status: IN_PROGRESS
+
+### Completed
+Added `tests/test_cache_model_call.py` (2 tests, Refs #45). `run_agent` runs twice on the
+same evidence with a mocked Ollama client: the model is called once, the second answer
+equals the first, and the second `agent_run` row has no model output and 0 output tokens.
+A change to the evidence (pull request number) calls the model again.
+
+### Discovered
+`test_run_agent_full_pipeline_success` says its second run "hits the cache", but it uses
+`skip_llm=True`, and a `skip_llm` run is never cached (`orchestrator.py` line 823). That
+test did not prove a cache hit. The new test does.
+
+### Next Step
+The rest of P7-002 needs the running stack: p95 cached and uncached over repeated runs,
+tokens per second warm and cold, peak RAM with PostgreSQL, the app and Ollama up.
+
+### AI Assistance
+The test was written with an AI assistant. Checked by running it; worth a read of the
+cache-hit assertions in review.
+
 ## 2026-10-21 | Keshan | UI restructure and light and dark theme
 Status: IN_REVIEW
 
