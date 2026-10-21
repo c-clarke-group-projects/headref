@@ -1,8 +1,11 @@
 """Unit tests for deterministic confidence engine (P4-004, Issue #28)."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+
+import pytest
 
 from app.agent.confidence import evaluate_confidence
+from app.config import get_settings
 from app.schemas.insight import EvidenceItem
 
 
@@ -198,3 +201,40 @@ def test_model_supplied_confidence_strictly_ignored() -> None:
         model_supplied_confidence="HIGH",  # Should be completely discarded
     )
     assert conf == "LOW"
+
+
+# ---------------------------------------------------------------------------
+# Old evidence (P6-002, Issue #40)
+# ---------------------------------------------------------------------------
+
+
+def _old_evidence(count: int) -> list[EvidenceItem]:
+    """Fresh-source evidence observed 1 day before the RECENT_ACTIVITY_DAYS cutoff."""
+    old = datetime.now(UTC) - timedelta(days=get_settings().recent_activity_days + 1)
+    items = [
+        _make_evidence("ev_1", "jira", "work_item", "AUTH-245", observed_at=old),
+        _make_evidence("ev_2", "github", "pull_request", "182", observed_at=old),
+        _make_evidence("ev_3", "github", "commit", "c1", observed_at=old),
+    ]
+    return items[:count]
+
+
+def test_single_old_non_authoritative_item_is_low() -> None:
+    """LOW: 1 old commit, which is also a non-authoritative item for an assignment."""
+    old = datetime.now(UTC) - timedelta(days=get_settings().recent_activity_days + 1)
+    evs = [_make_evidence("ev_1", "github", "commit", "c1", observed_at=old)]
+    assert evaluate_confidence(evs, claim_type="work_item_assignment") == "LOW"
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "AI_BEHAVIOR.md 5.4 says all evidence older than RECENT_ACTIVITY_DAYS is LOW, "
+        "but evaluate_confidence checks the MEDIUM and HIGH conditions first, so old "
+        "evidence returns MEDIUM or HIGH. Open finding for Developer 1 (DEC-019)."
+    ),
+)
+@pytest.mark.parametrize("count", [1, 2, 3])
+def test_all_evidence_older_than_recent_activity_days_is_low(count: int) -> None:
+    """LOW: every evidence item is older than RECENT_ACTIVITY_DAYS."""
+    assert evaluate_confidence(_old_evidence(count), claim_type="work_item_assignment") == "LOW"
