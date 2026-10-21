@@ -144,6 +144,14 @@ Status: IN_PROGRESS
 | Every member-data route guarded | Open | `workspace_access` replaced `can_view_member`; tested by `test_workspaces.py` and `test_isolation.py`; criterion to reword with DEC-026 |
 | Read-only scopes in the provider console | Open | GitHub App checked with `GET /app` in W3; Atlassian console not checked |
 
+### Problems
+- The first version wrote its canaries as literals. gitleaks read 2 of them as API keys,
+  and because CI checks out and scans every branch, that commit (`fac655c`) failed the
+  secret scan on every open pull request. The canaries are now built from each setting's
+  name at runtime, and the branch was rewritten as 1 commit and force-pushed (agreed
+  2026-10-22), so `fac655c` is on no branch. gitleaks 8.21.2 finds nothing in the new
+  commit.
+
 ### Checked
 - Full suite in the api container: 567 passed, 2 failed (the same 2 environment-key
   tests, passing in CI). `ruff check .` and `black --check .` clean with CI's versions.
