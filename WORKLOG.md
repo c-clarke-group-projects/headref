@@ -114,6 +114,47 @@ Status: IN_REVIEW
 
 ---
 
+## 2026-10-22 | Keshan | P7-001 security pass, Developer 1 half
+Status: IN_PROGRESS
+
+### Completed
+- `tests/test_security_gate.py`, 4 tests:
+  - No secret in `agent_run`: canary values for all 7 secret settings, 1 real agent pass on
+    fake tools, once with a model answer and once with a model error whose message holds
+    a secret. Every column of every row is checked.
+  - No write to GitHub or Jira data: an AST scan of `app/` for POST, PUT, PATCH and DELETE
+    calls, routes and ORM deletes left out. Only 5 are allowed, each with its reason: the
+    local Ollama call, the Atlassian token exchange and refresh, GitHub's OAuth code
+    exchange (sign-in and the org check), and GitHub's installation token. A 4th test
+    checks the scan still finds those 5.
+- Both tests were run once against a planted bug each (a secret written into
+  `agent_run.model`, a POST to `/repos/x/y/issues`). Both failed as they should. The
+  bugs were reverted.
+
+### Security gate checklist (P7-001)
+| Criterion | State | Evidence |
+|---|---|---|
+| No HTTP client under `app/tools/` | Done | `test_tool_import_guard.py` |
+| No tools in the model call | Done | `test_narrative.py` asserts no `tools` in the payload |
+| No write endpoint | Done | `test_no_write_call_to_github_or_jira_data` |
+| No secret in logs, errors, `agent_run` | Done | `test_http_client.py`, `test_sync.py`, `test_security_gate.py` |
+| No secret in the prompt | Open | Developer 2 |
+| No `\|safe` on source fields | Done | `tests/web/test_ui_templates.py`, `test_no_safe_filter_in_templates` (found by Developer 2) |
+| Secret scanner green | Done | gitleaks passed in CI on `44befb4` |
+| Every member-data route guarded | Open | `workspace_access` replaced `can_view_member`; tested by `test_workspaces.py` and `test_isolation.py`; criterion to reword with DEC-026 |
+| Read-only scopes in the provider console | Open | GitHub App checked with `GET /app` in W3; Atlassian console not checked |
+
+### Problems
+- The first version wrote its canaries as literals. gitleaks read 2 of them as API keys,
+  and because CI checks out and scans every branch, that commit (`fac655c`) failed the
+  secret scan on every open pull request. The canaries are now built from each setting's
+  name at runtime, and the branch was rewritten as 1 commit and force-pushed (agreed
+  2026-10-22), so `fac655c` is on no branch. gitleaks 8.21.2 finds nothing in the new
+  commit.
+
+### Checked
+- Full suite in the api container: 567 passed, 2 failed (the same 2 environment-key
+  tests, passing in CI). `ruff check .` and `black --check .` clean with CI's versions.
 ## 2026-10-22 | Keshan | P6-001 write-path test suite
 Status: IN_REVIEW
 

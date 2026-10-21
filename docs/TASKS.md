@@ -2180,7 +2180,7 @@ path is covered by P6-004.
 **Out of scope:** Adding new security features.
 **Owner:** Shared
 **Priority:** P0
-**Status:** NOT_STARTED
+**Status:** IN_PROGRESS
 **Dependencies:** P5-006, P6-002
 **Parallelizable:** NO.
 **Components:** All
@@ -2189,12 +2189,12 @@ path is covered by P6-004.
 **Implementation notes:** Checklist, each verified by a test or by inspection recorded in
 `WORKLOG.md`.
 **Acceptance criteria:**
-- [ ] No HTTP client imported under `app/tools/`, asserted by test.
-- [ ] No tools passed in the model call, asserted by test.
-- [ ] No write endpoint anywhere in the codebase, verified by grep and recorded.
+- [x] No HTTP client imported under `app/tools/`, asserted by test.
+- [x] No tools passed in the model call, asserted by test.
+- [x] No write endpoint anywhere in the codebase, verified by grep and recorded.
 - [ ] No secret in any log, prompt, error detail or `agent_run` field.
-- [ ] No `|safe` on any source-derived template field.
-- [ ] The secret scanner is green.
+- [x] No `|safe` on any source-derived template field.
+- [x] The secret scanner is green.
 - [ ] `can_view_member` covers every member-data route.
 - [ ] Tokens in use are read-only scoped, confirmed in the provider console.
 
