@@ -155,6 +155,38 @@ Status: IN_PROGRESS
 ### Checked
 - Full suite in the api container: 567 passed, 2 failed (the same 2 environment-key
   tests, passing in CI). `ruff check .` and `black --check .` clean with CI's versions.
+## 2026-10-22 | Keshan | P6-001 write-path test suite
+Status: IN_REVIEW
+
+### Completed
+- Client failures through each client, not only `HttpClient`: timeout, 429, 500 and a
+  plain 403 for GitHub and Jira, 8 tests. Each retrying case asserts `HTTP_MAX_ATTEMPTS`
+  calls; a `no_backoff` fixture removes the wait, not the retries.
+- `pr_body` link method (MEDIUM, body only). All 5 methods plus no-link are now covered.
+- Jira sync idempotency: 2 issues and 1 "is blocked by" link, synced twice, same rows.
+- Network guard in `tests/conftest.py`, stdlib only: any connection off this machine is
+  refused and fails the test at teardown, even if the test swallowed the error. Loopback
+  and the `DATABASE_URL` host stay allowed. Probed with a throwaway test (deleted): a raw
+  socket and a swallowed httpx call both failed; loopback passed.
+
+### Discovered
+- The guard found 1 real escape: `test_active_sync_prevents_duplicate_run` ran the real
+  Jira sync. Locally it called `keshanuni.atlassian.net` from `.env`; in CI it would try
+  `example.atlassian.net`. Fixed by stubbing `sync_jira` as the other tick tests do.
+- `TASKS.md` names `tests/test_integrations/` and `tests/test_ingest/`. The tests live in
+  flat `tests/test_*.py` modules; not moved.
+
+### Checked
+- Full suite in the api container: 573 passed, 2 failed. The 2 are
+  `test_no_key_means_no_encryption` and
+  `test_an_org_installation_without_oauth_configured_says_so`: the container's
+  environment sets their keys, and both passed in CI on `44befb4`.
+- `ruff check .` and `black --check .` clean, run with CI's versions (ruff 0.17.1,
+  black 26.10.1), which the api image also has.
+- Coverage, measured with `coverage` 7.6.1 installed in the container for the run and
+  removed after (not a project dependency): 88% over `http.py`, `github.py`, `jira.py`,
+  both normalizers, `identity_resolver.py` and `link_builder.py` (976 statements, 120
+  missed). `app/sync.py` was not measured.
 
 ---
 
