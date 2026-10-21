@@ -293,6 +293,38 @@ Status: IN_REVIEW
 
 ---
 
+## 2026-10-22 | Keshan | P7-003 README setup for workspaces
+Status: IN_PROGRESS
+
+### Completed
+- README section 9 rewritten for workspaces: the 4 settings needed to start and sign in,
+  the 3 apps to register with their callback and setup URLs and scopes, the first
+  workspace, and demo data. Sections 4, 5, 8, 10, 13 and 14 brought up to date: no
+  login stub or team pages, the legacy sync CLI labelled as legacy, the evaluation command
+  from #98 (EV-11 and EV-12 so far), status table reconciled.
+- `.env.example`: `SCHEDULER_ENABLED` and `STUCK_SYNC_TIMEOUT_MINUTES` added; callback,
+  setup URL, App permissions and `offline_access` scope added to the comments.
+
+### Problems
+- **A fresh copy of `.env.example` did not start.** 19 optional settings (ports,
+  timeouts, thresholds) shipped as blank lines, and a blank number or true/false value
+  fails validation. With only `DATABASE_URL` set, loading settings failed on all 19.
+  Those lines are now commented out, so the defaults apply. A test loads the template
+  from a clean environment; it failed on the old template with 19 errors and passes now.
+- `main` requires 0 approvals and admins can bypass; the README had said 1 approval.
+
+### Decisions Needed
+- **Demo data is not visible in the UI.** `seed_demo.py` seeds an organization ("headref
+  Demo Corp") that no workspace uses, and DEC-026 removed the team pages that showed it.
+  The 10 minute setup (P7-003) and the demo (P7-004) need one of: seed into a demo
+  workspace owned by a given GitHub login, or drop seeded demo data from the setup and
+  demo with the sandbox instead. Seeding is the Developer 1 lane.
+
+### Not verified
+- The timed clean setup run. P7-003 asks for it from the developer who did not write the
+  README.
+- The GitHub App "Setup URL" field name is from the route
+  (`/connections/github/setup`), not re-checked in GitHub's settings page today.
 ## 2026-10-22 | Keshan | P7-001 security pass, Developer 1 half
 Status: IN_PROGRESS
 
