@@ -60,6 +60,45 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Isiwara | P6-002 Tool empty and failure cases, old evidence, recursive import guard
+Status: IN_PROGRESS
+
+### Completed
+Refs #40. Tests only, no app code changed.
+1. Tool empty cases: T-001 (team with no active members), T-004 (user with no commits),
+   T-005 (user with no reviews), T-006 (no matching link). Each returns an empty list, not a
+   failure.
+2. Tool failure cases: T-004 and T-005 `NOT_FOUND` for a missing user, and `UPSTREAM_ERROR`
+   from the real T-001, T-004, T-005 and T-006 when the database has no tables (rule 9).
+3. Import guard now scans `app/tools/` recursively, with a test that a nested file is caught.
+4. Old evidence: 1 test passes (1 old non-authoritative item is LOW). 3 cases for "all
+   evidence older than `RECENT_ACTIVITY_DAYS` is LOW" are `xfail(strict=True)`, see Problems.
+Suite: 576 passed, 1 skipped, 3 xfailed (was 564 passed, 1 skipped).
+
+### Changed
+`tests/test_tools.py`, `tests/test_confidence.py`, `tests/test_tool_import_guard.py`.
+
+### Problems
+`evaluate_confidence` (`app/agent/confidence.py`) checks the MEDIUM and HIGH conditions
+before "all items old", so all-old evidence never reaches LOW: 1 old Jira item gives MEDIUM,
+2 give MEDIUM, 3 from 2 sources give HIGH. `AI_BEHAVIOR.md` 5.4 says LOW. The strict xfail
+starts failing once this is fixed, so the marker must be removed then.
+
+### Decisions Needed
+- For Keshan (findings engine, DEC-019): fix `evaluate_confidence`, or amend `AI_BEHAVIOR.md`
+  5.4. The doc is also ambiguous: MEDIUM's "2 or more items" overlaps LOW's "all old".
+- The validator rule count (8 in the issue, 3 in the code) is still open, so #40 stays open.
+
+### Next Step
+Validator rule tests once the count is decided.
+
+### AI Assistance
+The tests were drafted by an AI assistant. Check that an empty-table SQLite session is an
+acceptable stand-in for a database error, and that the xfail is the right way to record the
+confidence gap rather than fixing it in this PR.
+
+---
+
 ## 2026-10-21 | Keshan | UI restructure and light and dark theme
 Status: IN_REVIEW
 
