@@ -8,7 +8,14 @@ import httpx
 import pytest
 import respx
 
-from app.integrations.errors import AuthError, NotFoundError, RateLimitError
+from app.config import HTTP_MAX_ATTEMPTS
+from app.integrations.errors import (
+    AuthError,
+    IntegrationTimeoutError,
+    NotFoundError,
+    RateLimitError,
+    UpstreamError,
+)
 from app.integrations.jira import JiraClient
 
 FIXTURES_DIR = Path("seed/fixtures/jira")
@@ -180,6 +187,61 @@ def test_jira_429_rate_limited(jira_client: JiraClient) -> None:
 
     with pytest.raises(RateLimitError):
         jira_client.search_issues(jql="project = TEST")
+
+
+SEARCH_URL = f"{BASE_URL}/rest/api/3/search/jql"
+
+
+@respx.mock
+def test_jira_timeout_is_retried_then_typed(jira_client: JiraClient, no_backoff: None) -> None:
+    """A timeout through the client retries up to the limit and raises TIMEOUT (P6-001)."""
+    route = respx.get(SEARCH_URL).mock(side_effect=httpx.ReadTimeout("Read timed out"))
+
+    with pytest.raises(IntegrationTimeoutError) as exc_info:
+        jira_client.search_issues(jql="project = TEST")
+
+    assert route.call_count == HTTP_MAX_ATTEMPTS
+    assert exc_info.value.error_type == "TIMEOUT"
+
+
+@respx.mock
+def test_jira_429_is_retried_up_to_the_limit(jira_client: JiraClient, no_backoff: None) -> None:
+    """429 through the client is retried up to the limit before RATE_LIMITED."""
+    route = respx.get(SEARCH_URL).respond(429, headers={"retry-after": "1"})
+
+    with pytest.raises(RateLimitError) as exc_info:
+        jira_client.search_issues(jql="project = TEST")
+
+    assert route.call_count == HTTP_MAX_ATTEMPTS
+    assert exc_info.value.status_code == 429
+
+
+@respx.mock
+def test_jira_500_is_retried_then_upstream_error(jira_client: JiraClient, no_backoff: None) -> None:
+    """500 through the client retries up to the limit and raises UPSTREAM_ERROR."""
+    route = respx.get(SEARCH_URL).respond(500, json={"errorMessages": ["Internal error"]})
+
+    with pytest.raises(UpstreamError) as exc_info:
+        jira_client.search_issues(jql="project = TEST")
+
+    assert route.call_count == HTTP_MAX_ATTEMPTS
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.error_type == "UPSTREAM_ERROR"
+
+
+@respx.mock
+def test_jira_403_without_rate_limit_signals_is_auth_failed(jira_client: JiraClient) -> None:
+    """A plain 403 (no permission to browse) is AUTH_FAILED and is not retried."""
+    route = respx.get(SEARCH_URL).respond(
+        403, json={"errorMessages": ["You do not have permission to browse this project."]}
+    )
+
+    with pytest.raises(AuthError) as exc_info:
+        jira_client.search_issues(jql="project = TEST")
+
+    assert route.call_count == 1
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.error_type == "AUTH_FAILED"
 
 
 @respx.mock
