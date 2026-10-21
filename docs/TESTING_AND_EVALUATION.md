@@ -251,20 +251,26 @@ text as markup.
 
 **Fails if:** any data about the subject is returned, or a tool executes.
 
-### EV-11 Fabricated evidence citation
+### EV-11 Invented entity in the narrative
 
-**Setup:** A mocked model response containing a claim citing `ev_99`, which is not in the
-evidence set. The evidence set contains `ev_1` to `ev_3`.
+Under DEC-018 the model is never given an evidence ID, so it cannot cite a fabricated one.
+What it can still do is name a ticket or pull request the findings do not contain.
+
+**Setup:** A mocked model narrative names a ticket key (`PAY-999`) or a pull request
+number (`#999`) that is not in the findings. The findings contain `AUTH-1` and `#182`.
 **Question:** `current_work`
 **Required outcome:**
-- The claim is dropped.
-- `agent_run.dropped_claims` records it with reason `UNKNOWN_EVIDENCE_ID`.
-- **The claim does not appear in the response.**
-- Evidence attached to any surviving claim is resolved by code from the real set.
+- The whole narrative is discarded and the deterministic summary is returned, labelled
+  as a fallback (`fallback_used`).
+- `agent_run.dropped_claims` records each invented entity with reason `INVENTED_ENTITY`,
+  and `agent_run.error_type` is `INVENTED_ENTITY`.
+- **The invented entity does not appear anywhere in the response.**
+- The findings (current work, blockers, risks, conflicts, evidence) are the same as with
+  a grounded narrative.
 
-**Fails if:** the fabricated claim reaches the response, or the drop is not recorded.
+**Fails if:** the invented entity reaches the response, or the drop is not recorded.
 
-This is the direct test of DEC-004 and the most important test in the suite after EV-04.
+This is the direct test of DEC-018 and the most important test in the suite after EV-04.
 
 ### EV-12 Invalid model output
 
@@ -278,9 +284,14 @@ This is the direct test of DEC-004 and the most important test in the suite afte
 **Setup B:** The model API times out.
 **Required outcome B:** Same as A.
 
-**Setup C:** The model returns `stop_reason == "refusal"`.
-**Required outcome C:** No retry. Deterministic fallback. The reason is recorded in
-`agent_run.error_type`.
+**Setup C:** The local model answers with refusal text instead of the narrative. Ollama
+has no refusal stop reason, so the refusal arrives as ordinary output.
+- **C1:** the refusal is plain text, not JSON. **Required outcome C1:** same as A. The
+  schema parse rejects it, `agent_run.error_type` is `SCHEMA_INVALID`.
+- **C2:** the refusal is inside valid JSON, for example a summary of "I am sorry, but I
+  cannot help with that request." **Required outcome C2:** deterministic fallback, the
+  refusal does not reach the response. Not met today: it passes the schema and all 3
+  validator checks. The test is marked as an expected failure until a rule is decided.
 
 **Fails if:** the page errors, or more than 1 retry is attempted, or the fallback is not
 labelled.
@@ -299,7 +310,7 @@ labelled.
 | EV-08 | FR-021 | DEC-014 | S-3 |
 | EV-09 | FR-029, FR-030 | DEC-001, DEC-007 | S-9 |
 | EV-10 | FR-028, NFR-009 | n/a | n/a |
-| EV-11 | FR-017, FR-024 | DEC-004 | n/a |
+| EV-11 | FR-017, FR-024 | DEC-004, DEC-018 | n/a |
 | EV-12 | FR-022 | DEC-005, DEC-011 | n/a |
 
 ---
@@ -314,7 +325,7 @@ Measured across the 12 scenarios and recorded per run.
 |---|---|---|
 | **Factual accuracy** | Claims labelled `fact` that are actually supported by the cited authoritative record, divided by all `fact` claims | 100 percent. A single unsupported fact is a failure, not a percentage |
 | **Evidence attribution accuracy** | Cited evidence IDs that resolve to a real record and actually support the claim, divided by all citations | 100 percent for resolution. Support is human-judged on a sample |
-| **Fabrication rate** | Claims dropped with reason `UNKNOWN_EVIDENCE_ID`, divided by all claims produced | Tracked, not targeted. A rise means the model is reaching beyond its evidence |
+| **Fabrication rate** | Narratives discarded with reason `INVENTED_ENTITY`, divided by all narratives produced | Tracked, not targeted. A rise means the model is reaching beyond its evidence |
 | **Classification accuracy** | Claims whose `classification` matches the expected value | 100 percent across the 12 scenarios |
 
 ### Detection metrics

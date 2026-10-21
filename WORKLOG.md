@@ -60,6 +60,185 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Isiwara | P6-003, P6-004 Eval runner, EV-11 and EV-12
+Status: IN_PROGRESS
+
+### Completed
+- `tests/eval/` exists with an `eval` marker. Every test in the folder is marked by its
+  conftest. Run with `pytest -m eval tests/eval`. CI already skips it
+  (`--ignore=tests/eval` in `ci.yml`), unchanged. Result: 6 passed, 1 xfailed.
+- EV-11 rewritten for DEC-018: the model names `PAY-999` or `#999`, not in the findings.
+  The full pipeline runs (Ollama mocked with `httpx.MockTransport`). Asserted: fallback
+  summary used, `dropped_claims` holds `INVENTED_ENTITY` for the entity, `error_type` is
+  `INVENTED_ENTITY`, the entity is nowhere in the response, findings unchanged.
+- EV-12 A (schema invalid), B (timeout) and C1 (plain text refusal): exactly 2 model calls,
+  then the fallback, with `SCHEMA_INVALID`, `TIMEOUT` and `SCHEMA_INVALID` recorded.
+- EV-11 and EV-12 C specs, the EV-11 coverage row and the Fabrication rate metric in
+  `TESTING_AND_EVALUATION.md` now match the code.
+
+### Changed
+`pyproject.toml`, `tests/eval/`, `docs/TESTING_AND_EVALUATION.md`.
+
+### Discovered
+EV-12 C2 fails: a refusal inside valid JSON ("I am sorry, but I cannot help with that
+request.") passes the schema bounds and all 3 validator checks, so it is shown as the
+summary. The test is `xfail(strict=True)` and will flip to a failure once fixed.
+
+### Decisions Needed
+Keshan: should the validator reject refusal text? It is a candidate new rule, option B
+on #40. App code is unchanged here.
+
+### Next Step
+The other 10 scenarios, once Keshan's half of P6-003 builds their database state.
+
+### AI Assistance
+An AI assistant wrote the eval tests and the spec edits. Check the EV-11 and EV-12 specs
+read as Keshan expects before ratifying them.
+## 2026-10-22 | Isiwara | P7-002 A cache hit makes no model call
+Status: IN_PROGRESS
+
+### Completed
+Added `tests/test_cache_model_call.py` (2 tests, Refs #45). `run_agent` runs twice on the
+same evidence with a mocked Ollama client: the model is called once, the second answer
+equals the first, and the second `agent_run` row has no model output and 0 output tokens.
+A change to the evidence (pull request number) calls the model again.
+
+### Discovered
+`test_run_agent_full_pipeline_success` says its second run "hits the cache", but it uses
+`skip_llm=True`, and a `skip_llm` run is never cached (`orchestrator.py` line 823). That
+test did not prove a cache hit. The new test does.
+
+### Next Step
+The rest of P7-002 needs the running stack: p95 cached and uncached over repeated runs,
+tokens per second warm and cold, peak RAM with PostgreSQL, the app and Ollama up.
+
+### AI Assistance
+The test was written with an AI assistant. Checked by running it; worth a read of the
+cache-hit assertions in review.
+## 2026-10-22 | Isiwara | P6-005 End-to-end test, agent half
+Status: IN_PROGRESS
+
+### Completed
+Added `tests/test_integration/test_end_to_end.py` (Refs #43). An empty SQLite database is
+seeded with `seed_demo_database`, which runs the real Jira and GitHub sync over fixture
+transport. The agent then runs with the real read tools, findings, narrative call,
+validator and `agent_run` persistence, for `current_work`, `blockers` and `risks`. Only
+Ollama is mocked, at the HTTP layer with respx. Asserts: 1 model call with no tools, the
+model's summary used, a complete `MemberInsight`, every evidence item's `source_url`
+matches a seeded row, freshness fields set and both sources fresh, the run recorded with
+no dropped claims and no error. 3 tests, no key, no network.
+
+### Discovered
+- SQLite loads timestamps without a zone and `detect_blockers` then fails subtracting
+  them. PostgreSQL loads them with UTC. The test marks loaded datetimes UTC through a
+  load listener it removes afterwards. Not an app bug, but this test does not run on
+  PostgreSQL yet.
+- The PR #1 "open for 33 days with no review" blocker cites 7 evidence items, including
+  PAY-101, PR #182 and a commit, not only PR #1. For Keshan to check in the findings
+  engine.
+
+### Next Step
+Keshan's half: confirm the seed run counts as the sync step, or add a separate one, and
+decide whether to also run this test against the CI PostgreSQL service. Close #43 then.
+
+### AI Assistance
+Test written with an AI assistant. Check the UTC listener and the evidence assertions.
+
+---
+## 2026-10-22 | Isiwara | P6-002 Tool empty and failure cases, old evidence, recursive import guard
+Status: IN_PROGRESS
+
+### Completed
+Refs #40. Tests only, no app code changed.
+1. Tool empty cases: T-001 (team with no active members), T-004 (user with no commits),
+   T-005 (user with no reviews), T-006 (no matching link). Each returns an empty list, not a
+   failure.
+2. Tool failure cases: T-004 and T-005 `NOT_FOUND` for a missing user, and `UPSTREAM_ERROR`
+   from the real T-001, T-004, T-005 and T-006 when the database has no tables (rule 9).
+3. Import guard now scans `app/tools/` recursively, with a test that a nested file is caught.
+4. Old evidence: 1 test passes (1 old non-authoritative item is LOW). 3 cases for "all
+   evidence older than `RECENT_ACTIVITY_DAYS` is LOW" are `xfail(strict=True)`, see Problems.
+Suite: 576 passed, 1 skipped, 3 xfailed (was 564 passed, 1 skipped).
+
+### Changed
+`tests/test_tools.py`, `tests/test_confidence.py`, `tests/test_tool_import_guard.py`.
+
+### Problems
+`evaluate_confidence` (`app/agent/confidence.py`) checks the MEDIUM and HIGH conditions
+before "all items old", so all-old evidence never reaches LOW: 1 old Jira item gives MEDIUM,
+2 give MEDIUM, 3 from 2 sources give HIGH. `AI_BEHAVIOR.md` 5.4 says LOW. The strict xfail
+starts failing once this is fixed, so the marker must be removed then.
+
+### Decisions Needed
+- For Keshan (findings engine, DEC-019): fix `evaluate_confidence`, or amend `AI_BEHAVIOR.md`
+  5.4. The doc is also ambiguous: MEDIUM's "2 or more items" overlaps LOW's "all old".
+- The validator rule count (8 in the issue, 3 in the code) is still open, so #40 stays open.
+
+### Next Step
+Validator rule tests once the count is decided.
+
+### AI Assistance
+The tests were drafted by an AI assistant. Check that an empty-table SQLite session is an
+acceptable stand-in for a database error, and that the xfail is the right way to record the
+confidence gap rather than fixing it in this PR.
+
+---
+## 2026-10-22 | Isiwara | P5-003 Evidence drawer escaping through the app
+Status: IN_PROGRESS
+
+### Completed
+Added `tests/test_drawer_escaping.py`: a hostile excerpt (`<img onerror>`, `<script>`,
+Markdown) in a claim's evidence is escaped by the real `GET /w/{id}` page, in the team view
+and the member view. Checked that the test fails if `|safe` is added to the excerpt in
+`partials/evidence_list.html`.
+
+### Discovered
+The real analysis cannot run in these tests: SQLite drops the time zone from stored
+datetimes, and `app/agent/blockers.py` and `confidence.py` then compare naive and aware
+values. So the analysis is replaced, as in `tests/test_workspace_analysis.py`. Seeding a
+pull request body and rendering it end to end needs PostgreSQL (P6-005).
+
+### Next Step
+By hand: click evidence links in a browser and confirm each opens the right Jira issue or
+pull request, and attach a drawer screenshot to #35. Then close #35.
+
+### AI Assistance
+The test was drafted by an AI assistant. Check that the fake analysis matches what the
+page receives in real use.
+
+---
+## 2026-10-22 | Isiwara | P7-001 Security pass: no secret in the model prompt
+Status: IN_PROGRESS
+
+### Completed
+Developer 2 half of #44. Added `tests/test_prompt_secrets.py`: every secret setting in
+`app/config.py` (database password, GitHub token, Jira token, OAuth client secret, GitHub
+App private key, Atlassian client secret, credential encryption key, session secret) is
+loaded with a canary value, 1 real `run_agent` pass runs with a mocked Ollama client, and
+the request body sent to the model is searched for each canary. None found. The test
+checks that the canaries loaded and that the findings reached the prompt, so a clean
+result means something. Checked by hand that it fails when a token is put in the body.
+
+The `|safe` criterion of P7-001 is already covered by `test_no_safe_filter_in_templates`
+in `tests/web/test_ui_templates.py`. This test covers the prompt part of the "no secret in
+any log, prompt, error detail or `agent_run` field" criterion. `TASKS.md` is not edited
+here, because Keshan's #95 changes the same P7-001 block.
+
+Branch rewritten as 1 commit on `main`: the first commit's literal canaries tripped gitleaks
+`generic-api-key` and failed CI on every PR, so canaries are now built at runtime.
+
+### Changed
+`tests/test_prompt_secrets.py` (new), `WORKLOG.md`.
+
+### Next Step
+Once #95 merges, share its `canary_secrets` fixture instead of the copy here, and tick the
+2 criteria in `TASKS.md`. Keshan's half (agent_run, write calls, Atlassian console check)
+is in #95.
+
+### AI Assistance
+The test was drafted with an AI coding assistant. Needs a human check that the canary list
+matches every secret field in `app/config.py`.
+
 ## 2026-10-21 | Keshan | UI restructure and light and dark theme
 Status: IN_REVIEW
 
@@ -146,6 +325,79 @@ Status: IN_PROGRESS
   README.
 - The GitHub App "Setup URL" field name is from the route
   (`/connections/github/setup`), not re-checked in GitHub's settings page today.
+## 2026-10-22 | Keshan | P7-001 security pass, Developer 1 half
+Status: IN_PROGRESS
+
+### Completed
+- `tests/test_security_gate.py`, 4 tests:
+  - No secret in `agent_run`: canary values for all 7 secret settings, 1 real agent pass on
+    fake tools, once with a model answer and once with a model error whose message holds
+    a secret. Every column of every row is checked.
+  - No write to GitHub or Jira data: an AST scan of `app/` for POST, PUT, PATCH and DELETE
+    calls, routes and ORM deletes left out. Only 5 are allowed, each with its reason: the
+    local Ollama call, the Atlassian token exchange and refresh, GitHub's OAuth code
+    exchange (sign-in and the org check), and GitHub's installation token. A 4th test
+    checks the scan still finds those 5.
+- Both tests were run once against a planted bug each (a secret written into
+  `agent_run.model`, a POST to `/repos/x/y/issues`). Both failed as they should. The
+  bugs were reverted.
+
+### Security gate checklist (P7-001)
+| Criterion | State | Evidence |
+|---|---|---|
+| No HTTP client under `app/tools/` | Done | `test_tool_import_guard.py` |
+| No tools in the model call | Done | `test_narrative.py` asserts no `tools` in the payload |
+| No write endpoint | Done | `test_no_write_call_to_github_or_jira_data` |
+| No secret in logs, errors, `agent_run` | Done | `test_http_client.py`, `test_sync.py`, `test_security_gate.py` |
+| No secret in the prompt | Open | Developer 2 |
+| No `\|safe` on source fields | Done | `tests/web/test_ui_templates.py`, `test_no_safe_filter_in_templates` (found by Developer 2) |
+| Secret scanner green | Done | gitleaks passed in CI on `44befb4` |
+| Every member-data route guarded | Open | `workspace_access` replaced `can_view_member`; tested by `test_workspaces.py` and `test_isolation.py`; criterion to reword with DEC-026 |
+| Read-only scopes in the provider console | Open | GitHub App checked with `GET /app` in W3; Atlassian console not checked |
+
+### Problems
+- The first version wrote its canaries as literals. gitleaks read 2 of them as API keys,
+  and because CI checks out and scans every branch, that commit (`fac655c`) failed the
+  secret scan on every open pull request. The canaries are now built from each setting's
+  name at runtime, and the branch was rewritten as 1 commit and force-pushed (agreed
+  2026-10-22), so `fac655c` is on no branch. gitleaks 8.21.2 finds nothing in the new
+  commit.
+
+### Checked
+- Full suite in the api container: 567 passed, 2 failed (the same 2 environment-key
+  tests, passing in CI). `ruff check .` and `black --check .` clean with CI's versions.
+## 2026-10-22 | Keshan | P6-001 write-path test suite
+Status: IN_REVIEW
+
+### Completed
+- Client failures through each client, not only `HttpClient`: timeout, 429, 500 and a
+  plain 403 for GitHub and Jira, 8 tests. Each retrying case asserts `HTTP_MAX_ATTEMPTS`
+  calls; a `no_backoff` fixture removes the wait, not the retries.
+- `pr_body` link method (MEDIUM, body only). All 5 methods plus no-link are now covered.
+- Jira sync idempotency: 2 issues and 1 "is blocked by" link, synced twice, same rows.
+- Network guard in `tests/conftest.py`, stdlib only: any connection off this machine is
+  refused and fails the test at teardown, even if the test swallowed the error. Loopback
+  and the `DATABASE_URL` host stay allowed. Probed with a throwaway test (deleted): a raw
+  socket and a swallowed httpx call both failed; loopback passed.
+
+### Discovered
+- The guard found 1 real escape: `test_active_sync_prevents_duplicate_run` ran the real
+  Jira sync. Locally it called `keshanuni.atlassian.net` from `.env`; in CI it would try
+  `example.atlassian.net`. Fixed by stubbing `sync_jira` as the other tick tests do.
+- `TASKS.md` names `tests/test_integrations/` and `tests/test_ingest/`. The tests live in
+  flat `tests/test_*.py` modules; not moved.
+
+### Checked
+- Full suite in the api container: 573 passed, 2 failed. The 2 are
+  `test_no_key_means_no_encryption` and
+  `test_an_org_installation_without_oauth_configured_says_so`: the container's
+  environment sets their keys, and both passed in CI on `44befb4`.
+- `ruff check .` and `black --check .` clean, run with CI's versions (ruff 0.17.1,
+  black 26.10.1), which the api image also has.
+- Coverage, measured with `coverage` 7.6.1 installed in the container for the run and
+  removed after (not a project dependency): 88% over `http.py`, `github.py`, `jira.py`,
+  both normalizers, `identity_resolver.py` and `link_builder.py` (976 statements, 120
+  missed). `app/sync.py` was not measured.
 
 ---
 
