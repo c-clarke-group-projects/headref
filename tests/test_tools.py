@@ -631,3 +631,124 @@ def test_execute_tool_query_maps_timeout_and_upstream_error(
     # Verify token redaction
     assert "secret-12345" not in res_err.detail
     assert "token=***" in res_err.detail
+
+
+# ---------------------------------------------------------------------------
+# Empty and failure cases (P6-002, Issue #40)
+# ---------------------------------------------------------------------------
+
+
+def test_t001_get_team_members_empty_team(db_session: Session) -> None:
+    """T-001 returns an empty member list, not a failure, for a team with no active members."""
+    org, team, user = _seed_base_org_and_team(db_session)
+    user.is_active = False
+    empty_team = Team(organization_id=org.id, name="Empty Team")
+    db_session.add(empty_team)
+    db_session.flush()
+
+    res_empty = get_team_members(db_session, GetTeamMembersInput(team_id=empty_team.id))
+    assert isinstance(res_empty, GetTeamMembersOutput)
+    assert res_empty.members == []
+    assert res_empty.unmatched_count == 0
+
+    res_inactive = get_team_members(db_session, GetTeamMembersInput(team_id=team.id))
+    assert isinstance(res_inactive, GetTeamMembersOutput)
+    assert res_inactive.members == []
+
+
+def test_t004_get_commits_empty(db_session: Session) -> None:
+    """T-004 returns no commits and truncated=False for a user with no commits at all."""
+    _, _, user = _seed_base_org_and_team(db_session)
+    now = datetime.now(UTC)
+
+    res = get_commits(
+        db_session,
+        GetCommitsInput(
+            subject_user_id=user.id,
+            window_start=now - timedelta(days=14),
+            window_end=now,
+        ),
+    )
+    assert isinstance(res, GetCommitsOutput)
+    assert res.commits == []
+    assert res.truncated is False
+
+
+def test_t004_get_commits_missing_user(db_session: Session) -> None:
+    """T-004 returns NOT_FOUND failure if the subject user does not exist."""
+    now = datetime.now(UTC)
+    res = get_commits(
+        db_session,
+        GetCommitsInput(subject_user_id=999, window_start=now - timedelta(days=14), window_end=now),
+    )
+    assert isinstance(res, ToolFailure)
+    assert res.tool_id == "T-004"
+    assert res.error_type == "NOT_FOUND"
+
+
+def test_t005_get_reviews_empty(db_session: Session) -> None:
+    """T-005 returns an empty list, not a failure, when the user has no reviews at all."""
+    _, _, user = _seed_base_org_and_team(db_session)
+    now = datetime.now(UTC)
+
+    res = get_reviews(
+        db_session,
+        GetReviewsInput(
+            subject_user_id=user.id,
+            window_start=now - timedelta(days=14),
+            window_end=now,
+        ),
+    )
+    assert isinstance(res, GetReviewsOutput)
+    assert res.reviews == []
+
+
+def test_t005_get_reviews_missing_user(db_session: Session) -> None:
+    """T-005 returns NOT_FOUND failure if the subject user does not exist."""
+    now = datetime.now(UTC)
+    res = get_reviews(
+        db_session,
+        GetReviewsInput(subject_user_id=999, window_start=now - timedelta(days=14), window_end=now),
+    )
+    assert isinstance(res, ToolFailure)
+    assert res.tool_id == "T-005"
+    assert res.error_type == "NOT_FOUND"
+
+
+def test_t006_get_work_item_links_empty(db_session: Session) -> None:
+    """T-006 returns an empty list, a valid result, when no stored link matches."""
+    res = get_work_item_links(
+        db_session, GetWorkItemLinksInput(work_item_ids=[999], pull_request_ids=[888])
+    )
+    assert isinstance(res, GetWorkItemLinksOutput)
+    assert res.links == []
+
+
+@pytest.fixture
+def broken_session() -> Generator[Session, None, None]:
+    """A session on a database with no tables, so every query raises a database error."""
+    engine = create_engine("sqlite:///:memory:")
+    with Session(engine) as session:
+        yield session
+
+
+def _failing_tool_calls() -> list[tuple[str, object]]:
+    now = datetime.now(UTC)
+    window = {"window_start": now - timedelta(days=14), "window_end": now}
+    return [
+        ("T-001", lambda s: get_team_members(s, GetTeamMembersInput(team_id=1))),
+        ("T-004", lambda s: get_commits(s, GetCommitsInput(subject_user_id=1, **window))),
+        ("T-005", lambda s: get_reviews(s, GetReviewsInput(subject_user_id=1, **window))),
+        ("T-006", lambda s: get_work_item_links(s, GetWorkItemLinksInput(work_item_ids=[1]))),
+    ]
+
+
+@pytest.mark.parametrize(("tool_id", "call"), _failing_tool_calls())
+def test_tool_database_error_is_a_typed_failure(
+    broken_session: Session, tool_id: str, call
+) -> None:
+    """A database error is UPSTREAM_ERROR from the real tool, never an empty result."""
+    res = call(broken_session)
+    assert isinstance(res, ToolFailure)
+    assert res.tool_id == tool_id
+    assert res.error_type == "UPSTREAM_ERROR"

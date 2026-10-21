@@ -81,6 +81,129 @@ tokens per second warm and cold, peak RAM with PostgreSQL, the app and Ollama up
 ### AI Assistance
 The test was written with an AI assistant. Checked by running it; worth a read of the
 cache-hit assertions in review.
+## 2026-10-22 | Isiwara | P6-005 End-to-end test, agent half
+Status: IN_PROGRESS
+
+### Completed
+Added `tests/test_integration/test_end_to_end.py` (Refs #43). An empty SQLite database is
+seeded with `seed_demo_database`, which runs the real Jira and GitHub sync over fixture
+transport. The agent then runs with the real read tools, findings, narrative call,
+validator and `agent_run` persistence, for `current_work`, `blockers` and `risks`. Only
+Ollama is mocked, at the HTTP layer with respx. Asserts: 1 model call with no tools, the
+model's summary used, a complete `MemberInsight`, every evidence item's `source_url`
+matches a seeded row, freshness fields set and both sources fresh, the run recorded with
+no dropped claims and no error. 3 tests, no key, no network.
+
+### Discovered
+- SQLite loads timestamps without a zone and `detect_blockers` then fails subtracting
+  them. PostgreSQL loads them with UTC. The test marks loaded datetimes UTC through a
+  load listener it removes afterwards. Not an app bug, but this test does not run on
+  PostgreSQL yet.
+- The PR #1 "open for 33 days with no review" blocker cites 7 evidence items, including
+  PAY-101, PR #182 and a commit, not only PR #1. For Keshan to check in the findings
+  engine.
+
+### Next Step
+Keshan's half: confirm the seed run counts as the sync step, or add a separate one, and
+decide whether to also run this test against the CI PostgreSQL service. Close #43 then.
+
+### AI Assistance
+Test written with an AI assistant. Check the UTC listener and the evidence assertions.
+
+---
+## 2026-10-22 | Isiwara | P6-002 Tool empty and failure cases, old evidence, recursive import guard
+Status: IN_PROGRESS
+
+### Completed
+Refs #40. Tests only, no app code changed.
+1. Tool empty cases: T-001 (team with no active members), T-004 (user with no commits),
+   T-005 (user with no reviews), T-006 (no matching link). Each returns an empty list, not a
+   failure.
+2. Tool failure cases: T-004 and T-005 `NOT_FOUND` for a missing user, and `UPSTREAM_ERROR`
+   from the real T-001, T-004, T-005 and T-006 when the database has no tables (rule 9).
+3. Import guard now scans `app/tools/` recursively, with a test that a nested file is caught.
+4. Old evidence: 1 test passes (1 old non-authoritative item is LOW). 3 cases for "all
+   evidence older than `RECENT_ACTIVITY_DAYS` is LOW" are `xfail(strict=True)`, see Problems.
+Suite: 576 passed, 1 skipped, 3 xfailed (was 564 passed, 1 skipped).
+
+### Changed
+`tests/test_tools.py`, `tests/test_confidence.py`, `tests/test_tool_import_guard.py`.
+
+### Problems
+`evaluate_confidence` (`app/agent/confidence.py`) checks the MEDIUM and HIGH conditions
+before "all items old", so all-old evidence never reaches LOW: 1 old Jira item gives MEDIUM,
+2 give MEDIUM, 3 from 2 sources give HIGH. `AI_BEHAVIOR.md` 5.4 says LOW. The strict xfail
+starts failing once this is fixed, so the marker must be removed then.
+
+### Decisions Needed
+- For Keshan (findings engine, DEC-019): fix `evaluate_confidence`, or amend `AI_BEHAVIOR.md`
+  5.4. The doc is also ambiguous: MEDIUM's "2 or more items" overlaps LOW's "all old".
+- The validator rule count (8 in the issue, 3 in the code) is still open, so #40 stays open.
+
+### Next Step
+Validator rule tests once the count is decided.
+
+### AI Assistance
+The tests were drafted by an AI assistant. Check that an empty-table SQLite session is an
+acceptable stand-in for a database error, and that the xfail is the right way to record the
+confidence gap rather than fixing it in this PR.
+
+---
+## 2026-10-22 | Isiwara | P5-003 Evidence drawer escaping through the app
+Status: IN_PROGRESS
+
+### Completed
+Added `tests/test_drawer_escaping.py`: a hostile excerpt (`<img onerror>`, `<script>`,
+Markdown) in a claim's evidence is escaped by the real `GET /w/{id}` page, in the team view
+and the member view. Checked that the test fails if `|safe` is added to the excerpt in
+`partials/evidence_list.html`.
+
+### Discovered
+The real analysis cannot run in these tests: SQLite drops the time zone from stored
+datetimes, and `app/agent/blockers.py` and `confidence.py` then compare naive and aware
+values. So the analysis is replaced, as in `tests/test_workspace_analysis.py`. Seeding a
+pull request body and rendering it end to end needs PostgreSQL (P6-005).
+
+### Next Step
+By hand: click evidence links in a browser and confirm each opens the right Jira issue or
+pull request, and attach a drawer screenshot to #35. Then close #35.
+
+### AI Assistance
+The test was drafted by an AI assistant. Check that the fake analysis matches what the
+page receives in real use.
+
+---
+## 2026-10-22 | Isiwara | P7-001 Security pass: no secret in the model prompt
+Status: IN_PROGRESS
+
+### Completed
+Developer 2 half of #44. Added `tests/test_prompt_secrets.py`: every secret setting in
+`app/config.py` (database password, GitHub token, Jira token, OAuth client secret, GitHub
+App private key, Atlassian client secret, credential encryption key, session secret) is
+loaded with a canary value, 1 real `run_agent` pass runs with a mocked Ollama client, and
+the request body sent to the model is searched for each canary. None found. The test
+checks that the canaries loaded and that the findings reached the prompt, so a clean
+result means something. Checked by hand that it fails when a token is put in the body.
+
+The `|safe` criterion of P7-001 is already covered by `test_no_safe_filter_in_templates`
+in `tests/web/test_ui_templates.py`. This test covers the prompt part of the "no secret in
+any log, prompt, error detail or `agent_run` field" criterion. `TASKS.md` is not edited
+here, because Keshan's #95 changes the same P7-001 block.
+
+Branch rewritten as 1 commit on `main`: the first commit's literal canaries tripped gitleaks
+`generic-api-key` and failed CI on every PR, so canaries are now built at runtime.
+
+### Changed
+`tests/test_prompt_secrets.py` (new), `WORKLOG.md`.
+
+### Next Step
+Once #95 merges, share its `canary_secrets` fixture instead of the copy here, and tick the
+2 criteria in `TASKS.md`. Keshan's half (agent_run, write calls, Atlassian console check)
+is in #95.
+
+### AI Assistance
+The test was drafted with an AI coding assistant. Needs a human check that the canary list
+matches every secret field in `app/config.py`.
 
 ## 2026-10-21 | Keshan | UI restructure and light and dark theme
 Status: IN_REVIEW
