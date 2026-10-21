@@ -8,7 +8,14 @@ import httpx
 import pytest
 import respx
 
-from app.integrations.errors import AuthError, NotFoundError, RateLimitError
+from app.config import HTTP_MAX_ATTEMPTS
+from app.integrations.errors import (
+    AuthError,
+    IntegrationTimeoutError,
+    NotFoundError,
+    RateLimitError,
+    UpstreamError,
+)
 from app.integrations.github import GitHubClient, parse_next_page_url
 
 FIXTURE_DIR = Path("seed/fixtures/github")
@@ -202,6 +209,64 @@ def test_github_401_unauthorized() -> None:
         client.list_pull_requests("keshan-dev", "headref")
 
     assert exc_info.value.status_code == 401
+    assert exc_info.value.error_type == "AUTH_FAILED"
+
+
+PULLS_URL = "https://api.github.com/repos/keshan-dev/headref/pulls"
+
+
+@respx.mock
+def test_github_timeout_is_retried_then_typed(no_backoff: None) -> None:
+    """A timeout through the client retries up to the limit and raises TIMEOUT (P6-001)."""
+    route = respx.get(PULLS_URL).mock(side_effect=httpx.ReadTimeout("Read timed out"))
+
+    client = GitHubClient(token="ghp_test_token_123")
+    with pytest.raises(IntegrationTimeoutError) as exc_info:
+        client.list_pull_requests("keshan-dev", "headref")
+
+    assert route.call_count == HTTP_MAX_ATTEMPTS
+    assert exc_info.value.error_type == "TIMEOUT"
+
+
+@respx.mock
+def test_github_429_is_retried_then_rate_limited(no_backoff: None) -> None:
+    """429 through the client retries up to the limit and raises RATE_LIMITED."""
+    route = respx.get(PULLS_URL).respond(429, headers={"retry-after": "1"})
+
+    client = GitHubClient(token="ghp_test_token_123")
+    with pytest.raises(RateLimitError) as exc_info:
+        client.list_pull_requests("keshan-dev", "headref")
+
+    assert route.call_count == HTTP_MAX_ATTEMPTS
+    assert exc_info.value.status_code == 429
+    assert exc_info.value.error_type == "RATE_LIMITED"
+
+
+@respx.mock
+def test_github_500_is_retried_then_upstream_error(no_backoff: None) -> None:
+    """500 through the client retries up to the limit and raises UPSTREAM_ERROR."""
+    route = respx.get(PULLS_URL).respond(500, text="Internal Server Error")
+
+    client = GitHubClient(token="ghp_test_token_123")
+    with pytest.raises(UpstreamError) as exc_info:
+        client.list_pull_requests("keshan-dev", "headref")
+
+    assert route.call_count == HTTP_MAX_ATTEMPTS
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.error_type == "UPSTREAM_ERROR"
+
+
+@respx.mock
+def test_github_403_without_rate_limit_signals_is_auth_failed() -> None:
+    """A plain 403 (no rate limit header or text) is AUTH_FAILED and is not retried."""
+    route = respx.get(PULLS_URL).respond(403, text="Resource not accessible by integration")
+
+    client = GitHubClient(token="ghp_test_token_123")
+    with pytest.raises(AuthError) as exc_info:
+        client.list_pull_requests("keshan-dev", "headref")
+
+    assert route.call_count == 1
+    assert exc_info.value.status_code == 403
     assert exc_info.value.error_type == "AUTH_FAILED"
 
 

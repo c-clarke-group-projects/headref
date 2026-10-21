@@ -210,6 +210,60 @@ def test_link_pr_title_and_body_creates_medium_link(db_session: Session) -> None
     assert links[0].link_method == "pr_title"
 
 
+def test_link_pr_body_alone_creates_medium_link(db_session: Session) -> None:
+    """A ticket ID only in the PR body creates a MEDIUM pr_body link (P6-001)."""
+    org = Organization(name="Keshan Org")
+    db_session.add(org)
+    db_session.flush()
+
+    proj = Project(organization_id=org.id, key="AUTH", name="Auth")
+    repo = Repository(organization_id=org.id, full_name="keshan-dev/headref")
+    db_session.add_all([proj, repo])
+    db_session.flush()
+
+    now = datetime.now(UTC)
+    wi = WorkItem(
+        project_id=proj.id,
+        external_id="AUTH-245",
+        title="Session seam",
+        status="in_progress",
+        raw_status="In Progress",
+        source_url="url1",
+        source_updated_at=now,
+        retrieved_at=now,
+    )
+    db_session.add(wi)
+    db_session.flush()
+
+    # Generic branch and title: the body is the only place the key appears.
+    pr = PullRequest(
+        repository_id=repo.id,
+        number=2,
+        title="Refactor session handling",
+        body_excerpt="Part of AUTH-245. Moves the seam behind an interface.",
+        branch_name="patch-2",
+        state="open",
+        created_at_source=now,
+        source_url="https://github.com/keshan-dev/headref/pull/2",
+        source_updated_at=now,
+        retrieved_at=now,
+    )
+    db_session.add(pr)
+    db_session.flush()
+
+    links = link_pull_request(
+        db_session,
+        pr=pr,
+        work_items_by_key={"AUTH-245": wi},
+        project_keys=["AUTH"],
+    )
+    assert len(links) == 1
+    assert links[0].confidence == "MEDIUM"
+    assert links[0].link_method == "pr_body"
+    assert links[0].target_type == "pull_request"
+    assert links[0].target_id == str(pr.id)
+
+
 def test_link_commit_message_creates_medium_link(db_session: Session) -> None:
     """Ticket ID in a commit message creates a MEDIUM confidence link."""
     org = Organization(name="Keshan Org")
