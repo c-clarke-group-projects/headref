@@ -60,6 +60,38 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Isiwara | P7-001 Security pass: no secret in the model prompt
+Status: IN_PROGRESS
+
+### Completed
+Developer 2 half of #44. Added `tests/test_prompt_secrets.py`: every secret setting in
+`app/config.py` (database password, GitHub token, Jira token, OAuth client secret, GitHub
+App private key, Atlassian client secret, credential encryption key, session secret) is
+loaded with a canary value, 1 real `run_agent` pass runs with a mocked Ollama client, and
+the request body sent to the model is searched for each canary. None found. The test
+checks that the canaries loaded and that the findings reached the prompt, so a clean
+result means something. Checked by hand that it fails when a token is put in the body.
+
+The `|safe` criterion of P7-001 is already covered by `test_no_safe_filter_in_templates`
+in `tests/web/test_ui_templates.py`. This test covers the prompt part of the "no secret in
+any log, prompt, error detail or `agent_run` field" criterion. `TASKS.md` is not edited
+here, because Keshan's #95 changes the same P7-001 block.
+
+Branch rewritten as 1 commit on `main`: the first commit's literal canaries tripped gitleaks
+`generic-api-key` and failed CI on every PR, so canaries are now built at runtime.
+
+### Changed
+`tests/test_prompt_secrets.py` (new), `WORKLOG.md`.
+
+### Next Step
+Once #95 merges, share its `canary_secrets` fixture instead of the copy here, and tick the
+2 criteria in `TASKS.md`. Keshan's half (agent_run, write calls, Atlassian console check)
+is in #95.
+
+### AI Assistance
+The test was drafted with an AI coding assistant. Needs a human check that the canary list
+matches every secret field in `app/config.py`.
+
 ## 2026-10-21 | Keshan | UI restructure and light and dark theme
 Status: IN_REVIEW
 
