@@ -187,3 +187,23 @@ def test_blank_model_and_prompt_settings_fall_back_to_defaults(
     assert settings.model_id == "llama3.2"
     assert settings.prompt_version == "narrative_v2"
     assert settings.ollama_url == "http://localhost:11434"
+
+
+def test_a_fresh_copy_of_env_example_loads(monkeypatch: pytest.MonkeyPatch) -> None:
+    """README 9.2: copy .env.example, set the database URL, and the settings load.
+
+    A blank number or true/false value fails validation and stops the app, so the
+    template leaves every optional one commented out (P7-003).
+    """
+    template = Path(__file__).resolve().parents[1] / ".env.example"
+    for field in Settings.model_fields.values():
+        for alias in getattr(field.validation_alias, "choices", []):
+            monkeypatch.delenv(str(alias), raising=False)
+            monkeypatch.delenv(str(alias).upper(), raising=False)
+
+    settings = Settings(
+        _env_file=template, database_url="postgresql+psycopg://headref:headref@db:5432/headref"
+    )
+
+    assert settings.scheduler_enabled is True
+    assert settings.github_token == ""

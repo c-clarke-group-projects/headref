@@ -4,7 +4,8 @@ An evidence-based engineering team intelligence agent. It tells a team lead what
 member is working on, what is blocking them, and what is at risk, and it shows the
 evidence behind every statement.
 
-**Status:** Phase 0 and Phase 1 complete. Database schema, frozen contracts, config, timeouts, identity map, and CI are in place. Phase 2 and Phase 3 ready to start.
+**Status:** Phases 0 to 5 and workspaces (W0 to W11) are on `main`. Phase 6 (tests and
+evaluation) and Phase 7 (hardening and demo) are in progress. See section 14.
 **Stage:** MVP (Stage 1).
 **Team:** 2 developers.
 
@@ -58,9 +59,15 @@ headref is not built for HR, and it is not built to compare people against each 
   produced by deterministic rules (DEC-018).
 - Deterministic validation, deterministic confidence (HIGH / MEDIUM / LOW / UNKNOWN).
 - Conflict detection between Jira state and GitHub state.
-- Scheduled sync every 5 minutes, plus an on-demand Refresh button (DEC-016).
+- Workspaces (DEC-021): sign in with GitHub, create a workspace, invite people by GitHub
+  username as manager or viewer. Each workspace reads its own repositories, through the
+  read-only headref GitHub App (DEC-022), and its own Jira projects, through Atlassian
+  OAuth (DEC-023). Nothing in one workspace is visible from another.
+- People are confirmed by a manager, never matched by name (DEC-024).
+- Scheduled sync every 5 minutes per workspace, plus Sync now (DEC-016).
 - Visible data freshness, and honest reporting when a source is unavailable.
-- A web UI: team overview, member profile, evidence drawer.
+- A web UI: workspace analysis, member panel, People screen, What changed feed (DEC-025),
+  evidence drawer, light and dark theme.
 
 ## 5. Out of scope for the MVP
 
@@ -71,7 +78,9 @@ These are deliberately excluded. Do not add them without a new decision record.
 - Any write action. headref never posts, comments, assigns, or changes a ticket.
 - Numeric or percentage confidence scores.
 - Vector search or semantic indexing.
-- SSO, multi-tenancy, full RBAC. The MVP uses a login stub.
+- SSO and fine-grained permissions. Sign-in is GitHub OAuth only, and a workspace has 3
+  roles: owner, manager, viewer. Multi-workspace tenancy was Stage 2; DEC-021 brings it
+  into the MVP and is still Proposed.
 - Human-in-the-loop approval flows.
 - Daily briefings and proactive notifications.
 - Free-text natural language questions.
@@ -159,7 +168,12 @@ headref/
     models/                   [SHARED schema]
     schemas/                  [SHARED, frozen in Phase 1]
     integrations/             [DEV 1]  write path, makes network calls
-    sync.py                   [DEV 1]  ingestion CLI entry point
+    sync.py                   [DEV 1]  ingestion, and the legacy sync CLI
+    workspace_sync.py         [W5]     per-workspace sync
+    people.py                 [W6]     confirm, ignore, merge and split people
+    workspace_analysis.py     [W7]     findings per confirmed person
+    workspace_feed.py         [W8]     What changed, diffed between syncs
+    workspace_admin.py        [W9]     settings, invites, roles, archive
     tools/                    [DEV 2]  read path, PostgreSQL only
     agent/                    [DEV 2]
     web/                      [DEV 2]
@@ -167,11 +181,16 @@ headref/
 ```
 
 Ownership tags are enforced socially, not technically. See `TASKS.md` -> Developer Ownership.
+The workspace modules carry the workspace step that added them (W5 to W9); their owner is
+not recorded yet.
 
 ## 9. Development setup
 
-Requirements: Docker, Docker Compose, Python 3.11, a GitHub read-only token, a Jira API
-token, and [Ollama](https://ollama.com) installed on the host.
+Requirements: Docker with Docker Compose, [Ollama](https://ollama.com) on the host, and a
+GitHub account. To read Jira, an Atlassian account with access to the Jira site. Python
+3.11 is only needed to run tools outside Docker.
+
+### 9.1 Model
 
 ```bash
 ollama pull llama3.2      # about 2 GB
@@ -182,21 +201,70 @@ ollama run llama3.2 "hi"   # pre-warm before demoing
 Docker) and close other applications before demoing. Measured difference: about 13
 tokens/sec warm versus about 4 tokens/sec when RAM is starved.
 
+### 9.2 Start the app
+
 ```bash
-git clone <repo-url>
+git clone https://github.com/c-clarke-group-projects/headref.git
 cd headref
 cp .env.example .env
-# fill in .env with your own read-only tokens, never commit it
+```
+
+Fill in `.env`. Never commit it. To start and sign in, these are enough:
+
+| Setting | Value |
+|---|---|
+| `DATABASE_URL` | `postgresql+psycopg://headref:headref@db:5432/headref` |
+| `SESSION_SECRET` | 32 or more characters; the command is in `.env.example` |
+| `GITHUB_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_SECRET` | From a GitHub OAuth app, see 9.3 |
+| `API_PORT` | Optional, default 8000. On Windows, uncomment it and pick a free port if Hyper-V reserves 8000 |
+
+`GITHUB_TOKEN`, `JIRA_BASE_URL`, `JIRA_EMAIL` and `JIRA_API_TOKEN` must be present and
+may stay blank: only the legacy sync CLI (section 10) uses them. Lines starting with
+`# NAME=` are optional and use their defaults. Never leave a number or a true/false
+setting blank: a blank value stops the app at startup.
+
+```bash
 docker compose up --build
 docker compose exec api alembic upgrade head
+```
+
+Open `http://localhost:8000` (or your `API_PORT`), sign in with GitHub, and create a
+workspace.
+
+### 9.3 Register the apps
+
+Each is registered once per deployment. `<host>` is the address you open, for example
+`http://localhost:8000`.
+
+| App | Where | Settings | Fills in |
+|---|---|---|---|
+| GitHub OAuth app, for sign-in | GitHub, Settings, Developer settings, OAuth Apps | Callback URL `<host>/auth/github/callback`. No scopes are requested | `GITHUB_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_SECRET` |
+| headref GitHub App, to read repositories | GitHub, Settings, Developer settings, GitHub Apps | Read only: metadata, contents, pull requests, checks, commit statuses. No webhook. Setup URL `<host>/connections/github/setup` | `GITHUB_APP_ID`, `GITHUB_APP_SLUG`, `GITHUB_APP_PRIVATE_KEY_B64` |
+| Atlassian OAuth 2.0 (3LO) app, to read Jira | developer.atlassian.com, Console | Scopes `read:jira-work`, `read:jira-user`, `offline_access`. Callback `<host>/connections/jira/callback` | `ATLASSIAN_CLIENT_ID`, `ATLASSIAN_CLIENT_SECRET` |
+
+Also set `CREDENTIAL_ENCRYPTION_KEY` before connecting Jira: it encrypts the stored
+Atlassian tokens, and losing it means reconnecting every Jira connection. After changing
+`.env`, recreate the container with `docker compose up -d api`: a plain restart keeps the
+old values.
+
+### 9.4 First workspace
+
+1. On the workspace page, Connect GitHub and choose the repositories, then Connect Jira and
+   choose the projects. Either source alone works.
+2. Sync now, or wait: every workspace syncs every 5 minutes.
+3. On the People screen, confirm who is on the team. Only confirmed people are analysed.
+
+### 9.5 Demo data
+
+```bash
 docker compose exec api python seed/seed_demo.py
 ```
 
-Open http://localhost:8000
-
 `seed_demo.py` loads recorded API payloads from `seed/fixtures/` through the real
-ingestion code. It makes no network calls, so the demo works offline and is identical
-on both machines. See DEC-012.
+ingestion code, with no network calls (DEC-012). **It does not appear in the UI today:** it
+seeds a separate organization ("headref Demo Corp") that no workspace uses, and the team
+pages that showed it were removed (DEC-026). Raised in `WORKLOG.md` under Decisions
+Needed.
 
 ## 10. How to run things
 
@@ -204,12 +272,12 @@ on both machines. See DEC-012.
 |---|---|
 | Start everything | `docker compose up --build` |
 | Apply migrations | `docker compose exec api alembic upgrade head` |
-| Load demo data | `docker compose exec api python seed/seed_demo.py` |
-| Sync real GitHub data | `docker compose exec api python -m app.sync --source github --team 1` |
-| Sync real Jira data | `docker compose exec api python -m app.sync --source jira --team 1` |
+| Load demo data | `docker compose exec api python seed/seed_demo.py` (not shown in the UI, see 9.5) |
+| Sync a workspace | Sync now on the workspace page; the scheduler also runs every 5 minutes |
+| Legacy sync, 1 team from `.env` | `docker compose exec api python -m app.sync --source github --team 1` (needs `GITHUB_TOKEN`, `GITHUB_REPOS`) |
 | Run tests | `docker compose exec api pytest` |
-| Run evaluations | `docker compose exec api pytest tests/eval -v` |
-| Lint | `ruff check . && black --check .` |
+| Run evaluations | Not built yet, task P6-003 |
+| Lint | `docker compose exec api sh -c "ruff check . && black --check ."` |
 
 ## 11. Documentation map
 
@@ -260,25 +328,26 @@ These are not suggestions. They apply to every commit.
   Types: `feat`, `fix`, `chore`, `docs`, `test`, `refactor`.
 - Conventional Commits. Close issues with `Closes #n`.
 - Squash merge. **Branches are kept after merge, not deleted.**
-- CI must be green: lint, tests, secret scan, migration check.
+- CI must be green: lint, tests, secret scan, migration check. CI runs on pull requests
+  into `main` only, so a pull request into another branch gets no checks.
 - Developer 2's pull requests require Developer 1's approval. Developer 1 may merge
-  their own work.
+  their own work. GitHub does not enforce either: `main` requires 0 approvals.
 
 ## 14. Current project status
 
 | Item | State |
 |---|---|
 | Documentation foundation | Complete |
-| Repository created | Done. `keshan-dev/headref`, 49 issues, 12 labels, 4 milestones |
-| `main` protected | Done. Pull request required, 1 approval, linear history |
-| CI required to pass before merge | Done. 5 checks required: lint, tests, secret scan, migrations, project rules |
-| Decisions ratified by both developers | Done, P0-006, all 19 accepted |
+| Repository | `c-clarke-group-projects/headref` (moved from `keshan-dev/argus`; old links redirect) |
+| `main` protected | Pull request required, linear history, 0 required approvals. Admins can bypass |
+| CI required to pass before merge | 5 checks required: lint and format, tests, secret scan, migrations, project rules |
+| Decisions | DEC-001 to DEC-019 accepted. DEC-020 to DEC-026 Proposed, waiting for both developers |
 | Ollama verified | Keshan's machine only. Isiwara's numbers and the in-container check outstanding |
-| Real Jira and GitHub test data | Not started, task P0-002. **The thing to protect** |
-| Application code | Skeleton only. FastAPI app, `/health`, 1 test. No models, tools or agent yet |
-| Current sprint | Sprint 0, Phase 0 |
+| Real Jira and GitHub test data | Jira project HRS and repository `keshan-dev/headref-sandbox` exist (W0, W11). Captured fixtures still hand-made, task P0-002 |
+| Application code | Phases 1 to 5 and workspaces W0 to W11 on `main` |
+| Current work | Phase 6 tests and evaluation, Phase 7 hardening and demo. See `TASKS.md` |
 
-**Last reconciled:** 2026-09-19 (2). If this table looks old, trust the repository and
+**Last reconciled:** 2026-10-22. If this table looks old, trust the repository and
 `WORKLOG.md`, then fix the table. See `docs/HOW_TO.md` B10.
 
 `TASKS.md` -> Current Sprint is the authoritative view of what is active.
