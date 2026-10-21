@@ -60,6 +60,41 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Isiwara | P6-003, P6-004 Eval runner, EV-11 and EV-12
+Status: IN_PROGRESS
+
+### Completed
+- `tests/eval/` exists with an `eval` marker. Every test in the folder is marked by its
+  conftest. Run with `pytest -m eval tests/eval`. CI already skips it
+  (`--ignore=tests/eval` in `ci.yml`), unchanged. Result: 6 passed, 1 xfailed.
+- EV-11 rewritten for DEC-018: the model names `PAY-999` or `#999`, not in the findings.
+  The full pipeline runs (Ollama mocked with `httpx.MockTransport`). Asserted: fallback
+  summary used, `dropped_claims` holds `INVENTED_ENTITY` for the entity, `error_type` is
+  `INVENTED_ENTITY`, the entity is nowhere in the response, findings unchanged.
+- EV-12 A (schema invalid), B (timeout) and C1 (plain text refusal): exactly 2 model calls,
+  then the fallback, with `SCHEMA_INVALID`, `TIMEOUT` and `SCHEMA_INVALID` recorded.
+- EV-11 and EV-12 C specs, the EV-11 coverage row and the Fabrication rate metric in
+  `TESTING_AND_EVALUATION.md` now match the code.
+
+### Changed
+`pyproject.toml`, `tests/eval/`, `docs/TESTING_AND_EVALUATION.md`.
+
+### Discovered
+EV-12 C2 fails: a refusal inside valid JSON ("I am sorry, but I cannot help with that
+request.") passes the schema bounds and all 3 validator checks, so it is shown as the
+summary. The test is `xfail(strict=True)` and will flip to a failure once fixed.
+
+### Decisions Needed
+Keshan: should the validator reject refusal text? It is a candidate new rule, option B
+on #40. App code is unchanged here.
+
+### Next Step
+The other 10 scenarios, once Keshan's half of P6-003 builds their database state.
+
+### AI Assistance
+An AI assistant wrote the eval tests and the spec edits. Check the EV-11 and EV-12 specs
+read as Keshan expects before ratifying them.
+
 ## 2026-10-21 | Keshan | UI restructure and light and dark theme
 Status: IN_REVIEW
 
