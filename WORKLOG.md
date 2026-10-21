@@ -60,6 +60,36 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Isiwara | P6-005 End-to-end test, agent half
+Status: IN_PROGRESS
+
+### Completed
+Added `tests/test_integration/test_end_to_end.py` (Refs #43). An empty SQLite database is
+seeded with `seed_demo_database`, which runs the real Jira and GitHub sync over fixture
+transport. The agent then runs with the real read tools, findings, narrative call,
+validator and `agent_run` persistence, for `current_work`, `blockers` and `risks`. Only
+Ollama is mocked, at the HTTP layer with respx. Asserts: 1 model call with no tools, the
+model's summary used, a complete `MemberInsight`, every evidence item's `source_url`
+matches a seeded row, freshness fields set and both sources fresh, the run recorded with
+no dropped claims and no error. 3 tests, no key, no network.
+
+### Discovered
+- SQLite loads timestamps without a zone and `detect_blockers` then fails subtracting
+  them. PostgreSQL loads them with UTC. The test marks loaded datetimes UTC through a
+  load listener it removes afterwards. Not an app bug, but this test does not run on
+  PostgreSQL yet.
+- The PR #1 "open for 33 days with no review" blocker cites 7 evidence items, including
+  PAY-101, PR #182 and a commit, not only PR #1. For Keshan to check in the findings
+  engine.
+
+### Next Step
+Keshan's half: confirm the seed run counts as the sync step, or add a separate one, and
+decide whether to also run this test against the CI PostgreSQL service. Close #43 then.
+
+### AI Assistance
+Test written with an AI assistant. Check the UTC listener and the evidence assertions.
+
+---
 ## 2026-10-22 | Isiwara | P6-002 Tool empty and failure cases, old evidence, recursive import guard
 Status: IN_PROGRESS
 
