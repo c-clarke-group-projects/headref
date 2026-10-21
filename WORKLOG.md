@@ -121,8 +121,8 @@ Status: IN_PROGRESS
 - README section 9 rewritten for workspaces: the 4 settings needed to start and sign in,
   the 3 apps to register with their callback and setup URLs and scopes, the first
   workspace, and demo data. Sections 4, 5, 8, 10, 13 and 14 brought up to date: no
-  login stub or team pages, the legacy sync CLI labelled as legacy, evaluation marked not
-  built, status table reconciled.
+  login stub or team pages, the legacy sync CLI labelled as legacy, the evaluation command
+  from #98 (EV-11 and EV-12 so far), status table reconciled.
 - `.env.example`: `SCHEDULER_ENABLED` and `STUCK_SYNC_TIMEOUT_MINUTES` added; callback,
   setup URL, App permissions and `offline_access` scope added to the comments.
 

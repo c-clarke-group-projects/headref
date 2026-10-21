@@ -276,7 +276,7 @@ Needed.
 | Sync a workspace | Sync now on the workspace page; the scheduler also runs every 5 minutes |
 | Legacy sync, 1 team from `.env` | `docker compose exec api python -m app.sync --source github --team 1` (needs `GITHUB_TOKEN`, `GITHUB_REPOS`) |
 | Run tests | `docker compose exec api pytest` |
-| Run evaluations | Not built yet, task P6-003 |
+| Run evaluations | `docker compose exec api pytest -m eval tests/eval`. EV-11 and EV-12 so far, with Ollama mocked; CI skips `tests/eval` (P6-004) |
 | Lint | `docker compose exec api sh -c "ruff check . && black --check ."` |
 
 ## 11. Documentation map
