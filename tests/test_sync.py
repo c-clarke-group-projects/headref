@@ -9,9 +9,9 @@ from sqlalchemy.orm import Session
 
 from app.db import Base
 from app.integrations.errors import AuthError
-from app.models.canonical import Organization
+from app.models.canonical import Organization, Project
 from app.models.operations import SyncCursor, SyncRun
-from app.models.work import Commit, PullRequest
+from app.models.work import Commit, PullRequest, WorkItem, WorkItemDependency
 from app.sync import main, sanitize_error_detail, sync_github, sync_jira
 
 
@@ -294,6 +294,59 @@ def test_idempotency_running_twice_produces_identical_state(db_session: Session)
 
     assert pr_count_1 == pr_count_2 == 1
     assert commit_count_1 == commit_count_2 == 1
+
+
+def test_jira_idempotency_running_twice_produces_identical_state(db_session: Session) -> None:
+    """Running sync_jira twice leaves the same projects, issues and dependencies (NFR-003)."""
+    org = Organization(name="Keshan Org")
+    db_session.add(org)
+    db_session.flush()
+
+    def issue(key: str, issue_id: str, links: list[dict]) -> dict:
+        return {
+            "id": issue_id,
+            "key": key,
+            "fields": {
+                "summary": f"Issue {key}",
+                "status": {"name": "In Progress"},
+                "priority": {"name": "High"},
+                "duedate": None,
+                "flagged": False,
+                "project": {"id": "10000", "key": "AUTH"},
+                "assignee": {"accountId": "5f3a1b2c3d4e", "displayName": "Keshan P."},
+                "issuelinks": links,
+            },
+        }
+
+    blocked_by_245 = {
+        "type": {"name": "Blocks", "inward": "is blocked by", "outward": "blocks"},
+        "inwardIssue": {"id": "10001", "key": "AUTH-245"},
+    }
+    mock_client = MagicMock()
+    mock_client.list_projects.return_value = [
+        {"id": "10000", "key": "AUTH", "name": "Authentication Service"}
+    ]
+    mock_client.search_issues.return_value = [
+        issue("AUTH-245", "10001", []),
+        issue("AUTH-246", "10002", [blocked_by_245]),
+    ]
+    mock_client.get_remote_links.return_value = []
+
+    def counts() -> tuple[int, int, int]:
+        return (
+            len(db_session.scalars(select(Project)).all()),
+            len(db_session.scalars(select(WorkItem)).all()),
+            len(db_session.scalars(select(WorkItemDependency)).all()),
+        )
+
+    run1 = sync_jira(session=db_session, team_id=1, scope="ALL", jira_client=mock_client)
+    assert run1.status == "success"
+    first = counts()
+
+    run2 = sync_jira(session=db_session, team_id=1, scope="ALL", jira_client=mock_client)
+    assert run2.status == "success"
+
+    assert first == counts() == (1, 2, 1)
 
 
 def test_cli_main_entrypoint(monkeypatch: pytest.MonkeyPatch, db_session: Session) -> None:
