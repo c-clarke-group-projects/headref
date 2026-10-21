@@ -1,8 +1,11 @@
 """Pytest configuration and environment fixtures for headref."""
 
+import ipaddress
 import os
+import socket
 from collections.abc import Generator, Iterator
 from typing import Any
+from urllib.parse import urlparse
 
 import pytest
 from fastapi import FastAPI
@@ -36,6 +39,75 @@ def _restore_configuration() -> Generator[None, None, None]:
     os.environ.clear()
     os.environ.update(saved_env)
     app.config.settings = saved_settings
+
+
+def _database_addresses() -> set[str]:
+    """IP addresses of the test database host, the 1 network peer a test may reach.
+
+    tests/test_db.py checks a real statement timeout against PostgreSQL when one is
+    reachable: localhost in CI, the compose service "db" inside the api container.
+    """
+    host = urlparse(os.environ.get("DATABASE_URL", "")).hostname
+    if not host:
+        return set()
+    try:
+        return {info[4][0] for info in socket.getaddrinfo(host, None)}
+    except OSError:
+        return set()
+
+
+_ALLOWED_ADDRESSES = _database_addresses()
+
+
+@pytest.fixture(autouse=True)
+def _no_network(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
+    """Refuse any connection off this machine, and fail the test that tried (P6-001).
+
+    HTTP is mocked with respx or fake transports, so a real connection means a test
+    escaped its mock. The connection is refused with an OSError and the test is failed
+    at teardown, so a test that expects a failure cannot pass by accident. Loopback and
+    the test database stay allowed; Unix sockets are untouched.
+    """
+    attempted: list[str] = []
+    real_connect = socket.socket.connect
+    real_connect_ex = socket.socket.connect_ex
+
+    def _allowed(sock: socket.socket, address: Any) -> bool:
+        if sock.family not in (socket.AF_INET, socket.AF_INET6):
+            return True
+        host = str(address[0])
+        if host in _ALLOWED_ADDRESSES:
+            return True
+        try:
+            return ipaddress.ip_address(host).is_loopback
+        except ValueError:
+            return False
+
+    def _guarded_connect(sock: socket.socket, address: Any) -> None:
+        if not _allowed(sock, address):
+            attempted.append(str(address))
+            raise ConnectionRefusedError(f"Network disabled in tests: {address}")
+        real_connect(sock, address)
+
+    def _guarded_connect_ex(sock: socket.socket, address: Any) -> int:
+        if not _allowed(sock, address):
+            attempted.append(str(address))
+            raise ConnectionRefusedError(f"Network disabled in tests: {address}")
+        return real_connect_ex(sock, address)
+
+    monkeypatch.setattr(socket.socket, "connect", _guarded_connect)
+    monkeypatch.setattr(socket.socket, "connect_ex", _guarded_connect_ex)
+    yield
+    if attempted:
+        pytest.fail(f"Test tried to reach the network: {', '.join(attempted)}")
+
+
+@pytest.fixture
+def no_backoff(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Retry without sleeping, so a test checks the attempt count, not the wall clock."""
+    monkeypatch.setattr(
+        "app.integrations.http._WaitRetryAfterOrExponential.__call__", lambda *_: 0.0
+    )
 
 
 def log_in(client: TestClient, user_id: int) -> None:

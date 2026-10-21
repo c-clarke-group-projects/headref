@@ -66,8 +66,15 @@ def test_recover_stuck_sync_marks_failed(db_session: Session) -> None:
     assert stuck_run.finished_at is not None
 
 
-def test_active_sync_prevents_duplicate_run(db_session: Session) -> None:
+def test_active_sync_prevents_duplicate_run(
+    monkeypatch: pytest.MonkeyPatch, db_session: Session
+) -> None:
     """A currently active sync within timeout threshold blocks new concurrent syncs."""
+    # The tick also runs the Jira path. Without this stub it called the real Jira site
+    # from .env (caught by the conftest network guard, P6-001).
+    monkeypatch.setattr(
+        "app.scheduler.sync_jira", lambda *args, **kwargs: MagicMock(status="success")
+    )
     now = datetime.now(UTC)
     recent_time = now - timedelta(minutes=2)
 
