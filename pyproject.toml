@@ -72,3 +72,6 @@ extend-exclude = "docs/headref-ui-pack"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# tests/eval holds the evaluation scenarios. CI skips the folder (--ignore=tests/eval);
+# run them with: pytest -m eval tests/eval
+markers = ["eval: evaluation scenario EV-01 to EV-12, kept out of CI"]
