@@ -1990,7 +1990,7 @@ tests, sync idempotency tests.
 **Out of scope:** Agent tests.
 **Owner:** Developer 1
 **Priority:** P0
-**Status:** NOT_STARTED
+**Status:** IN_REVIEW
 **Dependencies:** P2-008
 **Parallelizable:** YES, alongside P6-002.
 **Components:** Tests
@@ -1999,12 +1999,12 @@ tests, sync idempotency tests.
 **Implementation notes:** Every test uses fixtures. No live network call in any automated
 test.
 **Acceptance criteria:**
-- [ ] Both clients are tested for success, pagination, timeout, 401, 403, 429, 500.
-- [ ] Normalization is tested with no database.
-- [ ] Identity resolution is tested for all 4 cases from P2-006.
-- [ ] The link builder is tested for all 5 methods plus the no-link case.
-- [ ] Sync idempotency is tested.
-- [ ] No automated test makes a network call.
+- [x] Both clients are tested for success, pagination, timeout, 401, 403, 429, 500.
+- [x] Normalization is tested with no database.
+- [x] Identity resolution is tested for all 4 cases from P2-006.
+- [x] The link builder is tested for all 5 methods plus the no-link case.
+- [x] Sync idempotency is tested.
+- [x] No automated test makes a network call.
 
 **Testing required:** This is the testing task.
 **Handoff notes:** CI runs these on every pull request.
