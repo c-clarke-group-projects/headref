@@ -1,6 +1,6 @@
 """Narrative validator stage S5 (P4-006, Issue #30).
 
-Validates model-generated narrative against invented entities, forbidden language,
+Validates model-generated narrative against invented entities, forbidden language, refusals
 and shape constraints, falling back to deterministic summary on any failure (DEC-018, FR-022).
 """
 
@@ -32,6 +32,16 @@ FORBIDDEN_TERMS = [
 ]
 
 _ENTITY_PATTERN = re.compile(r"\b[A-Z][A-Z0-9]+-\d+\b|#\d+")
+
+# A model refusal written as valid JSON (EV-12 C2). The narrative describes work in the
+# third person, so first-person refusal phrasing never belongs in it.
+REFUSAL_PATTERN = re.compile(
+    r"\b(?:i am sorry|i'm sorry|i apologi[sz]e"
+    r"|i (?:cannot|can't|can not|am unable to|am not able to|won't|will not)"
+    r" (?:help|assist|answer|provide|comply|do that|complete)"
+    r"|as an ai)\b",
+    re.IGNORECASE,
+)
 
 
 def extract_entities(text: str) -> set[str]:
@@ -116,6 +126,18 @@ def validate_narrative(
             dropped_claims=[
                 {"reason": "FORBIDDEN_LANGUAGE", "term": term} for term in matched_forbidden
             ],
+        )
+
+    # Check 4: A refusal is not a summary, even when it fits the schema (EV-12 C2)
+    refusal = REFUSAL_PATTERN.search(f"{summary} {needs_attention}")
+    if refusal:
+        logger.warning("Narrative was a refusal. Using deterministic fallback.")
+        return ValidatedNarrative(
+            summary=fallback_text,
+            needs_attention="See detailed findings below.",
+            attention_needed=False,
+            fallback_used=True,
+            dropped_claims=[{"reason": "REFUSAL", "phrase": refusal.group(0)}],
         )
 
     # Narrative passed all checks

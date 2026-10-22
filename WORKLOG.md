@@ -60,6 +60,26 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Keshan | EV-12 C2: the validator rejects a refusal
+Status: IN_REVIEW
+
+### Completed
+- A 4th validator check: first-person refusal phrasing ("I am sorry", "I cannot help",
+  "as an AI") in either narrative field triggers the deterministic fallback with no retry,
+  recorded in `dropped_claims` as `REFUSAL`. Placed after the 3 existing checks, so their
+  order and recorded reasons are unchanged.
+- Isiwara's EV-12 C2 scenario passes; its `xfail(strict=True)` marker is removed.
+- 7 unit tests: 4 refusal phrasings rejected, 3 third-person summaries kept, including
+  "cannot merge until its failing check passes", so ordinary wording is not caught.
+- `AGENT_ARCHITECTURE.md` S5 lists 4 checks; `TESTING_AND_EVALUATION.md` EV-12 C2 is met;
+  `TASKS.md` P6-002 counts the refusal check.
+
+### Decisions Needed
+Decided by Keshan 2026-10-22 (option on #40): reject refusals. Validation is the
+Developer 2 lane (DEC-019): Isiwara to review the phrase list.
+
+---
+
 ## 2026-10-22 | Keshan | P6-002 old evidence is LOW, validator count, task statuses
 Status: DONE
 

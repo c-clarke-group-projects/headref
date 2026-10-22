@@ -42,7 +42,7 @@ conditions, and both are required.
 | Conflicts | CF-1 to CF-4, positive and negative | Developer 2 |
 | Blockers | BL-1 to BL-8, positive and negative | Developer 2 |
 | Risks | RK-1 to RK-4, positive and negative | Developer 2 |
-| Validator | All 3 checks (`AGENT_ARCHITECTURE.md` S5), plus the discarded-narrative fallback | Developer 2 |
+| Validator | All 4 checks (`AGENT_ARCHITECTURE.md` S5), plus the discarded-narrative fallback | Developer 2 |
 | Cache | Hash stability across processes, hit, miss on changed evidence | Developer 2 |
 
 ### Integration tests
@@ -290,8 +290,8 @@ has no refusal stop reason, so the refusal arrives as ordinary output.
   schema parse rejects it, `agent_run.error_type` is `SCHEMA_INVALID`.
 - **C2:** the refusal is inside valid JSON, for example a summary of "I am sorry, but I
   cannot help with that request." **Required outcome C2:** deterministic fallback, the
-  refusal does not reach the response. Not met today: it passes the schema and all 3
-  validator checks. The test is marked as an expected failure until a rule is decided.
+  refusal does not reach the response, `dropped_claims` records reason `REFUSAL`. Met by
+  the validator's refusal check (agreed 2026-10-22).
 
 **Fails if:** the page errors, or more than 1 retry is attempted, or the fallback is not
 labelled.

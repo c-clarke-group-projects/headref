@@ -2040,8 +2040,9 @@ model response is needed.
 - [x] All 4 confidence base levels and 5 modifiers tested.
 - [x] All 4 conflict rules tested, positive and negative.
 - [x] All 8 blocker and 4 risk signals tested, positive and negative.
-- [x] All 3 validator checks tested: invented entity, forbidden language, length and shape
-      (`AGENT_ARCHITECTURE.md` S5). The count was 8 before DEC-018; corrected 2026-10-22.
+- [x] All validator checks tested: invented entity, forbidden language, length and shape,
+      and refusal (`AGENT_ARCHITECTURE.md` S5). The count was 8 before DEC-018; corrected
+      2026-10-22, when the refusal check was added as the 4th.
 - [x] No model call in any automated test.
 
 **Testing required:** This is the testing task.

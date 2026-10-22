@@ -210,13 +210,6 @@ async def test_ev12_invalid_output_retries_once_then_falls_back(
 
 
 @pytest.mark.anyio
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Known gap, decision needed: a refusal inside valid JSON passes the schema and all "
-        "3 validator checks, so it reaches the user as the summary"
-    ),
-)
 async def test_ev12_c2_a_refusal_inside_valid_json_falls_back() -> None:
     content = narrative(
         "I am sorry, but I cannot help with that request.",
