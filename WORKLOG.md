@@ -60,6 +60,39 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Keshan | P7-003 timed clean setup; P7-002 compared with llama3.2:1b
+Status: IN_PROGRESS
+
+### P7-003: timed clean setup (scripted)
+A fresh `git clone` of `main` at `b0559ea` into a throwaway folder, then README section 9
+exactly: `cp .env.example .env`, set `DATABASE_URL` and `SESSION_SECRET`, `docker compose
+up --build`, `alembic upgrade head`, `seed/seed_demo.py`, under its own compose project.
+
+| Step | Time from start |
+|---|---|
+| Clone, `.env` ready | 7 s |
+| `docker compose up --build`, `/health` 200 | 136 s |
+| `alembic upgrade head` | 146 s |
+| `seed_demo.py` (15 GitHub and 8 Jira records) | 148 s |
+| `/login` served ("GitHub OAuth not configured", as expected without credentials) | 148 s |
+
+Every README command worked as written. 2 deviations, both because this machine already
+runs headref: `API_PORT=8131` and no host port for the database (an override file).
+Not timed: `ollama pull` (already done here), registering the GitHub OAuth app, signing
+in and `seed_demo.py --owner`. Base images were cached, so a machine that has never run
+Docker would also download them. The throwaway stack, its volume and the clone were
+removed. The issue asks, ideally, for the developer who did not write the README; this
+run was scripted by Developer 1 with an AI assistant, so "clone to working UI" stays open
+for Isiwara's run, including sign-in.
+
+### P7-002: the same uncached measurement with llama3.2:1b
+10 uncached runs on the demo data, same machine and conditions as the 3B run above:
+p50 5.1 s, p95 8.2 s, max 8.2 s, no timeouts, no rejected narrative. That meets NFR-013
+(20 s) here, where the 3B model missed it (p95 75.0 s). Summary quality of the 1B model
+was not judged. Data for the NFR-013 decision, not a change: `MODEL_ID` is unchanged.
+
+---
+
 ## 2026-10-22 | Keshan | P7-002 measured on the real model; narrative rejection fixed
 Status: IN_PROGRESS
 
