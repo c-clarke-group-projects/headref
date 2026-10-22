@@ -60,6 +60,24 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Keshan | P7-004 demo script for the workspace UI
+Status: IN_PROGRESS
+
+### Completed
+`docs/DEMO.md`: preparation (model choice, pre-warm, seeding the demo workspace on a fresh
+database), the 7 demo steps mapped to the workspace pages, how to make Jira unavailable
+for step 5 and what must then be true, the `agent_run.dropped_claims` query for step 7,
+and the 9 success criteria of `PROJECT_REQUIREMENTS.md` 2.9 with their state today.
+
+### Not done
+- The rehearsal itself, by both developers, and the v0.1.0 tag. Open before tagging: the
+  #35 click-check, the #46 timed run with sign-in, a final WORKLOG entry from both, and
+  the DEC-020 to DEC-026 decisions.
+- Step 5 is written from the code (a rejected token refresh sets "Reconnect needed"; a 401
+  fails the Jira run with `AUTH_FAILED`), not yet seen live.
+
+---
+
 ## 2026-10-22 | Keshan | Demo seed: correct Jira and review links (P5-003, P7-004)
 Status: IN_REVIEW
 
