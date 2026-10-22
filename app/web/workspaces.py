@@ -150,6 +150,7 @@ def _workspace_out(workspace: Workspace, role: str) -> WorkspaceOut:
         description=workspace.description,
         role=role,  # type: ignore[arg-type]
         created_at=workspace.created_at,
+        is_demo=workspace.is_demo,
     )
 
 

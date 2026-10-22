@@ -30,6 +30,7 @@
     <h1 class="hero__title">{{ workspace.name }}</h1>
     {% if workspace.description %}<p class="hero__lead">{{ workspace.description }}</p>{% endif %}
     <div class="hero__pills">
+      {% if workspace.is_demo %}<span class="badge badge--sm badge--needs-attention">Demo data</span>{% endif %}
       <span class="badge badge--sm badge--on-dark">You are {{ "an" if role == "owner" else "a" }} {{ role }}</span>
       <a class="btn btn--on-dark btn--sm" href="/w/{{ workspace.id }}/people">{{ i.icon("people", 14) }} People</a>
       <a class="btn btn--on-dark btn--sm" href="/w/{{ workspace.id }}/settings">{{ i.icon("settings", 14) }} Settings</a>
@@ -46,7 +47,9 @@
     </div>
   </div>
   <div class="hero__actions ws-sync"{% if sync_running %} data-ws-sync-poll="/api/workspaces/{{ workspace.id }}/sync/status"{% endif %}>
-    {% if not has_sources %}
+    {% if workspace.is_demo %}
+      <span class="caption">Recorded fixture data. Never synced.</span>
+    {% elif not has_sources %}
       <span class="caption" id="sync-reason">Nothing to sync: connect a repository or a Jira project first.</span>
       {% if can_manage %}<button type="button" class="btn btn--mint" disabled aria-describedby="sync-reason">Sync now</button>{% endif %}
     {% elif sync_running %}
@@ -89,6 +92,12 @@
     <h2 class="side-card__title" id="connections-title">Connections</h2>
   </div>
   <p class="caption">Read only. Headref never writes to GitHub or Jira.</p>
+  {% if workspace.is_demo %}
+  <p class="empty-note" style="margin-top: var(--s-3)">This demo workspace reads recorded
+    fixtures loaded by <code>seed/seed_demo.py</code>, through the real ingestion code. It has
+    no GitHub or Jira connection and is never synced. Create your own workspace to connect
+    real sources.</p>
+  {% else %}
   <div class="ws-conn">
     <div class="ws-conn__row">
       <span class="ws-conn__name">{{ i.source_icon("github", 18) }} GitHub</span>
@@ -133,6 +142,7 @@
   </div>
   {% if not is_owner %}
   <p class="caption" style="margin-top: var(--s-3)">The workspace owner connects repositories and Jira projects.</p>
+  {% endif %}
   {% endif %}
 
   {% if sync_runs %}

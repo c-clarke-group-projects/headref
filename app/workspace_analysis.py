@@ -83,7 +83,13 @@ class WorkspaceAnalysis:
 
 
 def jira_in_use(db: Session, workspace_id: int) -> bool:
-    """True if the workspace has an active Jira connection."""
+    """True if the workspace has an active Jira connection, or is a demo workspace.
+
+    A demo workspace (#46) holds Jira data seeded from recorded fixtures with no
+    connection, so Jira findings must still be analysed there.
+    """
+    if db.scalar(select(Workspace.is_demo).where(Workspace.id == workspace_id)):
+        return True
     return (
         db.scalar(
             select(JiraConnection.id).where(

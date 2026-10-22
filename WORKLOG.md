@@ -60,6 +60,45 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Keshan | Demo workspace from seed/seed_demo.py --owner (#46, #47)
+Status: IN_REVIEW
+
+### Announcement (rule 11)
+Developer 1 writes migration `0010_workspace_is_demo` on `feat/46-demo-workspace`. No
+other migration until it is merged.
+
+### Completed
+- Migration `0010_workspace_is_demo`, additive: 1 boolean, false for every existing
+  workspace. Verified on a throwaway PostgreSQL 15: upgrade, downgrade, upgrade, 1 head.
+  `alembic check` shows only the old W1 index name drift.
+- `seed_demo.py --owner <github-login>` creates the workspace "Demo", owned by that
+  account, on the demo organization, and records the seed's sync runs against it. The
+  owner must have signed in once; otherwise the seed stops before writing anything.
+- A demo workspace counts Jira as in use, is never synced (Sync now and the scheduler both
+  skip it, even with a repository selected), and shows a "Demo data" badge with a note in
+  place of the connection controls.
+- 9 tests. Live check on the throwaway PostgreSQL with the real analysis: Jira in use, both
+  sources fresh, 2 people, 5 blockers, 2 Jira and GitHub conflicts, 10 risks.
+
+### Problems
+- **The seed wrote into the first organization in the database.** In a database with
+  workspaces, that can be a real workspace's. The identity map fell back the same way, and
+  the demo team was given to every unassigned person in any organization. All 3 now use
+  the demo organization only; a test checks a real workspace's organization gets nothing.
+
+### Discovered
+- The fixtures carry fixed dates (around 2026-09-20), so current work in the demo is LOW
+  under the P6-002 rule once they pass `RECENT_ACTIVITY_DAYS`. Fresh captured fixtures
+  (P0-002) would fix that.
+- The code-only analysis logs "Narrative cited invented entities: AUTH-245" and then uses
+  the same code-built text. Already on `main`; nothing on screen changes. Not looked into.
+
+### Decisions Needed
+Decided by Keshan 2026-10-22, for Isiwara to confirm: a demo flag (`workspace.is_demo`)
+rather than a GitHub-only demo or a placeholder Jira connection.
+
+---
+
 ## 2026-10-22 | Keshan | EV-12 C2: the validator rejects a refusal
 Status: IN_REVIEW
 

@@ -6,13 +6,14 @@ realistic dataset featuring verified members, unmatched entities (S-6),
 unlinked PRs (S-8), and Jira/GitHub state conflicts (CF-1).
 """
 
+import argparse
 import json
 import logging
 import sys
 from pathlib import Path
 
 import httpx
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -24,11 +25,63 @@ from app.integrations.github import GitHubClient
 from app.integrations.identity_loader import load_identity_map
 from app.integrations.jira import JiraClient
 from app.models.canonical import AppUser, Organization, Team
+from app.models.workspace import Account, Workspace, WorkspaceMember
 from app.sync import sync_github, sync_jira
 
 logger = logging.getLogger("headref.seed")
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
+# The demo data has its own organization, found by name. It is never "the first
+# organization": in a database with workspaces, that is a real workspace's data.
+DEMO_ORG_NAME = "headref Demo Corp"
+DEMO_WORKSPACE_NAME = "Demo"
+DEMO_WORKSPACE_DESCRIPTION = "Recorded fixture data, not a real team. Never synced."
+
+
+class DemoOwnerError(Exception):
+    """The --owner login cannot own the demo workspace."""
+
+
+def ensure_demo_workspace(session: Session, org: Organization, owner_login: str) -> Workspace:
+    """Return the demo workspace on the demo organization, owned by owner_login (#46).
+
+    The owner must have signed in to headref once, which creates their account.
+    """
+    account = session.scalar(
+        select(Account).where(func.lower(Account.github_login) == owner_login.lower())
+    )
+    if account is None:
+        raise DemoOwnerError(
+            f"No headref account for GitHub login {owner_login!r}. Sign in to headref once "
+            "with that account, then run this again."
+        )
+
+    workspace = session.scalar(select(Workspace).where(Workspace.organization_id == org.id))
+    if workspace is None:
+        workspace = Workspace(
+            name=DEMO_WORKSPACE_NAME,
+            description=DEMO_WORKSPACE_DESCRIPTION,
+            organization_id=org.id,
+            created_by_account_id=account.id,
+            is_demo=True,
+        )
+        session.add(workspace)
+        session.flush()
+    elif not workspace.is_demo:
+        raise DemoOwnerError(
+            f"Organization {org.name!r} belongs to the real workspace {workspace.name!r}."
+        )
+
+    member = session.scalar(
+        select(WorkspaceMember).where(
+            WorkspaceMember.workspace_id == workspace.id,
+            WorkspaceMember.account_id == account.id,
+        )
+    )
+    if member is None:
+        session.add(WorkspaceMember(workspace_id=workspace.id, account_id=account.id, role="owner"))
+    session.commit()
+    return workspace
 
 
 class FixtureTransport(httpx.BaseTransport):
@@ -89,17 +142,22 @@ def seed_demo_database(
     session: Session,
     fixtures_dir: Path | None = None,
     identity_map_path: Path | None = None,
+    owner_login: str | None = None,
 ) -> dict[str, int]:
-    """Seed the database end-to-end using real ingestion with offline fixture transport."""
+    """Seed the database end-to-end using real ingestion with offline fixture transport.
+
+    With owner_login, the data also gets a demo workspace owned by that account, so it
+    shows in the UI (#46). Without it, the data is seeded but no workspace shows it.
+    """
     fdir = fixtures_dir or FIXTURES_DIR
     imap = identity_map_path or (Path(__file__).resolve().parent / "identity_map.yml")
 
     logger.info("Initializing demo organization and team...")
 
     # 1. Organization and Team
-    org = session.scalar(select(Organization))
+    org = session.scalar(select(Organization).where(Organization.name == DEMO_ORG_NAME))
     if not org:
-        org = Organization(name="headref Demo Corp")
+        org = Organization(name=DEMO_ORG_NAME)
         session.add(org)
         session.flush()
 
@@ -111,12 +169,18 @@ def seed_demo_database(
 
     session.commit()
 
-    # 2. Identity Map
-    logger.info("Loading identity map from %s...", imap)
-    load_identity_map(session, imap)
+    workspace_id = None
+    if owner_login:
+        workspace_id = ensure_demo_workspace(session, org, owner_login).id
 
-    # Assign team to any unassigned users
-    users = session.scalars(select(AppUser).where(AppUser.team_id.is_(None))).all()
+    # 2. Identity Map, into the demo organization only
+    logger.info("Loading identity map from %s...", imap)
+    load_identity_map(session, imap, organization_id=org.id)
+
+    # Assign the demo team to the demo organization's unassigned users
+    users = session.scalars(
+        select(AppUser).where(AppUser.organization_id == org.id, AppUser.team_id.is_(None))
+    ).all()
     for u in users:
         u.team_id = team.id
     session.commit()
@@ -147,6 +211,8 @@ def seed_demo_database(
         team_id=team.id,
         scope="ALL",
         jira_client=jira_client,
+        organization_id=org.id,
+        workspace_id=workspace_id,
     )
 
     logger.info("Running GitHub demo sync...")
@@ -155,6 +221,8 @@ def seed_demo_database(
         team_id=team.id,
         scope="keshan-dev/headref",
         gh_client=gh_client,
+        organization_id=org.id,
+        workspace_id=workspace_id,
     )
 
     logger.info("Running Jira demo sync again to settle cross-source links...")
@@ -163,6 +231,8 @@ def seed_demo_database(
         team_id=team.id,
         scope="ALL",
         jira_client=jira_client,
+        organization_id=org.id,
+        workspace_id=workspace_id,
     )
 
     summary = {
@@ -170,22 +240,37 @@ def seed_demo_database(
         "gh_written": gh_run.items_written,
         "jira_fetched": jira_run.items_fetched,
         "jira_written": jira_run.items_written,
+        "workspace_id": workspace_id or 0,
     }
     logger.info("Demo seeding complete: %s", summary)
     return summary
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     """CLI entrypoint for seeding demo database."""
+    parser = argparse.ArgumentParser(description="Seed the headref demo data offline.")
+    parser.add_argument(
+        "--owner",
+        metavar="GITHUB_LOGIN",
+        help="Also create the Demo workspace, owned by this account, so the data shows in "
+        "the UI. The account must have signed in to headref once.",
+    )
+    args = parser.parse_args(argv)
+
     session = get_sync_session()
     try:
-        summary = seed_demo_database(session)
-        print("Demo database seeded successfully through the real ingestion path:")
-        print(f"  GitHub: {summary['gh_written']} written ({summary['gh_fetched']} fetched)")
-        print(f"  Jira:   {summary['jira_written']} written ({summary['jira_fetched']} fetched)")
-        return 0
+        summary = seed_demo_database(session, owner_login=args.owner)
+    except DemoOwnerError as err:
+        print(f"Not seeded: {err}", file=sys.stderr)
+        return 1
     finally:
         session.close()
+    print("Demo database seeded successfully through the real ingestion path:")
+    print(f"  GitHub: {summary['gh_written']} written ({summary['gh_fetched']} fetched)")
+    print(f"  Jira:   {summary['jira_written']} written ({summary['jira_fetched']} fetched)")
+    if summary.get("workspace_id"):
+        print(f"  Demo workspace: /w/{summary['workspace_id']}")
+    return 0
 
 
 if __name__ == "__main__":
