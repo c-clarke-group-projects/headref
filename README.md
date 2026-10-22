@@ -256,15 +256,21 @@ old values.
 
 ### 9.5 Demo data
 
+Sign in once with GitHub first, then, with your GitHub login:
+
 ```bash
-docker compose exec api python seed/seed_demo.py
+docker compose exec api python seed/seed_demo.py --owner <your-github-login>
 ```
 
 `seed_demo.py` loads recorded API payloads from `seed/fixtures/` through the real
-ingestion code, with no network calls (DEC-012). **It does not appear in the UI today:** it
-seeds a separate organization ("headref Demo Corp") that no workspace uses, and the team
-pages that showed it were removed (DEC-026). Raised in `WORKLOG.md` under Decisions
-Needed.
+ingestion code, with no network calls (DEC-012), into its own organization. With
+`--owner`, it also creates a workspace named **Demo**, owned by that account and labelled
+"Demo data", with the identity-map people confirmed. Open it from your workspace list.
+
+A demo workspace never syncs and has no connections. It needs no GitHub App or Atlassian
+app, so it works without 9.3. The fixtures carry fixed dates, so current work there shows
+LOW confidence once they are older than `RECENT_ACTIVITY_DAYS`. Without `--owner`, the data
+is seeded but no workspace shows it.
 
 ## 10. How to run things
 
@@ -272,7 +278,7 @@ Needed.
 |---|---|
 | Start everything | `docker compose up --build` |
 | Apply migrations | `docker compose exec api alembic upgrade head` |
-| Load demo data | `docker compose exec api python seed/seed_demo.py` (not shown in the UI, see 9.5) |
+| Load demo data | `docker compose exec api python seed/seed_demo.py --owner <your-github-login>` (see 9.5) |
 | Sync a workspace | Sync now on the workspace page; the scheduler also runs every 5 minutes |
 | Legacy sync, 1 team from `.env` | `docker compose exec api python -m app.sync --source github --team 1` (needs `GITHUB_TOKEN`, `GITHUB_REPOS`) |
 | Run tests | `docker compose exec api pytest` |

@@ -36,3 +36,4 @@ class WorkspaceOut(BaseModel):
     description: str | None
     role: Literal["owner", "manager", "viewer"] = Field(description="The caller's role")
     created_at: datetime
+    is_demo: bool = Field(default=False, description="Seeded from recorded fixtures (#46)")

@@ -60,7 +60,13 @@ def ensure_organization(db: Session, workspace: Workspace) -> int:
 
 
 def has_sources(db: Session, workspace_id: int) -> bool:
-    """True if the workspace has at least 1 selected repository or Jira project."""
+    """True if the workspace has at least 1 selected repository or Jira project.
+
+    Always false for a demo workspace (#46): its data is recorded fixtures, and a sync
+    would mix real records into it.
+    """
+    if db.scalar(select(Workspace.is_demo).where(Workspace.id == workspace_id)):
+        return False
     repo = db.scalar(
         select(WorkspaceRepository.id).where(WorkspaceRepository.workspace_id == workspace_id)
     )
@@ -329,6 +335,7 @@ def workspaces_to_sync(db: Session) -> list[int]:
             select(Workspace.id)
             .where(
                 Workspace.archived_at.is_(None),
+                Workspace.is_demo.is_(False),
                 Workspace.id.in_(with_repos) | Workspace.id.in_(with_projects),
             )
             .order_by(Workspace.id)

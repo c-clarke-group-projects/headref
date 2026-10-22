@@ -10,12 +10,14 @@ from typing import Literal
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
     Integer,
     String,
     UniqueConstraint,
+    false,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -85,6 +87,11 @@ class Workspace(Base):
         DateTime(timezone=True), default=_now, nullable=False
     )
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Seeded from recorded fixtures by seed/seed_demo.py --owner (#46). Never synced; Jira
+    # counts as in use; the UI labels it "Demo data" so nobody reads it as a real team.
+    is_demo: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
 
     members: Mapped[list["WorkspaceMember"]] = relationship(
         "WorkspaceMember", back_populates="workspace", cascade="all, delete-orphan"

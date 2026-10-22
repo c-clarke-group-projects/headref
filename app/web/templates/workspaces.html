@@ -84,6 +84,7 @@
           {% set badge = {"Blocked": "badge--blocked", "Needs Attention": "badge--needs-attention", "On Track": "badge--on-track"}.get(c.health, "badge--unknown") %}
           <div class="card__head" style="align-items: center">
             <h2 class="card__title ws-card__name">{{ w.name }}</h2>
+            {% if w.is_demo %}<span class="badge badge--outline">Demo data</span>{% endif %}
             <span class="badge {{ badge }}">{{ c.health }}</span>
           </div>
           {% if w.description %}<p class="caption ws-card__desc">{{ w.description }}</p>{% endif %}
