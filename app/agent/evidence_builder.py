@@ -143,6 +143,38 @@ def build_evidence(context: AgentRunContext) -> EvidenceSet:
         # Work item directly assigned: rank priority 0, Jira source authority 0
         candidates.append((0, -observed_at.timestamp(), 0, entity_key, evidence))
 
+    # 1b. Blocking work items, often another member's. A dependency blocker names them,
+    # so the drawer must be able to show them. The record is cited, not attributed to
+    # anyone, so the null actor rule does not apply.
+    for item in retrieval.work_items:
+        if jira_state is None:
+            continue
+
+        for dep in item.blocked_by_items:
+            entity_key = str(dep.external_id)
+            dedupe_key = ("jira", "work_item", entity_key)
+
+            if dedupe_key in seen:
+                excluded_duplicate += 1
+                continue
+            seen.add(dedupe_key)
+
+            evidence = EvidenceItem(
+                id="",
+                source="jira",
+                entity_type=EntityType.work_item,
+                entity_key=entity_key,
+                source_url=dep.source_url,
+                summary=_work_item_summary(dep),
+                excerpt=None,
+                observed_at=dep.source_updated_at,
+                retrieved_at=dep.retrieved_at,
+                source_state=jira_state,
+            )
+
+            # Dependency: rank priority 1, after the subject's own work items
+            candidates.append((1, -dep.source_updated_at.timestamp(), 0, entity_key, evidence))
+
     # 2. GitHub pull requests
     for pr in retrieval.pull_requests:
         if github_state is None:

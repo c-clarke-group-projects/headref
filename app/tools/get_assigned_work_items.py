@@ -11,6 +11,7 @@ from app.models.canonical import AppUser
 from app.models.work import WorkItem, WorkItemDependency
 from app.schemas.errors import ToolFailure
 from app.schemas.tools import (
+    DependencyOut,
     GetAssignedWorkItemsInput,
     GetAssignedWorkItemsOutput,
     WorkItemOut,
@@ -64,7 +65,7 @@ def get_assigned_work_items(
         for wi in work_items:
             # Query blocking dependencies for this work item
             dep_stmt = (
-                select(WorkItem.external_id)
+                select(WorkItem)
                 .join(WorkItemDependency, WorkItemDependency.blocked_by_work_item_id == WorkItem.id)
                 .where(
                     WorkItemDependency.work_item_id == wi.id,
@@ -72,7 +73,7 @@ def get_assigned_work_items(
                 )
                 .order_by(WorkItem.external_id)
             )
-            blocked_by_keys = list(session.scalars(dep_stmt).all())
+            blocking = list(session.scalars(dep_stmt).all())
 
             items.append(
                 WorkItemOut(
@@ -85,7 +86,19 @@ def get_assigned_work_items(
                     priority=wi.priority,
                     due_date=wi.due_date,
                     is_flagged=wi.is_flagged,
-                    blocked_by=blocked_by_keys,
+                    blocked_by=[dep.external_id for dep in blocking],
+                    blocked_by_items=[
+                        DependencyOut(
+                            external_id=dep.external_id,
+                            status=dep.status,  # type: ignore[arg-type]
+                            priority=dep.priority,
+                            is_flagged=dep.is_flagged,
+                            source_url=dep.source_url,
+                            source_updated_at=dep.source_updated_at,
+                            retrieved_at=dep.retrieved_at,
+                        )
+                        for dep in blocking
+                    ],
                     source_url=wi.source_url,
                     source_updated_at=wi.source_updated_at,
                     retrieved_at=wi.retrieved_at,
