@@ -21,7 +21,7 @@ from app.main import app
 from app.models.agent import AgentRun
 from app.models.canonical import AppUser, Organization
 from app.models.identity import UnmatchedEntity
-from app.models.work import Commit
+from app.models.work import Commit, WorkItemDependency
 from app.sync import sync_github
 from app.web import auth, workspace_pages
 from tests.conftest import log_in
@@ -360,3 +360,42 @@ def test_ev10_another_workspaces_member_gets_404_and_no_agent_run(
         assert response.status_code == 404
         assert "Secret Subject" not in response.text
         assert db.scalar(select(func.count(AgentRun.id))) == 0
+
+
+# ---------------------------------------------------------------------------
+# Narrative validation: naming what the findings name is not inventing (P7-002 finding)
+# ---------------------------------------------------------------------------
+
+
+def test_a_narrative_naming_another_members_blocking_issue_is_kept(sc: Scenario) -> None:
+    """The findings say AUTH-246 is blocked by Isiwara's AUTH-245; repeating that is fine.
+
+    Measured on the demo data: 9 of about 21 real model answers were rejected as
+    INVENTED_ENTITY for exactly this, and replaced by the code-built fallback.
+    """
+    keshan = sc.member("Keshan")
+    isiwara = sc.member("Isiwara")
+    blocked = sc.work_item("AUTH-246", keshan, status="blocked", raw_status="Blocked")
+    blocking = sc.work_item("AUTH-245", isiwara)
+    sc.session.add(
+        WorkItemDependency(
+            work_item_id=blocked.id,
+            blocked_by_work_item_id=blocking.id,
+            link_type="is blocked by",
+            retrieved_at=sc.ago(hours=1),
+        )
+    )
+    sc.both_fresh()
+    narrative = {
+        "summary": "AUTH-246 is blocked and waits on AUTH-245, which is still in progress.",
+        "needs_attention": "AUTH-246 cannot move until AUTH-245 is done.",
+        "attention_needed": True,
+    }
+
+    insight = sc.ask(keshan, "blockers", narrative=narrative)
+
+    assert any("AUTH-245" in b.claim for b in insight.blockers), "the findings name AUTH-245"
+    assert insight.fallback_used is False
+    assert insight.summary == narrative["summary"]
+    run = sc.agent_runs()[-1]
+    assert run.dropped_claims in (None, [])

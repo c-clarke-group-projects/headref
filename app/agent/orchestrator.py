@@ -33,7 +33,7 @@ from app.agent.evidence_builder import build_evidence
 from app.agent.narrative import deterministic_fallback, generate_narrative
 from app.agent.planner import QuestionType, RetrievalPlan, Source, build_plan
 from app.agent.risks import detect_risks
-from app.agent.validation import validate_narrative
+from app.agent.validation import extract_entities, validate_narrative
 from app.config import get_settings
 from app.schemas.errors import ToolFailure
 from app.schemas.insight import ActivitySummary, EvidenceItem, Insight, MemberInsight
@@ -448,6 +448,19 @@ def github_current_work(
 # Tools the activity counts are built from. If any failed or did not run, the counts
 # would be silently short, so no counts are shown (rule 9). T-006 is only needed when
 # there are pull requests to check for links.
+def narrative_allowed_entities(retrieval: RetrievalResult, findings_text: str) -> set[str]:
+    """Ticket keys and pull request numbers the narrative may name.
+
+    The member's own work items and pull requests, and every entity the findings text
+    names: the model summarises that text, so repeating what it says is not inventing.
+    A blocker such as "AUTH-246 is blocked by dependency: AUTH-245" names another
+    member's issue; without this, a correct narrative was rejected as INVENTED_ENTITY.
+    """
+    allowed = {w.external_id for w in retrieval.work_items}
+    allowed |= {f"#{pr.number}" for pr in retrieval.pull_requests}
+    return allowed | extract_entities(findings_text)
+
+
 NO_ACTIVITY_UNKNOWN = (
     "No recent Jira or GitHub activity is recorded for this member. Work not tracked in "
     "these tools is not visible to headref."
@@ -776,15 +789,13 @@ async def run_agent(
             )
         )
 
-    allowed_entities = {w.external_id for w in context.retrieval.work_items}
-    allowed_entities |= {f"#{pr.number}" for pr in context.retrieval.pull_requests}
-
     findings_sections = [det_summary.text]
     if blockers:
         findings_sections.append("Blockers: " + "; ".join(b.description for b in blockers))
     if risks:
         findings_sections.append("Risks: " + "; ".join(r.description for r in risks))
     findings_prompt_text = "\n\n".join(findings_sections)
+    allowed_entities = narrative_allowed_entities(context.retrieval, findings_prompt_text)
 
     # 5. Stage S4b: Narrative Generation
     if skip_llm:
