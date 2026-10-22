@@ -60,6 +60,48 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Keshan | P7-002 measured on the real model; narrative rejection fixed
+Status: IN_PROGRESS
+
+### Measured (2026-10-22, Keshan's machine)
+Machine: i7-12650H, 7.7 GB RAM, Windows 11, Docker Desktop (WSL). Model `llama3.2` (3B)
+on host Ollama, `num_predict` 300. Demo data seeded into a throwaway PostgreSQL 15; the
+real `run_agent` with real read tools and the real model call. Other applications were
+open (2 IDEs, a browser), and host memory sat at its 7.71 GB ceiling for the whole run.
+Measured by Developer 1 with an AI assistant, at Keshan's request; P7-002 is the
+Developer 2 lane.
+
+| Measure | Result | Target |
+|---|---|---|
+| p95 cached (20 runs) | 3.36 s (p50 0.19 s) | under 5 s: met |
+| p95 uncached (20 warm runs) | 75.0 s (p50 21.2 s, max 83.7 s) | under 20 s (NFR-013): **missed** |
+| Cold uncached, model unloaded first | 44.0 s | |
+| Tokens per second, warm | 12.1 | |
+| Tokens per second, cold | 14.9 eval rate, after 16.8 s to load the model | |
+| Cache hits that called the model | 0 of 20 | 0 |
+| Peak memory | model process 2,630 MiB private; app container 267 MiB; PostgreSQL 45 to 62 MiB | |
+| Cost | 0 USD (DEC-017) | 0 |
+
+The uncached p95 is set by 3 runs that timed out twice at the 30 s model limit (67 s
+each) and fell back. Without them the uncached runs sit near the 21 s median.
+
+### Problems
+- **9 of about 21 real model answers were thrown away as `INVENTED_ENTITY`.** The findings
+  text can name another member's issue ("AUTH-246 is blocked by dependency: AUTH-245"),
+  but the validator only allowed the member's own records, so a correct summary repeating
+  it was replaced by the fallback. Fixed: the narrative may name every entity the
+  findings text names. A regression test fails without the fix. This was the
+  "Narrative cited invented entities: AUTH-245" line noted on 2026-10-22 as noise; it was
+  not noise.
+
+### Decisions Needed
+- NFR-013 is missed on this machine. The P7-002 handoff order: close other applications,
+  reduce `OLLAMA_NUM_PREDICT`, reduce `MAX_EVIDENCE_ITEMS`, then `llama3.2:1b` (installed
+  here). Each changes answer quality or the demo setup; for both developers to choose.
+  Measuring on Isiwara's machine would show whether this is the machine or the design.
+
+---
+
 ## 2026-10-22 | Keshan | Fixture capture script, docs for removed team routes
 Status: IN_PROGRESS
 

@@ -202,14 +202,19 @@ class Scenario:
         self.synced("jira", self.ago(hours=1))
         self.synced("github", self.ago(hours=1))
 
-    def ask(self, subject: AppUser, question_type: str) -> MemberInsight:
-        """Run the real agent for 1 question, with Ollama mocked and no network."""
+    def ask(
+        self, subject: AppUser, question_type: str, narrative: dict[str, Any] | None = None
+    ) -> MemberInsight:
+        """Run the real agent for 1 question, with Ollama mocked and no network.
+
+        narrative is what the mocked model answers; by default 1 that names no entity.
+        """
         self.session.commit()
         url = get_settings().ollama_url.rstrip("/") + "/api/chat"
         reply = httpx.Response(
             200,
             json={
-                "message": {"content": json.dumps(NEUTRAL_NARRATIVE)},
+                "message": {"content": json.dumps(narrative or NEUTRAL_NARRATIVE)},
                 "eval_count": 30,
                 "prompt_eval_count": 90,
             },
