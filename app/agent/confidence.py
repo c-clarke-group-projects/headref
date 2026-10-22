@@ -77,16 +77,16 @@ def evaluate_confidence(
     auth_sources = AUTHORITATIVE_SOURCES.get(claim_type, ["jira", "github"])
     has_auth_item = any(item.source in auth_sources for item in evidence_items)
 
-    all_items_fresh = all(item.source_state == "fresh" for item in evidence_items)
-
     recent_cutoff = now - timedelta(days=settings.recent_activity_days)
     all_items_old = all(item.observed_at < recent_cutoff for item in evidence_items)
 
     # Determine Base Level. "All evidence old" is checked first: old evidence says nothing
     # about now, however much of it there is, so it is never MEDIUM or HIGH (#40).
+    # Staleness is not a base condition: Modifier 1 drops a stale claim 1 level, so a
+    # stale HIGH becomes MEDIUM, never HIGH. Checking it here too dropped it twice (EV-04A).
     if all_items_old:
         level: ConfidenceLevel = "LOW"
-    elif num_items >= 3 and len(sources) >= 2 and has_auth_item and all_items_fresh:
+    elif num_items >= 3 and len(sources) >= 2 and has_auth_item:
         level = "HIGH"
     elif num_items >= 2 or (num_items == 1 and has_auth_item):
         level = "MEDIUM"

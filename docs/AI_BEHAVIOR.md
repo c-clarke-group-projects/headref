@@ -140,7 +140,7 @@ MEDIUM because it says nothing about now, however many items there are (#40, agr
 |---|---|---|
 | 1 | **UNKNOWN** | No evidence items, OR a source required by the question is `unavailable` |
 | 2 | **LOW** | All evidence older than `RECENT_ACTIVITY_DAYS` |
-| 3 | **HIGH** | 3 or more evidence items, from 2 or more sources, at least 1 from the authoritative source for the claim type, all items within the freshness window |
+| 3 | **HIGH** | 3 or more evidence items, from 2 or more sources, at least 1 from the authoritative source for the claim type. A stale source is handled by Modifier 1, which drops HIGH to MEDIUM; it is not also a base condition, so staleness costs 1 level, not 2 (EV-04A) |
 | 4 | **MEDIUM** | 2 or more evidence items, OR exactly 1 item from the authoritative source |
 | 5 | **LOW** | Anything else: exactly 1 evidence item that is not from the authoritative source |
 

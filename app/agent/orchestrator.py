@@ -448,6 +448,11 @@ def github_current_work(
 # Tools the activity counts are built from. If any failed or did not run, the counts
 # would be silently short, so no counts are shown (rule 9). T-006 is only needed when
 # there are pull requests to check for links.
+NO_ACTIVITY_UNKNOWN = (
+    "No recent Jira or GitHub activity is recorded for this member. Work not tracked in "
+    "these tools is not visible to headref."
+)
+
 ACTIVITY_TOOLS = ("T-003", "T-004", "T-005")
 LINKS_TOOL = "T-006"
 
@@ -698,11 +703,18 @@ async def run_agent(
                 f"{target_item.title}."
             )
             classification = "fact"
+        # The claim carries its own conflict, as blockers and risks do, so "likely working
+        # on" is never read on its own as "still in progress" (EV-05).
         likely_current_work = Insight(
             claim=claim,
             classification=classification,
             confidence=conf,
             evidence=target_ev,
+            conflicts=[
+                c.description
+                for c in conflicts
+                if c.work_item_external_id == target_item.external_id
+            ],
         )
     else:
         likely_current_work = github_current_work(
@@ -795,13 +807,17 @@ async def run_agent(
     )
 
     # 7. Stage S6: Assembly, Persistence, and Cache
+    unknowns = ([context.gate.reason] if context.gate.reason else []) + context.gate.skipped
+    if likely_current_work is None and not context.failures:
+        # EV-03: no record is not evidence of no work. Say so instead of leaving a gap.
+        unknowns.append(NO_ACTIVITY_UNKNOWN)
     final_insight = MemberInsight(
         user_id=subject_user_id,
         likely_current_work=likely_current_work,
         assigned=context.retrieval.work_items,
         blockers=blocker_insights,
         risks=risk_insights,
-        unknowns=([context.gate.reason] if context.gate.reason else []) + context.gate.skipped,
+        unknowns=unknowns,
         last_synced={h.source: h.last_success_at for h in context.health},
         source_health=list(context.health),
         summary=validated.summary,
