@@ -1990,7 +1990,7 @@ tests, sync idempotency tests.
 **Out of scope:** Agent tests.
 **Owner:** Developer 1
 **Priority:** P0
-**Status:** IN_REVIEW
+**Status:** DONE
 **Dependencies:** P2-008
 **Parallelizable:** YES, alongside P6-002.
 **Components:** Tests
@@ -2026,7 +2026,7 @@ tests.
 **Out of scope:** Evaluation scenarios (P6-003).
 **Owner:** Developer 2
 **Priority:** P0
-**Status:** NOT_STARTED
+**Status:** DONE
 **Dependencies:** P4-006
 **Parallelizable:** YES.
 **Components:** Tests
@@ -2035,13 +2035,14 @@ tests.
 **Implementation notes:** No model call in any of these tests. Mock the client where a
 model response is needed.
 **Acceptance criteria:**
-- [ ] All 7 tools tested for success, empty and failure.
-- [ ] The import guard test asserts no HTTP client under `app/tools/`.
-- [ ] All 4 confidence base levels and 5 modifiers tested.
-- [ ] All 4 conflict rules tested, positive and negative.
-- [ ] All 8 blocker and 4 risk signals tested, positive and negative.
-- [ ] All 8 validator rules tested.
-- [ ] No model call in any automated test.
+- [x] All 7 tools tested for success, empty and failure.
+- [x] The import guard test asserts no HTTP client under `app/tools/`.
+- [x] All 4 confidence base levels and 5 modifiers tested.
+- [x] All 4 conflict rules tested, positive and negative.
+- [x] All 8 blocker and 4 risk signals tested, positive and negative.
+- [x] All 3 validator checks tested: invented entity, forbidden language, length and shape
+      (`AGENT_ARCHITECTURE.md` S5). The count was 8 before DEC-018; corrected 2026-10-22.
+- [x] No model call in any automated test.
 
 **Testing required:** This is the testing task.
 **Handoff notes:** CI runs these on every pull request.
@@ -2063,7 +2064,7 @@ pytest marker so it stays out of CI.
 **Out of scope:** The scenarios themselves (P6-004).
 **Owner:** Shared
 **Priority:** P0
-**Status:** NOT_STARTED
+**Status:** IN_PROGRESS
 **Dependencies:** P2-009, P4-007
 **Parallelizable:** NO.
 **Components:** Evaluation
@@ -2103,7 +2104,7 @@ pytest marker so it stays out of CI.
 **Out of scope:** Metrics dashboards.
 **Owner:** Shared (Developer 2 drives, Developer 1 reviews the expected outcomes)
 **Priority:** P0
-**Status:** NOT_STARTED
+**Status:** IN_PROGRESS
 **Dependencies:** P6-003
 **Parallelizable:** NO.
 **Components:** Evaluation
@@ -2145,7 +2146,7 @@ Check early.
 **Out of scope:** UI testing.
 **Owner:** Shared
 **Priority:** P1
-**Status:** NOT_STARTED
+**Status:** DONE
 **Dependencies:** P5-001, P2-009
 **Parallelizable:** NO.
 **Components:** Tests
@@ -2154,10 +2155,10 @@ Check early.
 **Implementation notes:** Mock the model client so this runs in CI for free. The real model
 path is covered by P6-004.
 **Acceptance criteria:**
-- [ ] Seeds an empty database, runs the full flow, asserts a complete `MemberInsight`.
-- [ ] Asserts evidence resolves and has source URLs.
-- [ ] Asserts freshness fields are populated.
-- [ ] Runs in CI with no API key.
+- [x] Seeds an empty database, runs the full flow, asserts a complete `MemberInsight`.
+- [x] Asserts evidence resolves and has source URLs.
+- [x] Asserts freshness fields are populated.
+- [x] Runs in CI with no API key.
 
 **Testing required:** This is the testing task.
 **Handoff notes:** A good regression canary.
@@ -2192,7 +2193,7 @@ path is covered by P6-004.
 - [x] No HTTP client imported under `app/tools/`, asserted by test.
 - [x] No tools passed in the model call, asserted by test.
 - [x] No write endpoint anywhere in the codebase, verified by grep and recorded.
-- [ ] No secret in any log, prompt, error detail or `agent_run` field.
+- [x] No secret in any log, prompt, error detail or `agent_run` field.
 - [x] No `|safe` on any source-derived template field.
 - [x] The secret scanner is green.
 - [ ] `can_view_member` covers every member-data route.

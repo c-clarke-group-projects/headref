@@ -60,6 +60,31 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Keshan | P6-002 old evidence is LOW, validator count, task statuses
+Status: DONE
+
+### Completed
+- `evaluate_confidence` checks "all evidence older than `RECENT_ACTIVITY_DAYS`" first, so
+  old evidence is LOW however many items there are. Found by Isiwara's tests (#97); her 3
+  `xfail(strict=True)` cases now pass and the marker is removed. No other test changed.
+- `AI_BEHAVIOR.md` 5.4: base levels are now an ordered list, first match wins, so LOW for
+  old evidence no longer overlaps MEDIUM. 1 worked example added.
+- Validator count set to the code: 3 checks (invented entity, forbidden language, length
+  and shape). `TASKS.md` and `TESTING_AND_EVALUATION.md` said 8, from before DEC-018;
+  `AGENT_ARCHITECTURE.md` already listed the 3 plus an assembly step that rejects nothing.
+- `TASKS.md` statuses brought in line with GitHub: P6-001 DONE (#39 closed), P6-005 DONE
+  (#43 closed, criteria ticked), P6-002 DONE (every criterion now holds: each of the 7
+  tools has success, empty and failure tests after #97), P6-003 and P6-004 IN_PROGRESS,
+  P7-001 no-secret criterion ticked (prompt by #100, the rest by #95).
+
+### Decisions Needed
+Decided by Keshan 2026-10-22, for Isiwara to confirm: old evidence is LOW (fix the code,
+not the doc); the validator count follows the code. Also decided, built in their own pull
+requests: refusal text is rejected by the validator (EV-12 C2), and `seed_demo.py` seeds a
+demo workspace.
+
+---
+
 ## 2026-10-22 | Isiwara | P6-003, P6-004 Eval runner, EV-11 and EV-12
 Status: IN_PROGRESS
 

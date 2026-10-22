@@ -82,13 +82,14 @@ def evaluate_confidence(
     recent_cutoff = now - timedelta(days=settings.recent_activity_days)
     all_items_old = all(item.observed_at < recent_cutoff for item in evidence_items)
 
-    # Determine Base Level
-    if num_items >= 3 and len(sources) >= 2 and has_auth_item and all_items_fresh:
-        level: ConfidenceLevel = "HIGH"
+    # Determine Base Level. "All evidence old" is checked first: old evidence says nothing
+    # about now, however much of it there is, so it is never MEDIUM or HIGH (#40).
+    if all_items_old:
+        level: ConfidenceLevel = "LOW"
+    elif num_items >= 3 and len(sources) >= 2 and has_auth_item and all_items_fresh:
+        level = "HIGH"
     elif num_items >= 2 or (num_items == 1 and has_auth_item):
         level = "MEDIUM"
-    elif (num_items == 1 and not has_auth_item) or all_items_old:
-        level = "LOW"
     else:
         level = "LOW"
 

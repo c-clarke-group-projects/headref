@@ -131,14 +131,18 @@ and has no way to influence one.** See DEC-006 and DEC-018.
 
 ### Base level
 
-Applied first, from the resolved evidence for the claim.
+Applied first, from the resolved evidence for the claim. The conditions are checked in
+this order, and the first that matches sets the level. Old evidence comes before HIGH and
+MEDIUM because it says nothing about now, however many items there are (#40, agreed
+2026-10-22).
 
-| Level | Condition |
-|---|---|
-| **HIGH** | 3 or more evidence items, from 2 or more sources, at least 1 from the authoritative source for the claim type, all items within the freshness window |
-| **MEDIUM** | 2 or more evidence items, OR exactly 1 item from the authoritative source |
-| **LOW** | Exactly 1 evidence item that is not from the authoritative source, OR all evidence older than `RECENT_ACTIVITY_DAYS` |
-| **UNKNOWN** | No evidence items, OR a source required by the question is `unavailable` |
+| Order | Level | Condition |
+|---|---|---|
+| 1 | **UNKNOWN** | No evidence items, OR a source required by the question is `unavailable` |
+| 2 | **LOW** | All evidence older than `RECENT_ACTIVITY_DAYS` |
+| 3 | **HIGH** | 3 or more evidence items, from 2 or more sources, at least 1 from the authoritative source for the claim type, all items within the freshness window |
+| 4 | **MEDIUM** | 2 or more evidence items, OR exactly 1 item from the authoritative source |
+| 5 | **LOW** | Anything else: exactly 1 evidence item that is not from the authoritative source |
 
 ### Modifiers
 
@@ -162,6 +166,7 @@ Dropping below LOW produces UNKNOWN.
 | Jira assignment + open pull request, both fresh | MEDIUM |
 | Jira assignment only | MEDIUM (1 authoritative item) |
 | Commit activity only, no Jira record | LOW |
+| Jira assignment + 2 pull requests, all older than `RECENT_ACTIVITY_DAYS` | LOW |
 | Jira assignment + pull request, but Jira last synced 40 hours ago | MEDIUM, dropped to LOW |
 | Jira assignment + merged pull request while Jira says In Progress | MEDIUM, dropped to LOW, conflict reported |
 | Anything, but Jira is `unavailable` and the question is `blockers` | UNKNOWN |

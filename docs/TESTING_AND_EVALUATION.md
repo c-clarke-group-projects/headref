@@ -42,7 +42,7 @@ conditions, and both are required.
 | Conflicts | CF-1 to CF-4, positive and negative | Developer 2 |
 | Blockers | BL-1 to BL-8, positive and negative | Developer 2 |
 | Risks | RK-1 to RK-4, positive and negative | Developer 2 |
-| Validator | All 8 rules, plus the all-claims-dropped case | Developer 2 |
+| Validator | All 3 checks (`AGENT_ARCHITECTURE.md` S5), plus the discarded-narrative fallback | Developer 2 |
 | Cache | Hash stability across processes, hit, miss on changed evidence | Developer 2 |
 
 ### Integration tests
