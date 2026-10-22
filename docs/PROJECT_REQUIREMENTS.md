@@ -407,6 +407,8 @@ its source, a summary, timestamps and a working link to the source record.
 - [ ] Excerpt text is rendered as escaped plain text. See FR-030.
 
 #### FR-028 Login stub and member-view authorization
+> **Superseded (DEC-026, Proposed).** The login stub is removed (P7-001) and sign-in is GitHub OAuth. `workspace_access` replaces `can_view_member`: every `/w/{workspace_id}` route uses it, a test checks so, and a non-member gets 404 so existence does not leak (W1, W10).
+
 **Description:** The MVP has a simple login stub. All member data access passes through a
 single authorization function `can_view_member(actor, subject)`.
 **Priority:** P1
@@ -501,7 +503,7 @@ it completes.
 **Rationale:** A lead who knows something changed 30 seconds ago should not wait up to 5
 minutes for the scheduler.
 **Acceptance criteria:**
-- [ ] `POST /api/teams/{id}/sync` returns 202 within 500 ms and never waits for the sync.
+- [ ] `POST /api/teams/{id}/sync` returns 202 within 500 ms and never waits for the sync. Since DEC-026 (Proposed): Sync now, `POST /w/{workspace_id}/sync` (W5).
 - [ ] The endpoint requires authorization for that team.
 - [ ] A sync already running for the same scope returns the in-flight `sync_run` rather
       than starting a second one.
@@ -530,7 +532,7 @@ minutes for the scheduler.
 - **NFR-007** Integration tokens MUST be read-only scoped. No write endpoint may appear
   anywhere in the codebase. P0.
 - **NFR-008** The LLM MUST NOT be given any tool, in any call, in the MVP. P0.
-- **NFR-009** All member-data access MUST pass through `can_view_member`. P1.
+- **NFR-009** All member-data access MUST pass through `can_view_member`. P1. Since DEC-026 (Proposed): through `workspace_access`.
 - **NFR-010** External text MUST be escaped before rendering. P1.
 - **NFR-011** No secret, token or credential may appear in logs, error details, prompts or
   `agent_run` records. P0.

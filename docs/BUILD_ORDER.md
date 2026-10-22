@@ -690,10 +690,10 @@ app/web/routes.py     the routes
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/teams/{id}` | Team overview page |
+| GET | `/teams/{id}` | Team overview page (removed by DEC-026, now `/w/{workspace_id}`) |
 | GET | `/members/{id}` | Member profile page |
 | GET | `/api/members/{id}/insight` | Member insight JSON |
-| POST | `/api/teams/{id}/sync` | Start a sync, return 202 |
+| POST | `/api/teams/{id}/sync` | Start a sync, return 202 (removed by DEC-026, now `POST /w/{workspace_id}/sync`) |
 | GET | `/admin/unmatched` | The unmatched identity queue |
 
 **Done when**

@@ -281,6 +281,7 @@ is seeded but no workspace shows it.
 | Load demo data | `docker compose exec api python seed/seed_demo.py --owner <your-github-login>` (see 9.5) |
 | Sync a workspace | Sync now on the workspace page; the scheduler also runs every 5 minutes |
 | Legacy sync, 1 team from `.env` | `docker compose exec api python -m app.sync --source github --team 1` (needs `GITHUB_TOKEN`, `GITHUB_REPOS`) |
+| Capture real fixtures | `docker compose exec api python scripts/capture_fixtures.py --workspace-id <id>` writes sanitized responses to `seed/fixtures/sandbox/` (P0-002) |
 | Run tests | `docker compose exec api pytest` |
 | Run evaluations | `docker compose exec api pytest -m eval tests/eval`. EV-01 to EV-12, real read tools and pipeline with Ollama mocked; prints passed, time and cost. CI skips `tests/eval` |
 | Lint | `docker compose exec api sh -c "ruff check . && black --check ."` |

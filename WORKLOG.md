@@ -60,6 +60,30 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Keshan | Fixture capture script, docs for removed team routes
+Status: IN_PROGRESS
+
+### Completed
+- `scripts/capture_fixtures.py` (P0-002): reads 1 workspace's selected repositories and
+  Jira projects through its own GitHub App installation and Atlassian connection, the
+  same way the sync does, with GET requests only. It writes the raw JSON to
+  `seed/fixtures/sandbox/` after replacing every email address, and prints the A-3 counts
+  (Jira users with an email, noreply commit addresses) and the rate limit headers. Counts
+  and header values only; no token or address is printed. 2 tests for the redaction and
+  the counts.
+- Superseded notes (DEC-026, Proposed) where the docs still described the removed team
+  pages, the team API and `can_view_member`: `ARCHITECTURE.md` (refresh, authorization,
+  request flow), `PROJECT_REQUIREMENTS.md` (FR-028, NFR-009, the refresh criterion),
+  `TESTING_AND_EVALUATION.md` (API rows), `BUILD_ORDER.md` (route table). `DECISIONS.md` is
+  a record and was not changed.
+
+### Not done
+- The capture itself: it needs Keshan's stored connections. Run it on the "dev team"
+  workspace, check the files, then commit them. P0-002 stays open until then.
+- `CLAUDE.md`'s FR-028 enforcement row: its own change rule needs both developers.
+
+---
+
 ## 2026-10-22 | Keshan | P6-003, P6-004 all 12 evaluation scenarios
 Status: DONE
 
