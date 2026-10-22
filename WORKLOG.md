@@ -60,6 +60,20 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Keshan | CLAUDE.md: route authorization is enforced
+Status: IN_REVIEW
+
+### Changed
+The `CLAUDE.md` enforcement row for FR-028 said "To add in P3-001". It now names what
+enforces it: `test_every_workspace_route_checks_membership` and the `tests/test_isolation.py`
+sweep, status Active.
+
+### Decisions Needed
+`CLAUDE.md` changes need both developers: waiting for Isiwara before merging. The row
+assumes DEC-026 (team routes removed), still Proposed.
+
+---
+
 ## 2026-10-22 | Keshan | P7-004 demo script for the workspace UI
 Status: IN_PROGRESS
 
