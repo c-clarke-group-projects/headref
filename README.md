@@ -304,6 +304,7 @@ is seeded but no workspace shows it.
 | [`docs/HOW_TO.md`](docs/HOW_TO.md) | How to do the recurring procedures, and why they are done that way |
 | `WORKLOG.md` | What actually happened, newest first |
 | [`docs/TESTING_AND_EVALUATION.md`](docs/TESTING_AND_EVALUATION.md) | How we test the software and evaluate the agent |
+| [`docs/DEMO.md`](docs/DEMO.md) | The demo script, and the success criteria to check before tagging v0.1.0 |
 
 ## 12. Development rules
 
