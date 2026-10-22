@@ -130,6 +130,16 @@ def test_worked_example_5_stale_source_drops_level() -> None:
     assert conf == "LOW"
 
 
+def test_a_stale_source_costs_1_level_not_2() -> None:
+    """EV-04A: what is HIGH when fresh is MEDIUM with 1 stale source, not LOW."""
+    evs = [
+        _make_evidence("ev_1", "jira", "work_item", "AUTH-245", source_state="stale"),
+        _make_evidence("ev_2", "github", "pull_request", "182", source_state="fresh"),
+        _make_evidence("ev_3", "github", "commit", "a1b2c3d4", source_state="fresh"),
+    ]
+    assert evaluate_confidence(evs, claim_type="work_item_assignment") == "MEDIUM"
+
+
 def test_worked_example_6_conflict_drops_level() -> None:
     """Example 6: Jira assignment + merged PR while Jira in_progress -> MEDIUM dropped to LOW."""
     evs = [

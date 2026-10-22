@@ -60,6 +60,53 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Keshan | P6-003, P6-004 all 12 evaluation scenarios
+Status: DONE
+
+### Completed
+- `tests/eval/state.py`, the Developer 1 half of P6-003: a scenario writes its rows
+  (people, issues, pull requests, commits, reviews, links, sync runs) into a fresh
+  database, then asks the real agent with the real read tools T-001 to T-007. Only Ollama
+  is mocked, with a narrative that names no entity.
+- `tests/eval/test_scenarios_state.py`: EV-01 to EV-10, 11 tests. With Isiwara's EV-11 and
+  EV-12, all 12 scenarios are implemented. The run reports itself: "18 of 18 scenario tests
+  passed in 1.4 s, cost 0.00 USD (local model, mocked; DEC-017)."
+- Developer 2's #42 was built by Developer 1 with an AI assistant, at Keshan's request, to
+  finish before submission. Isiwara to review.
+
+### The 5 key scenarios, verified individually
+| Scenario | Result |
+|---|---|
+| EV-04 stale and unavailable | Pass. A: stale Jira, HIGH became MEDIUM. B: Jira `AUTH_FAILED`, GitHub blocker kept, "jira is unavailable" in `unknowns`, no Jira evidence, no "no blockers" claim |
+| EV-09 injection | Pass. Injected pull request body; the changes-requested blocker is still reported, no claim says complete or no blockers |
+| EV-05 conflict | Pass. CF-1 in `conflicts` and on the current work claim, both sources cited, confidence dropped from HIGH |
+| EV-07 unmatched identity | Pass. 14 commits by `temp-contractor` through the real `sync_github`: none attributed, `unmatched_entity` occurrence count 14, none cited for the mapped member |
+| EV-12 invalid output | Pass. A, B, C1 and C2 (refusal in JSON, since #104) fall back after at most 1 retry |
+
+### Problems (found by the scenarios, fixed here)
+1. **EV-04A: a stale source cost 2 levels.** The HIGH base level required all items
+   fresh, and Modifier 1 dropped a stale claim again: EV-01 with stale Jira came out LOW,
+   not MEDIUM. Freshness is now only Modifier 1. A stale claim is still never HIGH.
+2. **EV-05: the current work claim carried no conflict.** Blockers and risks attached
+   theirs; current work did not, so "Likely working on AUTH-245" read as in progress on its
+   own. It now carries the matching CF descriptions.
+3. **EV-03: no activity gave an empty answer with no reason.** `unknowns` now says that
+   work not tracked in Jira or GitHub is not visible to headref.
+
+### Discovered
+- The spec's reason codes (`NO_EVIDENCE`, `SOURCE_UNAVAILABLE`) exist nowhere in the code;
+  reasons are `unknowns` sentences. EV-04B follows DEC-020, which is still Proposed. EV-10
+  answers 404, not 403 (W1). Each is written under "As implemented" in
+  `TESTING_AND_EVALUATION.md` 11.2.
+- The builder needed a `refresh` listener as well as `load`: after a commit, SQLite rows
+  are refreshed, not loaded, and came back without a time zone.
+
+### Decisions Needed
+- Isiwara to confirm fixes 2 and 3 (orchestrator, Developer 2 lane) and the EV-04B
+  reading under DEC-020.
+
+---
+
 ## 2026-10-22 | Keshan | Demo workspace from seed/seed_demo.py --owner (#46, #47)
 Status: IN_REVIEW
 

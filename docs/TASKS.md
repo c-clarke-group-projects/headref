@@ -2065,7 +2065,7 @@ pytest marker so it stays out of CI.
 **Out of scope:** The scenarios themselves (P6-004).
 **Owner:** Shared
 **Priority:** P0
-**Status:** IN_PROGRESS
+**Status:** DONE
 **Dependencies:** P2-009, P4-007
 **Parallelizable:** NO.
 **Components:** Evaluation
@@ -2080,11 +2080,11 @@ pytest marker so it stays out of CI.
 - Record token counts and cost per run.
 
 **Acceptance criteria:**
-- [ ] A scenario can be defined as fixture state plus expected structured output.
-- [ ] The runner executes a scenario end to end and reports pass or fail.
-- [ ] Assertions are on structured fields only.
-- [ ] Evaluation tests are excluded from CI by marker.
-- [ ] Cost per evaluation run is reported.
+- [x] A scenario can be defined as fixture state plus expected structured output.
+- [x] The runner executes a scenario end to end and reports pass or fail.
+- [x] Assertions are on structured fields only.
+- [x] Evaluation tests are excluded from CI by marker. Every test is marked `eval`; CI excludes the folder by path (`--ignore=tests/eval`).
+- [x] Cost per evaluation run is reported.
 
 **Testing required:** 1 scenario running end to end proves the harness.
 **Handoff notes:** P6-004 adds the remaining scenarios.
@@ -2105,7 +2105,7 @@ pytest marker so it stays out of CI.
 **Out of scope:** Metrics dashboards.
 **Owner:** Shared (Developer 2 drives, Developer 1 reviews the expected outcomes)
 **Priority:** P0
-**Status:** IN_PROGRESS
+**Status:** DONE
 **Dependencies:** P6-003
 **Parallelizable:** NO.
 **Components:** Evaluation
@@ -2120,11 +2120,11 @@ The highest-value scenarios, which MUST pass before the demo:
 - **EV-12** invalid model output falls back deterministically.
 
 **Acceptance criteria:**
-- [ ] All 12 scenarios are implemented.
-- [ ] All 12 pass.
-- [ ] The 5 listed above are individually verified and recorded in `WORKLOG.md`.
-- [ ] Each asserts on structured fields, not wording.
-- [ ] Total suite cost is recorded.
+- [x] All 12 scenarios are implemented.
+- [x] All 12 pass.
+- [x] The 5 listed above are individually verified and recorded in `WORKLOG.md`.
+- [x] Each asserts on structured fields, not wording.
+- [x] Total suite cost is recorded.
 
 **Testing required:** This is the testing task.
 **Handoff notes:** The suite reruns before any prompt change, model change or rule change.
