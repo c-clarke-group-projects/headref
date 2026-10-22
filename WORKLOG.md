@@ -60,6 +60,41 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-23 | Keshan | P0-002 sandbox fixtures captured, A-3 corrected
+Status: IN_PROGRESS
+
+### Completed
+- Ran `scripts/capture_fixtures.py --workspace-id 1` (about 20 GET requests) and
+  committed `seed/fixtures/sandbox/`: 8 pull requests, 7 commits, 2 reviews, 11 Jira
+  issues from `keshan-dev/headref-sandbox` and project HRS.
+- Issue mix present: 11 issues across todo, in_progress, done and blocked; HRS-5 flagged;
+  HRS-6 is blocked by HRS-7; 6 of 8 pull requests on `feature/HRS-` branches; pull
+  requests open, merged, draft and changes requested; 1 pull request with no ticket ID;
+  2 commits with no mapped author; injection text in pull request #8; HRS-1 in progress
+  with its pull request #1 merged (CF-1).
+- **A-3 corrected** for this sandbox: Jira returns `emailAddress` on 20 of 22 user
+  objects through the OAuth connection, and all 7 GitHub commit author emails are real
+  addresses, 0 noreply. A 2 person sandbox, so a real team may differ.
+- Rate limit headers: GitHub `x-ratelimit-limit: 5000` (resource core, 146 used); Jira
+  `x-ratelimit-limit: 350`, 349 remaining.
+
+### Problems
+- The first capture wrote 2 things the sanitizer missed, caught by a scan before any
+  commit: a personal email inside GitHub's raw commit text (`verification.payload`), and
+  the private repository's `temp_clone_token`. The sanitizer now replaces emails inside
+  any text and any `*token` field, with tests; the capture was rerun and rescanned clean.
+- In the HRS workflow, the Done status has status category `indeterminate` and Blocked
+  has `done`. headref maps by status name, so it is not affected, but a category-based
+  mapping would read Done as in progress.
+
+### Not done
+- 2 items of the issue mix: no issue in an In Review status, and no due date within 3
+  days at capture (HRS-10 is due 2026-10-27, HRS-8 is overdue). Needs a Jira change on
+  keshanuni.atlassian.net, then a rerun of the capture. The evaluation scenarios that
+  need these states build them in `tests/eval/state.py`, so none is blocked.
+
+---
+
 ## 2026-10-22 | Keshan | P5-003 dependency blocker cites the blocking issue
 Status: DONE
 

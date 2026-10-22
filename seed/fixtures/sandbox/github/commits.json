@@ -1,0 +1,500 @@
+[
+  {
+    "author": null,
+    "comments_url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/ff6dda5210dd436cd6bc6062a9f6d5223b26bd06/comments",
+    "commit": {
+      "author": {
+        "date": "2026-10-19T18:34:24Z",
+        "email": "redacted@example.invalid",
+        "name": "Outside Contractor"
+      },
+      "comment_count": 0,
+      "committer": {
+        "date": "2026-10-19T18:34:24Z",
+        "email": "redacted@example.invalid",
+        "name": "Outside Contractor"
+      },
+      "message": "List the first contributor",
+      "tree": {
+        "sha": "0ea15d88d14e7397a74b7ab62258cb573c3e78a1",
+        "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/git/trees/0ea15d88d14e7397a74b7ab62258cb573c3e78a1"
+      },
+      "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/git/commits/ff6dda5210dd436cd6bc6062a9f6d5223b26bd06",
+      "verification": {
+        "payload": null,
+        "reason": "unsigned",
+        "signature": null,
+        "verified": false,
+        "verified_at": null
+      }
+    },
+    "committer": null,
+    "html_url": "https://github.com/keshan-dev/headref-sandbox/commit/ff6dda5210dd436cd6bc6062a9f6d5223b26bd06",
+    "node_id": "C_kwDOVOr1ldoAKGZmNmRkYTUyMTBkZDQzNmNkNmJjNjA2MmE5ZjZkNTIyM2IyNmJkMDY",
+    "parents": [
+      {
+        "html_url": "https://github.com/keshan-dev/headref-sandbox/commit/6ed27c0fd6baf5bc382cfe171135c5f8b04b9138",
+        "sha": "6ed27c0fd6baf5bc382cfe171135c5f8b04b9138",
+        "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/6ed27c0fd6baf5bc382cfe171135c5f8b04b9138"
+      }
+    ],
+    "sha": "ff6dda5210dd436cd6bc6062a9f6d5223b26bd06",
+    "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/ff6dda5210dd436cd6bc6062a9f6d5223b26bd06"
+  },
+  {
+    "author": null,
+    "comments_url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/6ed27c0fd6baf5bc382cfe171135c5f8b04b9138/comments",
+    "commit": {
+      "author": {
+        "date": "2026-10-19T18:30:13Z",
+        "email": "redacted@example.invalid",
+        "name": "Outside Contractor"
+      },
+      "comment_count": 0,
+      "committer": {
+        "date": "2026-10-19T18:30:13Z",
+        "email": "redacted@example.invalid",
+        "name": "Outside Contractor"
+      },
+      "message": "Add contributors page",
+      "tree": {
+        "sha": "f1e637fc4bb6c29cc66b1ed59c156a472f5160bc",
+        "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/git/trees/f1e637fc4bb6c29cc66b1ed59c156a472f5160bc"
+      },
+      "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/git/commits/6ed27c0fd6baf5bc382cfe171135c5f8b04b9138",
+      "verification": {
+        "payload": null,
+        "reason": "unsigned",
+        "signature": null,
+        "verified": false,
+        "verified_at": null
+      }
+    },
+    "committer": null,
+    "html_url": "https://github.com/keshan-dev/headref-sandbox/commit/6ed27c0fd6baf5bc382cfe171135c5f8b04b9138",
+    "node_id": "C_kwDOVOr1ldoAKDZlZDI3YzBmZDZiYWY1YmMzODJjZmUxNzExMzVjNWY4YjA0YjkxMzg",
+    "parents": [
+      {
+        "html_url": "https://github.com/keshan-dev/headref-sandbox/commit/68075a8402829ffe54c33239c6e4889383eef6cb",
+        "sha": "68075a8402829ffe54c33239c6e4889383eef6cb",
+        "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/68075a8402829ffe54c33239c6e4889383eef6cb"
+      }
+    ],
+    "sha": "6ed27c0fd6baf5bc382cfe171135c5f8b04b9138",
+    "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/6ed27c0fd6baf5bc382cfe171135c5f8b04b9138"
+  },
+  {
+    "author": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/219891474?v=4",
+      "events_url": "https://api.github.com/users/keshan-dev/events{/privacy}",
+      "followers_url": "https://api.github.com/users/keshan-dev/followers",
+      "following_url": "https://api.github.com/users/keshan-dev/following{/other_user}",
+      "gists_url": "https://api.github.com/users/keshan-dev/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/keshan-dev",
+      "id": 219891474,
+      "login": "keshan-dev",
+      "node_id": "U_kgDODRtHEg",
+      "organizations_url": "https://api.github.com/users/keshan-dev/orgs",
+      "received_events_url": "https://api.github.com/users/keshan-dev/received_events",
+      "repos_url": "https://api.github.com/users/keshan-dev/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/keshan-dev/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/keshan-dev/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/keshan-dev",
+      "user_view_type": "public"
+    },
+    "comments_url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/68075a8402829ffe54c33239c6e4889383eef6cb/comments",
+    "commit": {
+      "author": {
+        "date": "2026-10-18T18:26:02Z",
+        "email": "redacted@example.invalid",
+        "name": "Shamika Keshan"
+      },
+      "comment_count": 0,
+      "committer": {
+        "date": "2026-10-18T18:26:02Z",
+        "email": "redacted@example.invalid",
+        "name": "GitHub"
+      },
+      "message": "Merge pull request #3 from keshan-dev/feature/HRS-3-cache-team-overview\n\nHRS-3 Cache team overview response",
+      "tree": {
+        "sha": "66cb573d51e7ea6dc65bae9387a44fb005722dd5",
+        "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/git/trees/66cb573d51e7ea6dc65bae9387a44fb005722dd5"
+      },
+      "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/git/commits/68075a8402829ffe54c33239c6e4889383eef6cb",
+      "verification": {
+        "payload": "tree 66cb573d51e7ea6dc65bae9387a44fb005722dd5\nparent 54d86b8e0ed190cb29bd545ddb3a2c9a9cc966cf\nparent 8174f2995c9b4ec0a7e582eb5044d4d0bbc45cbc\nauthor Shamika Keshan <redacted@example.invalid> 1792347962 +0530\ncommitter GitHub <noreply@github.com> 1792347962 +0530\n\nMerge pull request #3 from keshan-dev/feature/HRS-3-cache-team-overview\n\nHRS-3 Cache team overview response",
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsFcBAABCAAQBQJq1Q86CRC1aQ7uu5UhlAAARzUQADzwQom3Ej5EicUvYW6Sfab4\nQWVKK1nbugcSHKR8524z+LSButYdf11KFNi228NCWxqaTpd9Dj6UGFy86S7lsQM/\nWnOc67cfIY63ajsX2JZIfsWaB3PgrG4ZRwANyjZ3LurYmLERFJ9j9bkmExvSRlRb\nftU9KTTzFuFsu+P36BAkKEDIQP1iE0/bFeC3n6XYAgFDSVdS2Eb/u7bOEtof1U2L\nvltUfSAtOrww3lDk+dedEahOyLSJRKImxfXMG+1xn7IljxrpAU/knp5KnRL78+56\nGFxLDAMzU1mZXjednrwWc7eoa4aGv60U/4b/BCh9fKwzZ4n+C6becBOtc+Oz8WQL\nfEwLJIr+BdrCtctZdgN6vLkNt23XXxQZSKIHU8ZR2dkkFkqITgMeiKuU88/mSqCt\nC+7egE+XeGpUuJqiKb9do9PXUmaJfyFIsib4laqAT/WLhCvnU0KA8KAtK1aW+rcn\n9wfdT4nQUKyJpRAGPGatQm5cb71VfTxiwTZg422aeTSl/AYpP5jH1ucUPnC4pi28\nbKWZoq9isv72I/vOF0oVGG6gLYs5N/GqT7jtoTmr2BDh8xVAv+2Y9UVLvhCMzSGz\n2OJF/o6Jt0RuyzpwLJH8l65Q7/UGg9W5GVzW2lhxOQLDziIE4znYoV343Xp/8oxj\n7cSgrktjTJzzC4hFaSzA\n=6ZT8\n-----END PGP SIGNATURE-----\n",
+        "verified": true,
+        "verified_at": "2026-10-18T18:26:03Z"
+      }
+    },
+    "committer": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/web-flow",
+      "id": 19864447,
+      "login": "web-flow",
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/web-flow",
+      "user_view_type": "public"
+    },
+    "html_url": "https://github.com/keshan-dev/headref-sandbox/commit/68075a8402829ffe54c33239c6e4889383eef6cb",
+    "node_id": "C_kwDOVOr1ldoAKDY4MDc1YTg0MDI4MjlmZmU1NGMzMzIzOWM2ZTQ4ODkzODNlZWY2Y2I",
+    "parents": [
+      {
+        "html_url": "https://github.com/keshan-dev/headref-sandbox/commit/54d86b8e0ed190cb29bd545ddb3a2c9a9cc966cf",
+        "sha": "54d86b8e0ed190cb29bd545ddb3a2c9a9cc966cf",
+        "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/54d86b8e0ed190cb29bd545ddb3a2c9a9cc966cf"
+      },
+      {
+        "html_url": "https://github.com/keshan-dev/headref-sandbox/commit/8174f2995c9b4ec0a7e582eb5044d4d0bbc45cbc",
+        "sha": "8174f2995c9b4ec0a7e582eb5044d4d0bbc45cbc",
+        "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/8174f2995c9b4ec0a7e582eb5044d4d0bbc45cbc"
+      }
+    ],
+    "sha": "68075a8402829ffe54c33239c6e4889383eef6cb",
+    "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/68075a8402829ffe54c33239c6e4889383eef6cb"
+  },
+  {
+    "author": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/219891474?v=4",
+      "events_url": "https://api.github.com/users/keshan-dev/events{/privacy}",
+      "followers_url": "https://api.github.com/users/keshan-dev/followers",
+      "following_url": "https://api.github.com/users/keshan-dev/following{/other_user}",
+      "gists_url": "https://api.github.com/users/keshan-dev/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/keshan-dev",
+      "id": 219891474,
+      "login": "keshan-dev",
+      "node_id": "U_kgDODRtHEg",
+      "organizations_url": "https://api.github.com/users/keshan-dev/orgs",
+      "received_events_url": "https://api.github.com/users/keshan-dev/received_events",
+      "repos_url": "https://api.github.com/users/keshan-dev/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/keshan-dev/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/keshan-dev/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/keshan-dev",
+      "user_view_type": "public"
+    },
+    "comments_url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/54d86b8e0ed190cb29bd545ddb3a2c9a9cc966cf/comments",
+    "commit": {
+      "author": {
+        "date": "2026-10-18T18:25:58Z",
+        "email": "redacted@example.invalid",
+        "name": "Shamika Keshan"
+      },
+      "comment_count": 0,
+      "committer": {
+        "date": "2026-10-18T18:25:58Z",
+        "email": "redacted@example.invalid",
+        "name": "GitHub"
+      },
+      "message": "Merge pull request #1 from keshan-dev/feature/HRS-1-rotate-refresh-tokens\n\nHRS-1 Rotate refresh tokens on login",
+      "tree": {
+        "sha": "c26c25625367831e4cec45a6cce5b0c07712c630",
+        "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/git/trees/c26c25625367831e4cec45a6cce5b0c07712c630"
+      },
+      "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/git/commits/54d86b8e0ed190cb29bd545ddb3a2c9a9cc966cf",
+      "verification": {
+        "payload": "tree c26c25625367831e4cec45a6cce5b0c07712c630\nparent c15b9897251b49cd7fc95f4734d445c3b14530c1\nparent 7684c37ec54e30b07692a04ce00e5784e83899cd\nauthor Shamika Keshan <redacted@example.invalid> 1792347958 +0530\ncommitter GitHub <noreply@github.com> 1792347958 +0530\n\nMerge pull request #1 from keshan-dev/feature/HRS-1-rotate-refresh-tokens\n\nHRS-1 Rotate refresh tokens on login",
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsFcBAABCAAQBQJq1Q82CRC1aQ7uu5UhlAAAXfwQAIXtuiM3Rh+0Gu/lXpYOUdYQ\nAgGMGaUlTf5WDcgur+eunulkL6bs5xTW6+KEbWQK+u3+8QSjC/58O+7BsVaumNCe\nOiKHseGALT9DJnYDGfR2KnRT2+4nqWatGKte8ZlSgmREotqP8LCK/BgrzBoodlk3\nRpg5wiVED5tBoaMLnikucs3fOqBs/PsEYIbuAKfAxMR+3hR+ytfjzes2nw74c5IE\nSQ1qhh1TzcLW+eshUgKbRt36Qpf33MM6LaFsbM1hAU87CiTezQL/y2gKkouknKdB\nOkYpBwagsw6DlAmdwx+oL4pIxdqat5n3XirfNxmh7rk9gegVtFGmtTxqc7+Sw2gi\nkg5YkejAfbWi39HAWud5b+6WeDfN1gtg14J2x0KYu4y6lj1FEM0fJyY8fF1pVDK1\n6rtWbAwzzhj9zx3SHgvWdvQ4SfjQd6Mn6qFB9m0CIuJWAgqQ2LCHCwjj7MoQAt7N\nLpdfGoqudGTyGuFEOYDlUh4xHy1/Kq1o6i3MwmuuEeijNtoefl2iOxrF6INmJtqR\neFvhYrWWu4MEhk46QNk0cHAoZYtG88C50QK82Leythfg1qWSwcimZGPOHhSqJwgY\ns03GhozpnBtdee+O+lOgSXatJE9eCpv0ChleM28O7WftoOMsMOprvTaL78AvJvJT\nedJlu9CKJ3rHkDPg/yZC\n=AVtB\n-----END PGP SIGNATURE-----\n",
+        "verified": true,
+        "verified_at": "2026-10-18T18:25:58Z"
+      }
+    },
+    "committer": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/web-flow",
+      "id": 19864447,
+      "login": "web-flow",
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/web-flow",
+      "user_view_type": "public"
+    },
+    "html_url": "https://github.com/keshan-dev/headref-sandbox/commit/54d86b8e0ed190cb29bd545ddb3a2c9a9cc966cf",
+    "node_id": "C_kwDOVOr1ldoAKDU0ZDg2YjhlMGVkMTkwY2IyOWJkNTQ1ZGRiM2EyYzlhOWNjOTY2Y2Y",
+    "parents": [
+      {
+        "html_url": "https://github.com/keshan-dev/headref-sandbox/commit/c15b9897251b49cd7fc95f4734d445c3b14530c1",
+        "sha": "c15b9897251b49cd7fc95f4734d445c3b14530c1",
+        "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/c15b9897251b49cd7fc95f4734d445c3b14530c1"
+      },
+      {
+        "html_url": "https://github.com/keshan-dev/headref-sandbox/commit/7684c37ec54e30b07692a04ce00e5784e83899cd",
+        "sha": "7684c37ec54e30b07692a04ce00e5784e83899cd",
+        "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/7684c37ec54e30b07692a04ce00e5784e83899cd"
+      }
+    ],
+    "sha": "54d86b8e0ed190cb29bd545ddb3a2c9a9cc966cf",
+    "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/54d86b8e0ed190cb29bd545ddb3a2c9a9cc966cf"
+  },
+  {
+    "author": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/219891474?v=4",
+      "events_url": "https://api.github.com/users/keshan-dev/events{/privacy}",
+      "followers_url": "https://api.github.com/users/keshan-dev/followers",
+      "following_url": "https://api.github.com/users/keshan-dev/following{/other_user}",
+      "gists_url": "https://api.github.com/users/keshan-dev/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/keshan-dev",
+      "id": 219891474,
+      "login": "keshan-dev",
+      "node_id": "U_kgDODRtHEg",
+      "organizations_url": "https://api.github.com/users/keshan-dev/orgs",
+      "received_events_url": "https://api.github.com/users/keshan-dev/received_events",
+      "repos_url": "https://api.github.com/users/keshan-dev/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/keshan-dev/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/keshan-dev/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/keshan-dev",
+      "user_view_type": "public"
+    },
+    "comments_url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/8174f2995c9b4ec0a7e582eb5044d4d0bbc45cbc/comments",
+    "commit": {
+      "author": {
+        "date": "2026-10-18T18:25:09Z",
+        "email": "redacted@example.invalid",
+        "name": "keshan-dev"
+      },
+      "comment_count": 0,
+      "committer": {
+        "date": "2026-10-18T18:25:09Z",
+        "email": "redacted@example.invalid",
+        "name": "keshan-dev"
+      },
+      "message": "HRS-3 cache team overview response",
+      "tree": {
+        "sha": "0b79fdc00d2727cbe73d28cc94222e619d2a1d52",
+        "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/git/trees/0b79fdc00d2727cbe73d28cc94222e619d2a1d52"
+      },
+      "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/git/commits/8174f2995c9b4ec0a7e582eb5044d4d0bbc45cbc",
+      "verification": {
+        "payload": null,
+        "reason": "unsigned",
+        "signature": null,
+        "verified": false,
+        "verified_at": null
+      }
+    },
+    "committer": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/219891474?v=4",
+      "events_url": "https://api.github.com/users/keshan-dev/events{/privacy}",
+      "followers_url": "https://api.github.com/users/keshan-dev/followers",
+      "following_url": "https://api.github.com/users/keshan-dev/following{/other_user}",
+      "gists_url": "https://api.github.com/users/keshan-dev/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/keshan-dev",
+      "id": 219891474,
+      "login": "keshan-dev",
+      "node_id": "U_kgDODRtHEg",
+      "organizations_url": "https://api.github.com/users/keshan-dev/orgs",
+      "received_events_url": "https://api.github.com/users/keshan-dev/received_events",
+      "repos_url": "https://api.github.com/users/keshan-dev/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/keshan-dev/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/keshan-dev/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/keshan-dev",
+      "user_view_type": "public"
+    },
+    "html_url": "https://github.com/keshan-dev/headref-sandbox/commit/8174f2995c9b4ec0a7e582eb5044d4d0bbc45cbc",
+    "node_id": "C_kwDOVOr1ldoAKDgxNzRmMjk5NWM5YjRlYzBhN2U1ODJlYjUwNDRkNGQwYmJjNDVjYmM",
+    "parents": [
+      {
+        "html_url": "https://github.com/keshan-dev/headref-sandbox/commit/c15b9897251b49cd7fc95f4734d445c3b14530c1",
+        "sha": "c15b9897251b49cd7fc95f4734d445c3b14530c1",
+        "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/c15b9897251b49cd7fc95f4734d445c3b14530c1"
+      }
+    ],
+    "sha": "8174f2995c9b4ec0a7e582eb5044d4d0bbc45cbc",
+    "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/8174f2995c9b4ec0a7e582eb5044d4d0bbc45cbc"
+  },
+  {
+    "author": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/219891474?v=4",
+      "events_url": "https://api.github.com/users/keshan-dev/events{/privacy}",
+      "followers_url": "https://api.github.com/users/keshan-dev/followers",
+      "following_url": "https://api.github.com/users/keshan-dev/following{/other_user}",
+      "gists_url": "https://api.github.com/users/keshan-dev/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/keshan-dev",
+      "id": 219891474,
+      "login": "keshan-dev",
+      "node_id": "U_kgDODRtHEg",
+      "organizations_url": "https://api.github.com/users/keshan-dev/orgs",
+      "received_events_url": "https://api.github.com/users/keshan-dev/received_events",
+      "repos_url": "https://api.github.com/users/keshan-dev/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/keshan-dev/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/keshan-dev/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/keshan-dev",
+      "user_view_type": "public"
+    },
+    "comments_url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/7684c37ec54e30b07692a04ce00e5784e83899cd/comments",
+    "commit": {
+      "author": {
+        "date": "2026-10-18T18:25:03Z",
+        "email": "redacted@example.invalid",
+        "name": "keshan-dev"
+      },
+      "comment_count": 0,
+      "committer": {
+        "date": "2026-10-18T18:25:03Z",
+        "email": "redacted@example.invalid",
+        "name": "keshan-dev"
+      },
+      "message": "HRS-1 rotate refresh tokens on login",
+      "tree": {
+        "sha": "c26c25625367831e4cec45a6cce5b0c07712c630",
+        "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/git/trees/c26c25625367831e4cec45a6cce5b0c07712c630"
+      },
+      "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/git/commits/7684c37ec54e30b07692a04ce00e5784e83899cd",
+      "verification": {
+        "payload": null,
+        "reason": "unsigned",
+        "signature": null,
+        "verified": false,
+        "verified_at": null
+      }
+    },
+    "committer": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/219891474?v=4",
+      "events_url": "https://api.github.com/users/keshan-dev/events{/privacy}",
+      "followers_url": "https://api.github.com/users/keshan-dev/followers",
+      "following_url": "https://api.github.com/users/keshan-dev/following{/other_user}",
+      "gists_url": "https://api.github.com/users/keshan-dev/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/keshan-dev",
+      "id": 219891474,
+      "login": "keshan-dev",
+      "node_id": "U_kgDODRtHEg",
+      "organizations_url": "https://api.github.com/users/keshan-dev/orgs",
+      "received_events_url": "https://api.github.com/users/keshan-dev/received_events",
+      "repos_url": "https://api.github.com/users/keshan-dev/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/keshan-dev/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/keshan-dev/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/keshan-dev",
+      "user_view_type": "public"
+    },
+    "html_url": "https://github.com/keshan-dev/headref-sandbox/commit/7684c37ec54e30b07692a04ce00e5784e83899cd",
+    "node_id": "C_kwDOVOr1ldoAKDc2ODRjMzdlYzU0ZTMwYjA3NjkyYTA0Y2UwMGU1Nzg0ZTgzODk5Y2Q",
+    "parents": [
+      {
+        "html_url": "https://github.com/keshan-dev/headref-sandbox/commit/c15b9897251b49cd7fc95f4734d445c3b14530c1",
+        "sha": "c15b9897251b49cd7fc95f4734d445c3b14530c1",
+        "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/c15b9897251b49cd7fc95f4734d445c3b14530c1"
+      }
+    ],
+    "sha": "7684c37ec54e30b07692a04ce00e5784e83899cd",
+    "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/7684c37ec54e30b07692a04ce00e5784e83899cd"
+  },
+  {
+    "author": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/219891474?v=4",
+      "events_url": "https://api.github.com/users/keshan-dev/events{/privacy}",
+      "followers_url": "https://api.github.com/users/keshan-dev/followers",
+      "following_url": "https://api.github.com/users/keshan-dev/following{/other_user}",
+      "gists_url": "https://api.github.com/users/keshan-dev/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/keshan-dev",
+      "id": 219891474,
+      "login": "keshan-dev",
+      "node_id": "U_kgDODRtHEg",
+      "organizations_url": "https://api.github.com/users/keshan-dev/orgs",
+      "received_events_url": "https://api.github.com/users/keshan-dev/received_events",
+      "repos_url": "https://api.github.com/users/keshan-dev/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/keshan-dev/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/keshan-dev/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/keshan-dev",
+      "user_view_type": "public"
+    },
+    "comments_url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/c15b9897251b49cd7fc95f4734d445c3b14530c1/comments",
+    "commit": {
+      "author": {
+        "date": "2026-10-18T18:24:46Z",
+        "email": "redacted@example.invalid",
+        "name": "keshan-dev"
+      },
+      "comment_count": 0,
+      "committer": {
+        "date": "2026-10-18T18:24:46Z",
+        "email": "redacted@example.invalid",
+        "name": "keshan-dev"
+      },
+      "message": "chore: initial sandbox with a minimal check",
+      "tree": {
+        "sha": "842f37d96f3ab16cb12c42db244b0b057b5999fc",
+        "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/git/trees/842f37d96f3ab16cb12c42db244b0b057b5999fc"
+      },
+      "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/git/commits/c15b9897251b49cd7fc95f4734d445c3b14530c1",
+      "verification": {
+        "payload": null,
+        "reason": "unsigned",
+        "signature": null,
+        "verified": false,
+        "verified_at": null
+      }
+    },
+    "committer": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/219891474?v=4",
+      "events_url": "https://api.github.com/users/keshan-dev/events{/privacy}",
+      "followers_url": "https://api.github.com/users/keshan-dev/followers",
+      "following_url": "https://api.github.com/users/keshan-dev/following{/other_user}",
+      "gists_url": "https://api.github.com/users/keshan-dev/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/keshan-dev",
+      "id": 219891474,
+      "login": "keshan-dev",
+      "node_id": "U_kgDODRtHEg",
+      "organizations_url": "https://api.github.com/users/keshan-dev/orgs",
+      "received_events_url": "https://api.github.com/users/keshan-dev/received_events",
+      "repos_url": "https://api.github.com/users/keshan-dev/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/keshan-dev/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/keshan-dev/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/keshan-dev",
+      "user_view_type": "public"
+    },
+    "html_url": "https://github.com/keshan-dev/headref-sandbox/commit/c15b9897251b49cd7fc95f4734d445c3b14530c1",
+    "node_id": "C_kwDOVOr1ldoAKGMxNWI5ODk3MjUxYjQ5Y2Q3ZmM5NWY0NzM0ZDQ0NWMzYjE0NTMwYzE",
+    "parents": [],
+    "sha": "c15b9897251b49cd7fc95f4734d445c3b14530c1",
+    "url": "https://api.github.com/repos/keshan-dev/headref-sandbox/commits/c15b9897251b49cd7fc95f4734d445c3b14530c1"
+  }
+]

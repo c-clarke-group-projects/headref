@@ -158,7 +158,7 @@ Confirm both APIs respond. Save raw responses to `seed/fixtures/`.
 **Out of scope:** Writing any client code. Normalization.
 **Owner:** Shared
 **Priority:** P0
-**Status:** READY
+**Status:** IN_PROGRESS
 **Dependencies:** None. Provisioning the accounts and data needs no repository. Committing the captured fixtures needs P0-001.
 **Parallelizable:** YES, alongside P0-003 and P0-004.
 **Components:** External accounts, `seed/fixtures/`
@@ -184,13 +184,19 @@ Confirm and record in `WORKLOG.md`:
 - The actual rate limit headers returned by both.
 
 **Acceptance criteria:**
-- [ ] A real Jira project exists with the issue mix above.
-- [ ] A real GitHub repository exists with the branch and pull request mix above.
-- [ ] A fine-grained read-only GitHub token and a Jira API token are generated.
-- [ ] 1 `curl` against each API returns the expected data.
-- [ ] Raw responses are saved to `seed/fixtures/`, with tokens removed.
-- [ ] Assumption A-3 is confirmed or corrected in `WORKLOG.md`.
-- [ ] No token appears in any committed file.
+- [ ] A real Jira project exists with the issue mix above. Project HRS has 11 issues and
+  every item except 2: no issue is in an In Review status, and no due date was within 3
+  days at capture (2026-10-23).
+- [x] A real GitHub repository exists with the branch and pull request mix above.
+  `keshan-dev/headref-sandbox`.
+- [x] A fine-grained read-only GitHub token and a Jira API token are generated. Met by the
+  GitHub App installation (DEC-022) and the Atlassian OAuth connection (DEC-023).
+- [x] 1 `curl` against each API returns the expected data. Met by the capture script's GET
+  requests, not curl.
+- [x] Raw responses are saved to `seed/fixtures/`, with tokens removed.
+  `seed/fixtures/sandbox/`.
+- [x] Assumption A-3 is confirmed or corrected in `WORKLOG.md`.
+- [x] No token appears in any committed file.
 
 **Testing required:** None yet. The fixtures become test inputs in P6.
 **Handoff notes:** Developer 2 can now build the entire read path against these fixtures

@@ -1,0 +1,82 @@
+[
+  {
+    "_links": {
+      "html": {
+        "href": "https://github.com/keshan-dev/headref-sandbox/pull/6#pullrequestreview-5576686833"
+      },
+      "pull_request": {
+        "href": "https://api.github.com/repos/keshan-dev/headref-sandbox/pulls/6"
+      }
+    },
+    "author_association": "COLLABORATOR",
+    "body": "need to have chnage in the ui part",
+    "commit_id": "34d246028d5328f670dce12d261bd2a438e9648a",
+    "html_url": "https://github.com/keshan-dev/headref-sandbox/pull/6#pullrequestreview-5576686833",
+    "id": 5576686833,
+    "node_id": "PRR_kwDOVOr1lc8AAAABTGV88Q",
+    "pull_request_url": "https://api.github.com/repos/keshan-dev/headref-sandbox/pulls/6",
+    "state": "CHANGES_REQUESTED",
+    "submitted_at": "2026-10-19T19:32:29Z",
+    "user": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/221026807?u=6961750b293aed319948bfdc97db65ea2187e47e&v=4",
+      "events_url": "https://api.github.com/users/IsiwaraKumarage8/events{/privacy}",
+      "followers_url": "https://api.github.com/users/IsiwaraKumarage8/followers",
+      "following_url": "https://api.github.com/users/IsiwaraKumarage8/following{/other_user}",
+      "gists_url": "https://api.github.com/users/IsiwaraKumarage8/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/IsiwaraKumarage8",
+      "id": 221026807,
+      "login": "IsiwaraKumarage8",
+      "node_id": "U_kgDODSyZ9w",
+      "organizations_url": "https://api.github.com/users/IsiwaraKumarage8/orgs",
+      "received_events_url": "https://api.github.com/users/IsiwaraKumarage8/received_events",
+      "repos_url": "https://api.github.com/users/IsiwaraKumarage8/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/IsiwaraKumarage8/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/IsiwaraKumarage8/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/IsiwaraKumarage8",
+      "user_view_type": "public"
+    }
+  },
+  {
+    "_links": {
+      "html": {
+        "href": "https://github.com/keshan-dev/headref-sandbox/pull/4#pullrequestreview-5576691073"
+      },
+      "pull_request": {
+        "href": "https://api.github.com/repos/keshan-dev/headref-sandbox/pulls/4"
+      }
+    },
+    "author_association": "COLLABORATOR",
+    "body": "",
+    "commit_id": "d261a8a452337cdda98605fe756340cc8092426c",
+    "html_url": "https://github.com/keshan-dev/headref-sandbox/pull/4#pullrequestreview-5576691073",
+    "id": 5576691073,
+    "node_id": "PRR_kwDOVOr1lc8AAAABTGWNgQ",
+    "pull_request_url": "https://api.github.com/repos/keshan-dev/headref-sandbox/pulls/4",
+    "state": "APPROVED",
+    "submitted_at": "2026-10-19T19:32:54Z",
+    "user": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/221026807?u=6961750b293aed319948bfdc97db65ea2187e47e&v=4",
+      "events_url": "https://api.github.com/users/IsiwaraKumarage8/events{/privacy}",
+      "followers_url": "https://api.github.com/users/IsiwaraKumarage8/followers",
+      "following_url": "https://api.github.com/users/IsiwaraKumarage8/following{/other_user}",
+      "gists_url": "https://api.github.com/users/IsiwaraKumarage8/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/IsiwaraKumarage8",
+      "id": 221026807,
+      "login": "IsiwaraKumarage8",
+      "node_id": "U_kgDODSyZ9w",
+      "organizations_url": "https://api.github.com/users/IsiwaraKumarage8/orgs",
+      "received_events_url": "https://api.github.com/users/IsiwaraKumarage8/received_events",
+      "repos_url": "https://api.github.com/users/IsiwaraKumarage8/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/IsiwaraKumarage8/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/IsiwaraKumarage8/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/IsiwaraKumarage8",
+      "user_view_type": "public"
+    }
+  }
+]
