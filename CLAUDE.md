@@ -140,7 +140,7 @@ honest picture of what is actually enforced.
 | Tools make no network call | CI greps `app/tools/` for an HTTP client import | Active, skips until `app/tools/` exists |
 | Single migration head | CI `alembic heads` check | Written, skips until P1-001 creates `migrations/` |
 | Migrations apply cleanly | CI `alembic upgrade head` against an empty database | Written, skips until P1-001 |
-| Authorization on every member route | Test enumerating routes, FR-028 | To add in P3-001 |
+| Authorization on every workspace route | `test_every_workspace_route_checks_membership` (`workspace_access` on every `/w/{workspace_id}` route) and the `tests/test_isolation.py` sweep, FR-028 | Active |
 | Everything else | Human review, and this file | Ongoing |
 
 CI runs on every pull request into `main`. The attribution check reads commit messages
