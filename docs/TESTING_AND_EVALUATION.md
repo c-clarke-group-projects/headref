@@ -60,12 +60,12 @@ conditions, and both are required.
 
 | Test | Expected |
 |---|---|
-| `GET /api/members/{id}/insight?question=blockers` | 200 with a valid `MemberInsight` |
+| `GET /api/members/{id}/insight?question=blockers` | 200 with a valid `MemberInsight`. Removed by DEC-026: the workspace page and `/w/{id}/members/{pid}/summary` are tested instead |
 | Invalid question type | 422 |
 | Unauthorized subject | 403, and the denial is logged |
 | Nonexistent member | 404 |
 | Member with no data | 200 with UNKNOWN, not an error |
-| Every member-data route | Calls `can_view_member`, asserted by a route-coverage test |
+| Every member-data route | Calls `workspace_access` (was `can_view_member`), asserted by `test_every_workspace_route_checks_membership` |
 
 ### Database tests
 
