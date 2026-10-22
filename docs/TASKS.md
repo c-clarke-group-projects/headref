@@ -1765,7 +1765,7 @@ a link.
 **Out of scope:** Editing evidence.
 **Owner:** Developer 2
 **Priority:** P0
-**Status:** IN_PROGRESS
+**Status:** DONE
 **Dependencies:** P5-002
 **Parallelizable:** NO.
 **Components:** UI
@@ -1786,7 +1786,7 @@ a link.
 - [x] Both timestamps are shown.
 - [x] Excerpt text is escaped, with no rendered markup or links.
 - [x] Stale evidence is visually distinguishable.
-- [ ] Clicking a link opens the correct source record.
+- [x] Clicking a link opens the correct source record.
 
 **Testing required:** A rendering test asserting escaping, plus manual verification that
 links resolve.
