@@ -2,7 +2,7 @@
 
 import json
 
-from scripts.capture_fixtures import REDACTED_EMAIL, a3_counts, sanitize
+from scripts.capture_fixtures import REDACTED, REDACTED_EMAIL, a3_counts, sanitize
 
 
 def test_every_email_is_replaced_and_nothing_else_changes() -> None:
@@ -25,9 +25,33 @@ def test_every_email_is_replaced_and_nothing_else_changes() -> None:
     assert clean["commit"]["author"]["email"] == REDACTED_EMAIL
     assert clean["list"][0] == {"email": REDACTED_EMAIL, "login": "octo"}
     assert clean["blank"]["email"] == "", "an empty value stays empty"
-    # Free text is source data, kept as it is; only email fields are replaced.
-    assert clean["fields"]["summary"] == raw["fields"]["summary"]
+    # Free text keeps everything except the address.
+    assert clean["fields"]["summary"] == f"Contact {REDACTED_EMAIL} about it"
     assert raw["commit"]["author"]["email"] == "keshan@company.example", "input untouched"
+
+
+def test_an_email_inside_raw_commit_text_is_replaced() -> None:
+    """GitHub's verification.payload is the raw commit, author and committer lines included."""
+    payload = (
+        "tree abc\nauthor Keshan <keshan@company.example> 1792000000 +0530\n"
+        "committer GitHub <noreply@github.com> 1792000000 +0530\n\nMerge"
+    )
+    clean = sanitize({"verification": {"payload": payload}, "ssh_url": "git@github.com:o/r.git"})
+
+    text = clean["verification"]["payload"]
+    assert "keshan@company.example" not in text
+    assert f"author Keshan <{REDACTED_EMAIL}>" in text
+    assert "<noreply@github.com>" in text, "GitHub's service address is not a person's"
+    assert clean["ssh_url"] == "git@github.com:o/r.git"
+
+
+def test_a_token_field_is_replaced() -> None:
+    """GitHub returns temp_clone_token for a private repository; it is a credential."""
+    clean = sanitize({"full_name": "o/r", "temp_clone_token": "CSERVM4A", "other_token": None})
+
+    assert clean["temp_clone_token"] == REDACTED
+    assert clean["other_token"] is None
+    assert clean["full_name"] == "o/r"
 
 
 def test_a3_report_is_counts_only() -> None:

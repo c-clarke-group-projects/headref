@@ -1,0 +1,1938 @@
+{
+  "issues": [
+    {
+      "expand": "renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations",
+      "fields": {
+        "aggregateprogress": {
+          "progress": 0,
+          "total": 0
+        },
+        "aggregatetimeestimate": null,
+        "aggregatetimeoriginalestimate": null,
+        "aggregatetimespent": null,
+        "assignee": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "components": [],
+        "created": "2026-10-18T23:52:37.419+0530",
+        "creator": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "customfield_10001": null,
+        "customfield_10015": null,
+        "customfield_10019": "0|hzzzzz:",
+        "customfield_10021": null,
+        "customfield_10026": null,
+        "description": {
+          "content": [
+            {
+              "content": [
+                {
+                  "text": "headref test case CF-1: this issue stays In Progress while its linked pull request (branch feature/HRS-1-rotate-refresh-tokens) is merged. Expected: conflict CF-1 and risk RK-4.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            }
+          ],
+          "type": "doc",
+          "version": 1
+        },
+        "duedate": null,
+        "environment": null,
+        "fixVersions": [],
+        "issuelinks": [],
+        "issuetype": {
+          "avatarId": 10318,
+          "description": "",
+          "entityId": "3a6115c7-03c6-42b9-9652-1654c0a60a1c",
+          "hierarchyLevel": 0,
+          "iconUrl": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/2/universal_avatar/view/type/issuetype/avatar/10318?size=medium",
+          "id": "10011",
+          "name": "Task",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issuetype/10011",
+          "subtask": false
+        },
+        "labels": [],
+        "lastViewed": null,
+        "priority": {
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/priorities/medium_new.svg",
+          "id": "3",
+          "name": "Medium",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/priority/3"
+        },
+        "progress": {
+          "progress": 0,
+          "total": 0
+        },
+        "project": {
+          "avatarUrls": {
+            "16x16": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=xsmall",
+            "24x24": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=small",
+            "32x32": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=medium",
+            "48x48": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403"
+          },
+          "id": "10001",
+          "key": "HRS",
+          "name": "headref sandbox",
+          "projectTypeKey": "software",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/project/10001",
+          "simplified": true
+        },
+        "reporter": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "resolution": null,
+        "resolutiondate": null,
+        "security": null,
+        "status": {
+          "description": "This work item is being actively worked on at the moment by the assignee.",
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/statuses/inprogress.png",
+          "id": "3",
+          "name": "In Progress",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/status/3",
+          "statusCategory": {
+            "colorName": "yellow",
+            "id": 4,
+            "key": "indeterminate",
+            "name": "In Progress",
+            "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/4"
+          }
+        },
+        "statusCategory": {
+          "colorName": "yellow",
+          "id": 4,
+          "key": "indeterminate",
+          "name": "In Progress",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/4"
+        },
+        "statuscategorychangedate": "2026-10-18T23:53:04.661+0530",
+        "subtasks": [],
+        "summary": "Rotate refresh tokens on login",
+        "timeestimate": null,
+        "timeoriginalestimate": null,
+        "timespent": null,
+        "updated": "2026-10-18T23:53:04.661+0530",
+        "versions": [],
+        "votes": {
+          "hasVoted": false,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-1/votes",
+          "votes": 0
+        },
+        "watches": {
+          "isWatching": true,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-1/watchers",
+          "watchCount": 1
+        },
+        "workratio": -1
+      },
+      "id": "10000",
+      "key": "HRS-1",
+      "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/10000"
+    },
+    {
+      "expand": "renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations",
+      "fields": {
+        "aggregateprogress": {
+          "progress": 0,
+          "total": 0
+        },
+        "aggregatetimeestimate": null,
+        "aggregatetimeoriginalestimate": null,
+        "aggregatetimespent": null,
+        "assignee": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "components": [],
+        "created": "2026-10-18T23:53:07.406+0530",
+        "creator": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "customfield_10001": null,
+        "customfield_10015": null,
+        "customfield_10019": "0|i00002:",
+        "customfield_10021": null,
+        "customfield_10026": null,
+        "description": {
+          "content": [
+            {
+              "content": [
+                {
+                  "text": "headref test case CF-2: this issue is Done while its linked pull request (branch feature/HRS-2-audit-log-export) is still open. Expected: conflict CF-2.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            }
+          ],
+          "type": "doc",
+          "version": 1
+        },
+        "duedate": null,
+        "environment": null,
+        "fixVersions": [],
+        "issuelinks": [],
+        "issuetype": {
+          "avatarId": 10318,
+          "description": "",
+          "entityId": "3a6115c7-03c6-42b9-9652-1654c0a60a1c",
+          "hierarchyLevel": 0,
+          "iconUrl": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/2/universal_avatar/view/type/issuetype/avatar/10318?size=medium",
+          "id": "10011",
+          "name": "Task",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issuetype/10011",
+          "subtask": false
+        },
+        "labels": [],
+        "lastViewed": null,
+        "priority": {
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/priorities/medium_new.svg",
+          "id": "3",
+          "name": "Medium",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/priority/3"
+        },
+        "progress": {
+          "progress": 0,
+          "total": 0
+        },
+        "project": {
+          "avatarUrls": {
+            "16x16": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=xsmall",
+            "24x24": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=small",
+            "32x32": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=medium",
+            "48x48": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403"
+          },
+          "id": "10001",
+          "key": "HRS",
+          "name": "headref sandbox",
+          "projectTypeKey": "software",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/project/10001",
+          "simplified": true
+        },
+        "reporter": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "resolution": null,
+        "resolutiondate": null,
+        "security": null,
+        "status": {
+          "description": "",
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/statuses/generic.png",
+          "id": "10005",
+          "name": "Done",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/status/10005",
+          "statusCategory": {
+            "colorName": "yellow",
+            "id": 4,
+            "key": "indeterminate",
+            "name": "In Progress",
+            "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/4"
+          }
+        },
+        "statusCategory": {
+          "colorName": "yellow",
+          "id": 4,
+          "key": "indeterminate",
+          "name": "In Progress",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/4"
+        },
+        "statuscategorychangedate": "2026-10-18T23:53:07.839+0530",
+        "subtasks": [],
+        "summary": "Add audit log export endpoint",
+        "timeestimate": null,
+        "timeoriginalestimate": null,
+        "timespent": null,
+        "updated": "2026-10-18T23:53:07.839+0530",
+        "versions": [],
+        "votes": {
+          "hasVoted": false,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-2/votes",
+          "votes": 0
+        },
+        "watches": {
+          "isWatching": true,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-2/watchers",
+          "watchCount": 1
+        },
+        "workratio": -1
+      },
+      "id": "10001",
+      "key": "HRS-2",
+      "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/10001"
+    },
+    {
+      "expand": "renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations",
+      "fields": {
+        "aggregateprogress": {
+          "progress": 0,
+          "total": 0
+        },
+        "aggregatetimeestimate": null,
+        "aggregatetimeoriginalestimate": null,
+        "aggregatetimespent": null,
+        "assignee": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "components": [],
+        "created": "2026-10-18T23:53:10.499+0530",
+        "creator": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "customfield_10001": null,
+        "customfield_10015": null,
+        "customfield_10019": "0|i0000c:",
+        "customfield_10021": null,
+        "customfield_10026": null,
+        "description": {
+          "content": [
+            {
+              "content": [
+                {
+                  "text": "headref test case CF-3: this issue is moved to Done, then a new commit is pushed to its branch feature/HRS-3-cache-team-overview. Expected: conflict CF-3.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            }
+          ],
+          "type": "doc",
+          "version": 1
+        },
+        "duedate": null,
+        "environment": null,
+        "fixVersions": [],
+        "issuelinks": [],
+        "issuetype": {
+          "avatarId": 10318,
+          "description": "",
+          "entityId": "3a6115c7-03c6-42b9-9652-1654c0a60a1c",
+          "hierarchyLevel": 0,
+          "iconUrl": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/2/universal_avatar/view/type/issuetype/avatar/10318?size=medium",
+          "id": "10011",
+          "name": "Task",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issuetype/10011",
+          "subtask": false
+        },
+        "labels": [],
+        "lastViewed": null,
+        "priority": {
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/priorities/medium_new.svg",
+          "id": "3",
+          "name": "Medium",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/priority/3"
+        },
+        "progress": {
+          "progress": 0,
+          "total": 0
+        },
+        "project": {
+          "avatarUrls": {
+            "16x16": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=xsmall",
+            "24x24": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=small",
+            "32x32": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=medium",
+            "48x48": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403"
+          },
+          "id": "10001",
+          "key": "HRS",
+          "name": "headref sandbox",
+          "projectTypeKey": "software",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/project/10001",
+          "simplified": true
+        },
+        "reporter": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "resolution": null,
+        "resolutiondate": null,
+        "security": null,
+        "status": {
+          "description": "",
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/statuses/generic.png",
+          "id": "10005",
+          "name": "Done",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/status/10005",
+          "statusCategory": {
+            "colorName": "yellow",
+            "id": 4,
+            "key": "indeterminate",
+            "name": "In Progress",
+            "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/4"
+          }
+        },
+        "statusCategory": {
+          "colorName": "yellow",
+          "id": 4,
+          "key": "indeterminate",
+          "name": "In Progress",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/4"
+        },
+        "statuscategorychangedate": "2026-10-18T23:53:10.987+0530",
+        "subtasks": [],
+        "summary": "Cache team overview response",
+        "timeestimate": null,
+        "timeoriginalestimate": null,
+        "timespent": null,
+        "updated": "2026-10-18T23:53:10.987+0530",
+        "versions": [],
+        "votes": {
+          "hasVoted": false,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-3/votes",
+          "votes": 0
+        },
+        "watches": {
+          "isWatching": true,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-3/watchers",
+          "watchCount": 1
+        },
+        "workratio": -1
+      },
+      "id": "10002",
+      "key": "HRS-3",
+      "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/10002"
+    },
+    {
+      "expand": "renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations",
+      "fields": {
+        "aggregateprogress": {
+          "progress": 0,
+          "total": 0
+        },
+        "aggregatetimeestimate": null,
+        "aggregatetimeoriginalestimate": null,
+        "aggregatetimespent": null,
+        "assignee": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "components": [],
+        "created": "2026-10-18T23:53:13.742+0530",
+        "creator": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "customfield_10000": "{}",
+        "customfield_10001": null,
+        "customfield_10015": null,
+        "customfield_10019": "0|i0000e:",
+        "customfield_10021": null,
+        "customfield_10026": null,
+        "description": {
+          "content": [
+            {
+              "content": [
+                {
+                  "text": "headref test case BL-1 and CF-4: this issue is Blocked while its linked pull request (branch feature/HRS-4-session-store) is approved with passing checks. Expected: blocker BL-1; conflict CF-4 once a second account approves the pull request.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            }
+          ],
+          "type": "doc",
+          "version": 1
+        },
+        "duedate": null,
+        "environment": null,
+        "fixVersions": [],
+        "issuelinks": [],
+        "issuetype": {
+          "avatarId": 10318,
+          "description": "",
+          "entityId": "3a6115c7-03c6-42b9-9652-1654c0a60a1c",
+          "hierarchyLevel": 0,
+          "iconUrl": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/2/universal_avatar/view/type/issuetype/avatar/10318?size=medium",
+          "id": "10011",
+          "name": "Task",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issuetype/10011",
+          "subtask": false
+        },
+        "labels": [],
+        "lastViewed": null,
+        "priority": {
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/priorities/medium_new.svg",
+          "id": "3",
+          "name": "Medium",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/priority/3"
+        },
+        "progress": {
+          "progress": 0,
+          "total": 0
+        },
+        "project": {
+          "avatarUrls": {
+            "16x16": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=xsmall",
+            "24x24": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=small",
+            "32x32": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=medium",
+            "48x48": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403"
+          },
+          "id": "10001",
+          "key": "HRS",
+          "name": "headref sandbox",
+          "projectTypeKey": "software",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/project/10001",
+          "simplified": true
+        },
+        "reporter": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "resolution": null,
+        "resolutiondate": null,
+        "security": null,
+        "status": {
+          "description": "",
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/statuses/generic.png",
+          "id": "10006",
+          "name": "Blocked",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/status/10006",
+          "statusCategory": {
+            "colorName": "green",
+            "id": 3,
+            "key": "done",
+            "name": "Done",
+            "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/3"
+          }
+        },
+        "statusCategory": {
+          "colorName": "green",
+          "id": 3,
+          "key": "done",
+          "name": "Done",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/3"
+        },
+        "statuscategorychangedate": "2026-10-18T23:53:14.443+0530",
+        "subtasks": [],
+        "summary": "Migrate session store to PostgreSQL",
+        "timeestimate": null,
+        "timeoriginalestimate": null,
+        "timespent": null,
+        "updated": "2026-10-18T23:53:14.443+0530",
+        "versions": [],
+        "votes": {
+          "hasVoted": false,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-4/votes",
+          "votes": 0
+        },
+        "watches": {
+          "isWatching": true,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-4/watchers",
+          "watchCount": 1
+        },
+        "workratio": -1
+      },
+      "id": "10003",
+      "key": "HRS-4",
+      "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/10003"
+    },
+    {
+      "expand": "renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations",
+      "fields": {
+        "aggregateprogress": {
+          "progress": 0,
+          "total": 0
+        },
+        "aggregatetimeestimate": null,
+        "aggregatetimeoriginalestimate": null,
+        "aggregatetimespent": null,
+        "assignee": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "components": [],
+        "created": "2026-10-18T23:53:48.155+0530",
+        "creator": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "customfield_10001": null,
+        "customfield_10015": null,
+        "customfield_10019": "0|i0000n:",
+        "customfield_10021": [
+          {
+            "id": "10019",
+            "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/customFieldOption/10019",
+            "value": "Impediment"
+          }
+        ],
+        "customfield_10026": null,
+        "description": {
+          "content": [
+            {
+              "content": [
+                {
+                  "text": "headref test case BL-2: this issue is In Progress and flagged as an impediment. Expected: blocker BL-2.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            }
+          ],
+          "type": "doc",
+          "version": 1
+        },
+        "duedate": null,
+        "environment": null,
+        "fixVersions": [],
+        "issuelinks": [],
+        "issuetype": {
+          "avatarId": 10318,
+          "description": "",
+          "entityId": "3a6115c7-03c6-42b9-9652-1654c0a60a1c",
+          "hierarchyLevel": 0,
+          "iconUrl": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/2/universal_avatar/view/type/issuetype/avatar/10318?size=medium",
+          "id": "10011",
+          "name": "Task",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issuetype/10011",
+          "subtask": false
+        },
+        "labels": [],
+        "lastViewed": null,
+        "priority": {
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/priorities/medium_new.svg",
+          "id": "3",
+          "name": "Medium",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/priority/3"
+        },
+        "progress": {
+          "progress": 0,
+          "total": 0
+        },
+        "project": {
+          "avatarUrls": {
+            "16x16": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=xsmall",
+            "24x24": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=small",
+            "32x32": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=medium",
+            "48x48": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403"
+          },
+          "id": "10001",
+          "key": "HRS",
+          "name": "headref sandbox",
+          "projectTypeKey": "software",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/project/10001",
+          "simplified": true
+        },
+        "reporter": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "resolution": null,
+        "resolutiondate": null,
+        "security": null,
+        "status": {
+          "description": "This work item is being actively worked on at the moment by the assignee.",
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/statuses/inprogress.png",
+          "id": "3",
+          "name": "In Progress",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/status/3",
+          "statusCategory": {
+            "colorName": "yellow",
+            "id": 4,
+            "key": "indeterminate",
+            "name": "In Progress",
+            "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/4"
+          }
+        },
+        "statusCategory": {
+          "colorName": "yellow",
+          "id": 4,
+          "key": "indeterminate",
+          "name": "In Progress",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/4"
+        },
+        "statuscategorychangedate": "2026-10-18T23:53:48.773+0530",
+        "subtasks": [],
+        "summary": "Wait for vendor SSO metadata",
+        "timeestimate": null,
+        "timeoriginalestimate": null,
+        "timespent": null,
+        "updated": "2026-10-18T23:53:48.773+0530",
+        "versions": [],
+        "votes": {
+          "hasVoted": false,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-5/votes",
+          "votes": 0
+        },
+        "watches": {
+          "isWatching": true,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-5/watchers",
+          "watchCount": 1
+        },
+        "workratio": -1
+      },
+      "id": "10004",
+      "key": "HRS-5",
+      "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/10004"
+    },
+    {
+      "expand": "renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations",
+      "fields": {
+        "aggregateprogress": {
+          "progress": 0,
+          "total": 0
+        },
+        "aggregatetimeestimate": null,
+        "aggregatetimeoriginalestimate": null,
+        "aggregatetimespent": null,
+        "assignee": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "components": [],
+        "created": "2026-10-18T23:53:50.941+0530",
+        "creator": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "customfield_10000": "{}",
+        "customfield_10001": null,
+        "customfield_10015": null,
+        "customfield_10019": "0|i0000o:",
+        "customfield_10021": null,
+        "customfield_10026": null,
+        "description": {
+          "content": [
+            {
+              "content": [
+                {
+                  "text": "headref test case BL-3: this issue is blocked by HRS-7, which is still open. Expected: blocker BL-3.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            }
+          ],
+          "type": "doc",
+          "version": 1
+        },
+        "duedate": null,
+        "environment": null,
+        "fixVersions": [],
+        "issuelinks": [
+          {
+            "id": "10000",
+            "inwardIssue": {
+              "fields": {
+                "issuetype": {
+                  "avatarId": 10318,
+                  "description": "",
+                  "entityId": "3a6115c7-03c6-42b9-9652-1654c0a60a1c",
+                  "hierarchyLevel": 0,
+                  "iconUrl": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/2/universal_avatar/view/type/issuetype/avatar/10318?size=medium",
+                  "id": "10011",
+                  "name": "Task",
+                  "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issuetype/10011",
+                  "subtask": false
+                },
+                "priority": {
+                  "iconUrl": "https://keshanuni.atlassian.net/images/icons/priorities/medium_new.svg",
+                  "id": "3",
+                  "name": "Medium",
+                  "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/priority/3"
+                },
+                "status": {
+                  "description": "This work item is being actively worked on at the moment by the assignee.",
+                  "iconUrl": "https://keshanuni.atlassian.net/images/icons/statuses/inprogress.png",
+                  "id": "3",
+                  "name": "In Progress",
+                  "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/status/3",
+                  "statusCategory": {
+                    "colorName": "yellow",
+                    "id": 4,
+                    "key": "indeterminate",
+                    "name": "In Progress",
+                    "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/4"
+                  }
+                },
+                "summary": "Define member export API contract"
+              },
+              "id": "10006",
+              "key": "HRS-7",
+              "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/10006"
+            },
+            "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issueLink/10000",
+            "type": {
+              "id": "10000",
+              "inward": "is blocked by",
+              "name": "Blocks",
+              "outward": "blocks",
+              "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issueLinkType/10000"
+            }
+          }
+        ],
+        "issuetype": {
+          "avatarId": 10318,
+          "description": "",
+          "entityId": "3a6115c7-03c6-42b9-9652-1654c0a60a1c",
+          "hierarchyLevel": 0,
+          "iconUrl": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/2/universal_avatar/view/type/issuetype/avatar/10318?size=medium",
+          "id": "10011",
+          "name": "Task",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issuetype/10011",
+          "subtask": false
+        },
+        "labels": [],
+        "lastViewed": "2026-10-22T23:15:30.305+0530",
+        "priority": {
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/priorities/medium_new.svg",
+          "id": "3",
+          "name": "Medium",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/priority/3"
+        },
+        "progress": {
+          "progress": 0,
+          "total": 0
+        },
+        "project": {
+          "avatarUrls": {
+            "16x16": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=xsmall",
+            "24x24": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=small",
+            "32x32": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=medium",
+            "48x48": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403"
+          },
+          "id": "10001",
+          "key": "HRS",
+          "name": "headref sandbox",
+          "projectTypeKey": "software",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/project/10001",
+          "simplified": true
+        },
+        "reporter": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "resolution": null,
+        "resolutiondate": null,
+        "security": null,
+        "status": {
+          "description": "",
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/statuses/generic.png",
+          "id": "10004",
+          "name": "To Do",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/status/10004",
+          "statusCategory": {
+            "colorName": "blue-gray",
+            "id": 2,
+            "key": "new",
+            "name": "To Do",
+            "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/2"
+          }
+        },
+        "statusCategory": {
+          "colorName": "blue-gray",
+          "id": 2,
+          "key": "new",
+          "name": "To Do",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/2"
+        },
+        "statuscategorychangedate": "2026-10-18T23:53:51.279+0530",
+        "subtasks": [],
+        "summary": "Build member export screen",
+        "timeestimate": null,
+        "timeoriginalestimate": null,
+        "timespent": null,
+        "updated": "2026-10-18T23:54:03.568+0530",
+        "versions": [],
+        "votes": {
+          "hasVoted": false,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-6/votes",
+          "votes": 0
+        },
+        "watches": {
+          "isWatching": true,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-6/watchers",
+          "watchCount": 1
+        },
+        "workratio": -1
+      },
+      "id": "10005",
+      "key": "HRS-6",
+      "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/10005"
+    },
+    {
+      "expand": "renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations",
+      "fields": {
+        "aggregateprogress": {
+          "progress": 0,
+          "total": 0
+        },
+        "aggregatetimeestimate": null,
+        "aggregatetimeoriginalestimate": null,
+        "aggregatetimespent": null,
+        "assignee": {
+          "accountId": "712020:54bf88ca-b2a5-4984-a3eb-1d3e1377bf4e",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/d67d85a0c5ded8bdb6ae05dd23f63bd3?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FIK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/d67d85a0c5ded8bdb6ae05dd23f63bd3?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FIK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/d67d85a0c5ded8bdb6ae05dd23f63bd3?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FIK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/d67d85a0c5ded8bdb6ae05dd23f63bd3?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FIK-4.png"
+          },
+          "displayName": "Isiwara Kumarage",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3A54bf88ca-b2a5-4984-a3eb-1d3e1377bf4e",
+          "timeZone": "Asia/Colombo"
+        },
+        "components": [],
+        "created": "2026-10-18T23:53:53.786+0530",
+        "creator": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "customfield_10001": null,
+        "customfield_10015": null,
+        "customfield_10019": "0|i0000w:",
+        "customfield_10021": null,
+        "customfield_10026": null,
+        "description": {
+          "content": [
+            {
+              "content": [
+                {
+                  "text": "headref test case BL-3 (dependency side): this issue blocks HRS-6 and stays open.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            }
+          ],
+          "type": "doc",
+          "version": 1
+        },
+        "duedate": null,
+        "environment": null,
+        "fixVersions": [],
+        "issuelinks": [
+          {
+            "id": "10000",
+            "outwardIssue": {
+              "fields": {
+                "issuetype": {
+                  "avatarId": 10318,
+                  "description": "",
+                  "entityId": "3a6115c7-03c6-42b9-9652-1654c0a60a1c",
+                  "hierarchyLevel": 0,
+                  "iconUrl": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/2/universal_avatar/view/type/issuetype/avatar/10318?size=medium",
+                  "id": "10011",
+                  "name": "Task",
+                  "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issuetype/10011",
+                  "subtask": false
+                },
+                "priority": {
+                  "iconUrl": "https://keshanuni.atlassian.net/images/icons/priorities/medium_new.svg",
+                  "id": "3",
+                  "name": "Medium",
+                  "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/priority/3"
+                },
+                "status": {
+                  "description": "",
+                  "iconUrl": "https://keshanuni.atlassian.net/images/icons/statuses/generic.png",
+                  "id": "10004",
+                  "name": "To Do",
+                  "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/status/10004",
+                  "statusCategory": {
+                    "colorName": "blue-gray",
+                    "id": 2,
+                    "key": "new",
+                    "name": "To Do",
+                    "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/2"
+                  }
+                },
+                "summary": "Build member export screen"
+              },
+              "id": "10005",
+              "key": "HRS-6",
+              "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/10005"
+            },
+            "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issueLink/10000",
+            "type": {
+              "id": "10000",
+              "inward": "is blocked by",
+              "name": "Blocks",
+              "outward": "blocks",
+              "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issueLinkType/10000"
+            }
+          }
+        ],
+        "issuetype": {
+          "avatarId": 10318,
+          "description": "",
+          "entityId": "3a6115c7-03c6-42b9-9652-1654c0a60a1c",
+          "hierarchyLevel": 0,
+          "iconUrl": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/2/universal_avatar/view/type/issuetype/avatar/10318?size=medium",
+          "id": "10011",
+          "name": "Task",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issuetype/10011",
+          "subtask": false
+        },
+        "labels": [],
+        "lastViewed": null,
+        "priority": {
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/priorities/medium_new.svg",
+          "id": "3",
+          "name": "Medium",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/priority/3"
+        },
+        "progress": {
+          "progress": 0,
+          "total": 0
+        },
+        "project": {
+          "avatarUrls": {
+            "16x16": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=xsmall",
+            "24x24": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=small",
+            "32x32": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=medium",
+            "48x48": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403"
+          },
+          "id": "10001",
+          "key": "HRS",
+          "name": "headref sandbox",
+          "projectTypeKey": "software",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/project/10001",
+          "simplified": true
+        },
+        "reporter": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "resolution": null,
+        "resolutiondate": null,
+        "security": null,
+        "status": {
+          "description": "This work item is being actively worked on at the moment by the assignee.",
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/statuses/inprogress.png",
+          "id": "3",
+          "name": "In Progress",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/status/3",
+          "statusCategory": {
+            "colorName": "yellow",
+            "id": 4,
+            "key": "indeterminate",
+            "name": "In Progress",
+            "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/4"
+          }
+        },
+        "statusCategory": {
+          "colorName": "yellow",
+          "id": 4,
+          "key": "indeterminate",
+          "name": "In Progress",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/4"
+        },
+        "statuscategorychangedate": "2026-10-18T23:53:54.214+0530",
+        "subtasks": [],
+        "summary": "Define member export API contract",
+        "timeestimate": null,
+        "timeoriginalestimate": null,
+        "timespent": null,
+        "updated": "2026-10-20T02:07:05.884+0530",
+        "versions": [],
+        "votes": {
+          "hasVoted": false,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-7/votes",
+          "votes": 0
+        },
+        "watches": {
+          "isWatching": true,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-7/watchers",
+          "watchCount": 1
+        },
+        "workratio": -1
+      },
+      "id": "10006",
+      "key": "HRS-7",
+      "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/10006"
+    },
+    {
+      "expand": "renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations",
+      "fields": {
+        "aggregateprogress": {
+          "progress": 0,
+          "total": 0
+        },
+        "aggregatetimeestimate": null,
+        "aggregatetimeoriginalestimate": null,
+        "aggregatetimespent": null,
+        "assignee": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "components": [],
+        "created": "2026-10-18T23:53:56.866+0530",
+        "creator": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "customfield_10001": null,
+        "customfield_10015": null,
+        "customfield_10019": "0|i0001b:",
+        "customfield_10021": null,
+        "customfield_10026": null,
+        "description": {
+          "content": [
+            {
+              "content": [
+                {
+                  "text": "headref test case RK-1: High priority, due 2026-10-20, not done. Expected: risk RK-1 (due soon). RK-2 and RK-3 start firing only after the item sits unchanged for the configured number of days.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            }
+          ],
+          "type": "doc",
+          "version": 1
+        },
+        "duedate": "2026-10-20",
+        "environment": null,
+        "fixVersions": [],
+        "issuelinks": [],
+        "issuetype": {
+          "avatarId": 10318,
+          "description": "",
+          "entityId": "3a6115c7-03c6-42b9-9652-1654c0a60a1c",
+          "hierarchyLevel": 0,
+          "iconUrl": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/2/universal_avatar/view/type/issuetype/avatar/10318?size=medium",
+          "id": "10011",
+          "name": "Task",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issuetype/10011",
+          "subtask": false
+        },
+        "labels": [],
+        "lastViewed": null,
+        "priority": {
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/priorities/high_new.svg",
+          "id": "2",
+          "name": "High",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/priority/2"
+        },
+        "progress": {
+          "progress": 0,
+          "total": 0
+        },
+        "project": {
+          "avatarUrls": {
+            "16x16": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=xsmall",
+            "24x24": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=small",
+            "32x32": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=medium",
+            "48x48": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403"
+          },
+          "id": "10001",
+          "key": "HRS",
+          "name": "headref sandbox",
+          "projectTypeKey": "software",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/project/10001",
+          "simplified": true
+        },
+        "reporter": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "resolution": null,
+        "resolutiondate": null,
+        "security": null,
+        "status": {
+          "description": "This work item is being actively worked on at the moment by the assignee.",
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/statuses/inprogress.png",
+          "id": "3",
+          "name": "In Progress",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/status/3",
+          "statusCategory": {
+            "colorName": "yellow",
+            "id": 4,
+            "key": "indeterminate",
+            "name": "In Progress",
+            "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/4"
+          }
+        },
+        "statusCategory": {
+          "colorName": "yellow",
+          "id": 4,
+          "key": "indeterminate",
+          "name": "In Progress",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/4"
+        },
+        "statuscategorychangedate": "2026-10-18T23:53:57.536+0530",
+        "subtasks": [],
+        "summary": "Prepare release notes for v0.1.0",
+        "timeestimate": null,
+        "timeoriginalestimate": null,
+        "timespent": null,
+        "updated": "2026-10-18T23:53:57.536+0530",
+        "versions": [],
+        "votes": {
+          "hasVoted": false,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-8/votes",
+          "votes": 0
+        },
+        "watches": {
+          "isWatching": true,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-8/watchers",
+          "watchCount": 1
+        },
+        "workratio": -1
+      },
+      "id": "10007",
+      "key": "HRS-8",
+      "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/10007"
+    },
+    {
+      "expand": "renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations",
+      "fields": {
+        "aggregateprogress": {
+          "progress": 0,
+          "total": 0
+        },
+        "aggregatetimeestimate": null,
+        "aggregatetimeoriginalestimate": null,
+        "aggregatetimespent": null,
+        "assignee": {
+          "accountId": "712020:54bf88ca-b2a5-4984-a3eb-1d3e1377bf4e",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/d67d85a0c5ded8bdb6ae05dd23f63bd3?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FIK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/d67d85a0c5ded8bdb6ae05dd23f63bd3?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FIK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/d67d85a0c5ded8bdb6ae05dd23f63bd3?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FIK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/d67d85a0c5ded8bdb6ae05dd23f63bd3?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FIK-4.png"
+          },
+          "displayName": "Isiwara Kumarage",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3A54bf88ca-b2a5-4984-a3eb-1d3e1377bf4e",
+          "timeZone": "Asia/Colombo"
+        },
+        "components": [],
+        "created": "2026-10-18T23:54:00.299+0530",
+        "creator": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "customfield_10001": null,
+        "customfield_10015": null,
+        "customfield_10019": "0|i0001i:",
+        "customfield_10021": null,
+        "customfield_10026": null,
+        "description": {
+          "content": [
+            {
+              "content": [
+                {
+                  "text": "headref test case BL-7: this issue is In Progress and its linked pull request (branch feature/HRS-9-date-parsing) has a failing CI check. Expected: blocker BL-7.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            }
+          ],
+          "type": "doc",
+          "version": 1
+        },
+        "duedate": null,
+        "environment": null,
+        "fixVersions": [],
+        "issuelinks": [],
+        "issuetype": {
+          "avatarId": 10318,
+          "description": "",
+          "entityId": "3a6115c7-03c6-42b9-9652-1654c0a60a1c",
+          "hierarchyLevel": 0,
+          "iconUrl": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/2/universal_avatar/view/type/issuetype/avatar/10318?size=medium",
+          "id": "10011",
+          "name": "Task",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issuetype/10011",
+          "subtask": false
+        },
+        "labels": [],
+        "lastViewed": null,
+        "priority": {
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/priorities/medium_new.svg",
+          "id": "3",
+          "name": "Medium",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/priority/3"
+        },
+        "progress": {
+          "progress": 0,
+          "total": 0
+        },
+        "project": {
+          "avatarUrls": {
+            "16x16": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=xsmall",
+            "24x24": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=small",
+            "32x32": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=medium",
+            "48x48": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403"
+          },
+          "id": "10001",
+          "key": "HRS",
+          "name": "headref sandbox",
+          "projectTypeKey": "software",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/project/10001",
+          "simplified": true
+        },
+        "reporter": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "resolution": null,
+        "resolutiondate": null,
+        "security": null,
+        "status": {
+          "description": "This work item is being actively worked on at the moment by the assignee.",
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/statuses/inprogress.png",
+          "id": "3",
+          "name": "In Progress",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/status/3",
+          "statusCategory": {
+            "colorName": "yellow",
+            "id": 4,
+            "key": "indeterminate",
+            "name": "In Progress",
+            "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/4"
+          }
+        },
+        "statusCategory": {
+          "colorName": "yellow",
+          "id": 4,
+          "key": "indeterminate",
+          "name": "In Progress",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/4"
+        },
+        "statuscategorychangedate": "2026-10-18T23:54:00.718+0530",
+        "subtasks": [],
+        "summary": "Fix flaky date parsing test",
+        "timeestimate": null,
+        "timeoriginalestimate": null,
+        "timespent": null,
+        "updated": "2026-10-20T02:07:10.558+0530",
+        "versions": [],
+        "votes": {
+          "hasVoted": false,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-9/votes",
+          "votes": 0
+        },
+        "watches": {
+          "isWatching": true,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-9/watchers",
+          "watchCount": 1
+        },
+        "workratio": -1
+      },
+      "id": "10008",
+      "key": "HRS-9",
+      "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/10008"
+    },
+    {
+      "expand": "renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations",
+      "fields": {
+        "aggregateprogress": {
+          "progress": 0,
+          "total": 0
+        },
+        "aggregatetimeestimate": null,
+        "aggregatetimeoriginalestimate": null,
+        "aggregatetimespent": null,
+        "assignee": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "components": [],
+        "created": "2026-10-20T00:26:32.271+0530",
+        "creator": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "customfield_10001": null,
+        "customfield_10015": null,
+        "customfield_10019": "0|i0001w:",
+        "customfield_10021": null,
+        "customfield_10026": null,
+        "description": {
+          "content": [
+            {
+              "content": [
+                {
+                  "text": "headref W11 test case: assigned and not started, priority Highest, due in 7 days. Expected in Likely next, ahead of HRS-6, and RK-1 once inside the due-soon window.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            }
+          ],
+          "type": "doc",
+          "version": 1
+        },
+        "duedate": "2026-10-27",
+        "environment": null,
+        "fixVersions": [],
+        "issuelinks": [],
+        "issuetype": {
+          "avatarId": 10318,
+          "description": "",
+          "entityId": "3a6115c7-03c6-42b9-9652-1654c0a60a1c",
+          "hierarchyLevel": 0,
+          "iconUrl": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/2/universal_avatar/view/type/issuetype/avatar/10318?size=medium",
+          "id": "10011",
+          "name": "Task",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issuetype/10011",
+          "subtask": false
+        },
+        "labels": [],
+        "lastViewed": null,
+        "priority": {
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/priorities/highest_new.svg",
+          "id": "1",
+          "name": "Highest",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/priority/1"
+        },
+        "progress": {
+          "progress": 0,
+          "total": 0
+        },
+        "project": {
+          "avatarUrls": {
+            "16x16": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=xsmall",
+            "24x24": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=small",
+            "32x32": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=medium",
+            "48x48": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403"
+          },
+          "id": "10001",
+          "key": "HRS",
+          "name": "headref sandbox",
+          "projectTypeKey": "software",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/project/10001",
+          "simplified": true
+        },
+        "reporter": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "resolution": null,
+        "resolutiondate": null,
+        "security": null,
+        "status": {
+          "description": "",
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/statuses/generic.png",
+          "id": "10004",
+          "name": "To Do",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/status/10004",
+          "statusCategory": {
+            "colorName": "blue-gray",
+            "id": 2,
+            "key": "new",
+            "name": "To Do",
+            "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/2"
+          }
+        },
+        "statusCategory": {
+          "colorName": "blue-gray",
+          "id": 2,
+          "key": "new",
+          "name": "To Do",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/2"
+        },
+        "statuscategorychangedate": "2026-10-20T00:26:32.859+0530",
+        "subtasks": [],
+        "summary": "Add rate limit to member export endpoint",
+        "timeestimate": null,
+        "timeoriginalestimate": null,
+        "timespent": null,
+        "updated": "2026-10-20T00:26:32.445+0530",
+        "versions": [],
+        "votes": {
+          "hasVoted": false,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-10/votes",
+          "votes": 0
+        },
+        "watches": {
+          "isWatching": true,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-10/watchers",
+          "watchCount": 1
+        },
+        "workratio": -1
+      },
+      "id": "10009",
+      "key": "HRS-10",
+      "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/10009"
+    },
+    {
+      "expand": "renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations",
+      "fields": {
+        "aggregateprogress": {
+          "progress": 0,
+          "total": 0
+        },
+        "aggregatetimeestimate": null,
+        "aggregatetimeoriginalestimate": null,
+        "aggregatetimespent": null,
+        "assignee": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "components": [],
+        "created": "2026-10-20T00:26:36.181+0530",
+        "creator": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "customfield_10001": null,
+        "customfield_10015": null,
+        "customfield_10019": "0|i00022:",
+        "customfield_10021": null,
+        "customfield_10026": null,
+        "description": {
+          "content": [
+            {
+              "content": [
+                {
+                  "text": "headref W11 test case: moved to Done with no branch, commit or pull request. Expected: no conflict (CF-2 needs an open linked pull request), and a feed line when it moves.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            }
+          ],
+          "type": "doc",
+          "version": 1
+        },
+        "duedate": null,
+        "environment": null,
+        "fixVersions": [],
+        "issuelinks": [],
+        "issuetype": {
+          "avatarId": 10318,
+          "description": "",
+          "entityId": "3a6115c7-03c6-42b9-9652-1654c0a60a1c",
+          "hierarchyLevel": 0,
+          "iconUrl": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/2/universal_avatar/view/type/issuetype/avatar/10318?size=medium",
+          "id": "10011",
+          "name": "Task",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issuetype/10011",
+          "subtask": false
+        },
+        "labels": [],
+        "lastViewed": null,
+        "priority": {
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/priorities/medium_new.svg",
+          "id": "3",
+          "name": "Medium",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/priority/3"
+        },
+        "progress": {
+          "progress": 0,
+          "total": 0
+        },
+        "project": {
+          "avatarUrls": {
+            "16x16": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=xsmall",
+            "24x24": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=small",
+            "32x32": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=medium",
+            "48x48": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403"
+          },
+          "id": "10001",
+          "key": "HRS",
+          "name": "headref sandbox",
+          "projectTypeKey": "software",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/project/10001",
+          "simplified": true
+        },
+        "reporter": {
+          "accountId": "712020:bbce5350-49a2-499f-968c-cd91a737481d",
+          "accountType": "atlassian",
+          "active": true,
+          "avatarUrls": {
+            "16x16": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "24x24": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "32x32": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png",
+            "48x48": "https://secure.gravatar.com/avatar/170c0745c68c0f697d330314b7502d86?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FK-4.png"
+          },
+          "displayName": "Keshan",
+          "emailAddress": "redacted@example.invalid",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
+          "timeZone": "Asia/Colombo"
+        },
+        "resolution": null,
+        "resolutiondate": null,
+        "security": null,
+        "status": {
+          "description": "",
+          "iconUrl": "https://keshanuni.atlassian.net/images/icons/statuses/generic.png",
+          "id": "10005",
+          "name": "Done",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/status/10005",
+          "statusCategory": {
+            "colorName": "yellow",
+            "id": 4,
+            "key": "indeterminate",
+            "name": "In Progress",
+            "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/4"
+          }
+        },
+        "statusCategory": {
+          "colorName": "yellow",
+          "id": 4,
+          "key": "indeterminate",
+          "name": "In Progress",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/statuscategory/4"
+        },
+        "statuscategorychangedate": "2026-10-20T00:27:29.703+0530",
+        "subtasks": [],
+        "summary": "Update onboarding checklist",
+        "timeestimate": null,
+        "timeoriginalestimate": null,
+        "timespent": null,
+        "updated": "2026-10-20T00:27:29.703+0530",
+        "versions": [],
+        "votes": {
+          "hasVoted": false,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-11/votes",
+          "votes": 0
+        },
+        "watches": {
+          "isWatching": true,
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/HRS-11/watchers",
+          "watchCount": 1
+        },
+        "workratio": -1
+      },
+      "id": "10010",
+      "key": "HRS-11",
+      "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/issue/10010"
+    }
+  ]
+}

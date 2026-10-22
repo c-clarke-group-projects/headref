@@ -1,0 +1,22 @@
+[
+  {
+    "avatarUrls": {
+      "16x16": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=xsmall",
+      "24x24": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=small",
+      "32x32": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403?size=medium",
+      "48x48": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/universal_avatar/view/type/project/avatar/10403"
+    },
+    "entityId": "3a1c8c3d-89fc-4dc6-b153-32c75ed00c98",
+    "expand": "description,lead,issueTypes,url,projectKeys,permissions,insight",
+    "id": "10001",
+    "isPrivate": false,
+    "key": "HRS",
+    "name": "headref sandbox",
+    "projectTypeKey": "software",
+    "properties": {},
+    "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/project/10001",
+    "simplified": true,
+    "style": "next-gen",
+    "uuid": "3a1c8c3d-89fc-4dc6-b153-32c75ed00c98"
+  }
+]

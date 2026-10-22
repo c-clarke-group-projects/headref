@@ -4,8 +4,11 @@ Reads 1 workspace's selected repositories (through its GitHub App installation) 
 Jira projects (through its Atlassian connection), exactly as the workspace sync does,
 and saves the raw JSON to seed/fixtures/sandbox/. Read only: GET requests only.
 
-Every email address is replaced before anything is written. Tokens live in memory only
-and are never printed or saved. The script also reports, as counts only:
+Every email address is replaced before anything is written, in email fields and inside
+any text, such as the raw commit GitHub returns in verification.payload. Tokens live in
+memory only and are never printed or saved, and any response field named *token (GitHub
+returns temp_clone_token for a private repository) is replaced. The script also reports,
+as counts only:
 - A-3: whether Jira user objects carry an email address, and whether GitHub commit author
   addresses are privacy (noreply) addresses;
 - the rate limit headers GitHub and Jira return.
@@ -16,6 +19,7 @@ Run inside the api container:
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -26,23 +30,38 @@ if str(ROOT) not in sys.path:
 
 OUT_DIR = ROOT / "seed" / "fixtures" / "sandbox"
 REDACTED_EMAIL = "redacted@example.invalid"
+REDACTED = "[redacted]"
 EMAIL_KEYS = {"email", "emailaddress"}
+EMAIL_PATTERN = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+# GitHub's own service addresses, in ssh_url and web-flow commits. Not a person's.
+GITHUB_SERVICE_ADDRESSES = {"git@github.com", "noreply@github.com"}
 NOREPLY_SUFFIX = "users.noreply.github.com"
 
 
+def _redact_text(text: str) -> str:
+    return EMAIL_PATTERN.sub(
+        lambda m: m.group(0) if m.group(0) in GITHUB_SERVICE_ADDRESSES else REDACTED_EMAIL,
+        text,
+    )
+
+
+def _sanitize_field(key: str, item: Any) -> Any:
+    if isinstance(item, str) and item:
+        if key.lower() in EMAIL_KEYS:
+            return REDACTED_EMAIL
+        if key.lower().endswith("token"):
+            return REDACTED
+    return sanitize(item)
+
+
 def sanitize(value: Any) -> Any:
-    """Return a copy with every email address replaced. Nothing else is changed."""
+    """Return a copy with every email address and token field replaced. Nothing else is changed."""
     if isinstance(value, dict):
-        return {
-            key: (
-                REDACTED_EMAIL
-                if key.lower() in EMAIL_KEYS and isinstance(item, str) and item
-                else sanitize(item)
-            )
-            for key, item in value.items()
-        }
+        return {key: _sanitize_field(key, item) for key, item in value.items()}
     if isinstance(value, list):
         return [sanitize(item) for item in value]
+    if isinstance(value, str):
+        return _redact_text(value)
     return value
 
 
