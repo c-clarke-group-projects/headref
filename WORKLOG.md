@@ -60,6 +60,32 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Keshan | Demo seed: correct Jira and review links (P5-003, P7-004)
+Status: IN_REVIEW
+
+### Completed
+- Checked every stored evidence link in the local database against its record, read
+  only: on the real workspace, 26 Jira issues, 144 pull requests, 240 commits and every
+  review link match their record. That supports #35; the click-check by a person still
+  stands.
+- 2 demo seed defects, found by that check:
+  1. With `JIRA_BASE_URL` blank, which README 9.2 allows, seeded Jira links fell back to
+     `https://jira/browse/<key>`. The seed now passes the fixtures' own site,
+     `https://example.atlassian.net`.
+  2. The fixture transport answered every pull request's reviews request with the whole
+     `reviews.json`, so each demo pull request got every review, with links to other pull
+     requests. It now returns only that pull request's reviews.
+- 1 test seeds with `JIRA_BASE_URL` blank and checks every issue and review link. On the
+  old seed it fails with `https://jira/browse/AUTH-245`.
+
+### Discovered
+- The local database still holds old demo rows in "headref Demo Corp" from earlier seeds,
+  including the wrongly attached reviews (reviews are keyed by pull request and review id,
+  so a re-seed adds the right ones but cannot remove the wrong ones). A fresh database is
+  clean. Not deleted: it is Keshan's local data.
+
+---
+
 ## 2026-10-22 | Keshan | P7-003 timed clean setup; P7-002 compared with llama3.2:1b
 Status: IN_PROGRESS
 

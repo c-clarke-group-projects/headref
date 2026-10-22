@@ -186,3 +186,27 @@ def test_the_page_labels_demo_data_and_offers_no_connection(
     assert "Demo data" in page and "Never synced" in page
     assert "Connect GitHub" not in page and "Sync now" not in page
     assert "Demo data" in home
+
+
+def test_demo_links_point_at_their_own_records(
+    monkeypatch: pytest.MonkeyPatch, db_session: Session
+) -> None:
+    """With JIRA_BASE_URL blank (README 9.2), no link falls back to a placeholder host,
+    and every review links to the pull request it belongs to."""
+    import app.config
+    from app.models.work import PullRequest, Review, WorkItem
+    from seed.seed_demo import DEMO_JIRA_SITE
+
+    monkeypatch.setenv("JIRA_BASE_URL", "")
+    app.config.settings = None
+
+    seed_demo_database(db_session)
+
+    items = db_session.scalars(select(WorkItem)).all()
+    assert items
+    for item in items:
+        assert item.source_url == f"{DEMO_JIRA_SITE}/browse/{item.external_id}"
+    reviews = db_session.execute(select(Review, PullRequest).join(PullRequest)).all()
+    assert reviews
+    for review, pr in reviews:
+        assert review.source_url.startswith(pr.source_url + "#"), review.source_url
