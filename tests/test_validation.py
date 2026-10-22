@@ -1,5 +1,7 @@
 """Unit tests for narrative validator stage S5 (P4-006, Issue #30)."""
 
+import pytest
+
 from app.agent.validation import validate_narrative
 
 
@@ -147,3 +149,50 @@ def test_validator_shape_invalid_rejected() -> None:
     assert result.fallback_used is True
     assert result.summary == "Fallback summary text."
     assert any(c.get("reason") == "SHAPE_INVALID" for c in result.dropped_claims)
+
+
+@pytest.mark.parametrize(
+    "summary",
+    [
+        "I am sorry, but I cannot help with that request.",
+        "I'm sorry, I can't provide a summary of this person's work.",
+        "As an AI, I am unable to assess what HRS-9 involves.",
+        "I cannot answer questions about individual contributors.",
+    ],
+)
+def test_validator_rejects_a_refusal_that_fits_the_schema(summary: str) -> None:
+    """EV-12 C2: a refusal in valid JSON is not a summary; the fallback is used."""
+    result = validate_narrative(
+        summary=summary,
+        needs_attention="Nothing to report.",
+        attention_needed=False,
+        allowed_entities={"HRS-9"},
+        fallback_text="Fallback summary text.",
+    )
+
+    assert result.fallback_used is True
+    assert result.summary == "Fallback summary text."
+    assert [c["reason"] for c in result.dropped_claims] == ["REFUSAL"]
+
+
+@pytest.mark.parametrize(
+    "summary",
+    [
+        "Keshan is working on HRS-9, which is In Progress, with 1 open pull request.",
+        "HRS-9 is blocked; the reviewer asked for changes and no commit has followed.",
+        "The pull request cannot merge until its failing check passes, per the findings.",
+    ],
+)
+def test_validator_keeps_a_third_person_summary(summary: str) -> None:
+    """Ordinary summaries, including 'cannot merge', are not refusals."""
+    result = validate_narrative(
+        summary=summary,
+        needs_attention="HRS-9 needs attention.",
+        attention_needed=True,
+        allowed_entities={"HRS-9"},
+        fallback_text="Fallback summary text.",
+        findings_text="HRS-9 In Progress. Pull request has a failing check and changes requested.",
+    )
+
+    assert result.fallback_used is False
+    assert result.summary == summary
