@@ -35,6 +35,9 @@ FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 # organization": in a database with workspaces, that is a real workspace's data.
 DEMO_ORG_NAME = "headref Demo Corp"
 DEMO_WORKSPACE_NAME = "Demo"
+# The fixtures' own Jira site. Passed as the browse site, so issue links do not fall back
+# to a placeholder host when JIRA_BASE_URL is blank, as README 9.2 allows.
+DEMO_JIRA_SITE = "https://example.atlassian.net"
 DEMO_WORKSPACE_DESCRIPTION = "Recorded fixture data, not a real team. Never synced."
 
 
@@ -96,8 +99,16 @@ class FixtureTransport(httpx.BaseTransport):
         # 1. GitHub endpoint routing
         if "github" in str(request.url.host) or "/repos/" in url_path:
             if "/pulls/" in url_path and "/reviews" in url_path:
-                content = (self.fixtures_dir / "github" / "reviews.json").read_bytes()
-                return httpx.Response(200, content=content, request=request)
+                # Only this pull request's reviews. Returning the whole file gave every
+                # pull request every review, with links to other pull requests.
+                number = url_path.split("/pulls/")[1].split("/")[0]
+                reviews_text = (self.fixtures_dir / "github" / "reviews.json").read_text()
+                reviews = [
+                    r
+                    for r in json.loads(reviews_text)
+                    if f"/pull/{number}#" in (r.get("html_url") or "")
+                ]
+                return httpx.Response(200, json=reviews, request=request)
             if url_path.endswith("/pulls"):
                 content = (self.fixtures_dir / "github" / "pull_requests.json").read_bytes()
                 return httpx.Response(200, content=content, request=request)
@@ -192,7 +203,7 @@ def seed_demo_database(
         transport=transport,
     )
     jira_client = JiraClient(
-        base_url="https://example.atlassian.net",
+        base_url=DEMO_JIRA_SITE,
         email="demo@example.com",
         api_token="demo-offline-token",  # noqa: S106 offline fixture transport, no network call
         transport=transport,
@@ -213,6 +224,7 @@ def seed_demo_database(
         jira_client=jira_client,
         organization_id=org.id,
         workspace_id=workspace_id,
+        site_url=DEMO_JIRA_SITE,
     )
 
     logger.info("Running GitHub demo sync...")
@@ -233,6 +245,7 @@ def seed_demo_database(
         jira_client=jira_client,
         organization_id=org.id,
         workspace_id=workspace_id,
+        site_url=DEMO_JIRA_SITE,
     )
 
     summary = {
