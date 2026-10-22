@@ -60,6 +60,24 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Keshan | P5-003 evidence drawer click-check
+Status: DONE
+
+### Completed
+- On the real workspace, opened the drawer for "HRS-6 is blocked by dependency: HRS-7"
+  and clicked Open in Jira: it opened HRS-6. Clicked an Open in GitHub link on a pull
+  request claim: it opened the matching record. The stored HRS-6 link in the database is
+  `https://keshanuni.atlassian.net/browse/HRS-6`.
+- Screenshot of the expanded drawer attached to #35. All 6 acceptance criteria met.
+
+### Discovered
+- A BL-3 dependency blocker cites only the blocked item. `blockers.py` lists the
+  dependency (HRS-7) in `evidence_keys`, but evidence is built from the selected member's
+  records only, so another member's dependency has no evidence item in the drawer. Not
+  fixed here.
+
+---
+
 ## 2026-10-22 | Keshan | P7-004 demo script for the workspace UI
 Status: IN_PROGRESS
 
