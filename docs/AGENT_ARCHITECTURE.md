@@ -235,6 +235,8 @@ correct by construction, so validation now checks **the narrative only**:
 4. **Assembly.** The claims, blockers, risks, conflicts and confidence from S4a are
    attached unchanged. Evidence is resolved from IDs by code.
 
+Steps 1 to 3 are the 3 validator checks; step 4 rejects nothing.
+
 The important property: **a failed narrative never produces a wrong fact.** The worst case
 is that the user sees the deterministic summary instead of a generated one.
 
