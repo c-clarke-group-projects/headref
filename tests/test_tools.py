@@ -212,6 +212,8 @@ def test_t002_get_assigned_work_items_success(db_session: Session) -> None:
     # Check dependency resolution on AUTH-245
     auth_245 = next(i for i in res.items if i.external_id == "AUTH-245")
     assert auth_245.blocked_by == ["AUTH-246"]
+    assert [d.external_id for d in auth_245.blocked_by_items] == ["AUTH-246"]
+    assert auth_245.blocked_by_items[0].source_url == "https://jira.example.com/AUTH-246"
 
     # Check include_done=False excludes done item
     inp_active = GetAssignedWorkItemsInput(

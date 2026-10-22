@@ -60,6 +60,33 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-22 | Keshan | P5-003 dependency blocker cites the blocking issue
+Status: DONE
+
+### Completed
+- A BL-3 claim such as "HRS-6 is blocked by dependency: HRS-7" now has the blocking
+  issue as a second evidence item, with its Jira link, even when another member owns it.
+- T-002 returns the blocking records (`blocked_by_items`, PostgreSQL only); the evidence
+  builder adds each one after the member's own items, so existing evidence IDs keep
+  their numbers. Its summary names only the blocking issue, so it is never cited as the
+  blocked item's own current work.
+
+### Changed
+`app/schemas/tools.py`, `app/tools/get_assigned_work_items.py`,
+`app/agent/evidence_builder.py`, tests in `test_tools.py`, `test_evidence_builder.py` and
+a new eval scenario that fails on the old builder.
+
+### Discovered
+- Blockers and risks also match evidence by substring of the summary, so a claim about
+  HRS-1 would also cite HRS-10 and HRS-11. Not changed here.
+
+### Verification
+622 passed, 2 failed (the 2 known local environment failures); eval 20 of 20. Read-only
+run on the real workspace: HRS-7 appears as `ev_18` with
+`https://keshanuni.atlassian.net/browse/HRS-7`, HRS-6 is still `ev_11`.
+
+---
+
 ## 2026-10-22 | Keshan | P5-003 evidence drawer click-check
 Status: DONE
 

@@ -70,6 +70,20 @@ class GetAssignedWorkItemsInput(BaseModel):
     )
 
 
+class DependencyOut(BaseModel):
+    """A blocking work item, which may be assigned to someone else."""
+
+    external_id: str = Field(description="External issue key e.g. AUTH-245")
+    status: Literal["todo", "in_progress", "in_review", "done", "blocked"] = Field(
+        description="Normalized work item status"
+    )
+    priority: str | None = Field(default=None, description="Normalized priority label")
+    is_flagged: bool = Field(default=False, description="Jira impediment flag")
+    source_url: str = Field(description="Deep link to Jira record")
+    source_updated_at: datetime = Field(description="When updated at source")
+    retrieved_at: datetime = Field(description="When ingested by Headref")
+
+
 class WorkItemOut(BaseModel):
     """Normalized Jira work item output representation."""
 
@@ -88,6 +102,9 @@ class WorkItemOut(BaseModel):
     is_flagged: bool = Field(default=False, description="Jira impediment flag")
     blocked_by: list[str] = Field(
         default_factory=list, description="External keys of blocking work items"
+    )
+    blocked_by_items: list[DependencyOut] = Field(
+        default_factory=list, description="The blocking work item records, for evidence"
     )
     source_url: str = Field(description="Deep link to Jira record")
     source_updated_at: datetime = Field(description="When updated at source")

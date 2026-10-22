@@ -7,6 +7,7 @@ from app.agent.orchestrator import AgentRunContext, RetrievalResult
 from app.agent.planner import RetrievalPlan
 from app.schemas.tools import (
     CommitOut,
+    DependencyOut,
     PullRequestOut,
     ReviewOut,
     SourceHealthOut,
@@ -143,6 +144,38 @@ def test_evidence_builder_deduplication() -> None:
 
     assert len(evidence_set.items) == 1
     assert evidence_set.excluded_duplicate == 1
+
+
+def test_evidence_builder_includes_another_members_blocking_item() -> None:
+    """A dependency blocker names the blocking item, so it must be citable evidence."""
+    now = datetime.now(UTC)
+    blocking = DependencyOut(
+        external_id="AUTH-245",
+        status="in_progress",
+        source_url="http://jira/AUTH-245",
+        source_updated_at=now - timedelta(hours=1),
+        retrieved_at=now,
+    )
+    wi = WorkItemOut(
+        work_item_id=102,
+        external_id="AUTH-246",
+        title="Blocked ticket",
+        status="blocked",
+        raw_status="Blocked",
+        assignee_user_id=1,
+        blocked_by=["AUTH-245"],
+        blocked_by_items=[blocking],
+        source_url="http://jira/AUTH-246",
+        source_updated_at=now,
+        retrieved_at=now,
+    )
+    evidence_set = build_evidence(_base_context(work_items=[wi]))
+
+    assert [ev.entity_key for ev in evidence_set.items] == ["AUTH-246", "AUTH-245"]
+    dep = evidence_set.items[1]
+    assert dep.id == "ev_2"
+    assert dep.source_url == "http://jira/AUTH-245"
+    assert "AUTH-246" not in dep.summary, "never cited as the blocked item's own evidence"
 
 
 def test_evidence_builder_null_actor_exclusion() -> None:

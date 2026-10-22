@@ -399,3 +399,33 @@ def test_a_narrative_naming_another_members_blocking_issue_is_kept(sc: Scenario)
     assert insight.summary == narrative["summary"]
     run = sc.agent_runs()[-1]
     assert run.dropped_claims in (None, [])
+
+
+def test_a_dependency_blocker_cites_the_blocking_issue(sc: Scenario) -> None:
+    """The drawer for "AUTH-246 is blocked by dependency: AUTH-245" links to both (P5-003).
+
+    Found in the #35 click-check: the blocking issue belonged to another member, so it
+    was named in the claim but had no evidence item to open.
+    """
+    keshan = sc.member("Keshan")
+    isiwara = sc.member("Isiwara")
+    blocked = sc.work_item("AUTH-246", keshan, status="blocked", raw_status="Blocked")
+    blocking = sc.work_item("AUTH-245", isiwara)
+    sc.session.add(
+        WorkItemDependency(
+            work_item_id=blocked.id,
+            blocked_by_work_item_id=blocking.id,
+            link_type="is blocked by",
+            retrieved_at=sc.ago(hours=1),
+        )
+    )
+    sc.both_fresh()
+
+    insight = sc.ask(keshan, "blockers")
+
+    dependency = next(b for b in insight.blockers if "AUTH-245" in b.claim)
+    assert cited_keys(dependency) == {"AUTH-246", "AUTH-245"}
+    urls = {ev.entity_key: ev.source_url for ev in dependency.evidence}
+    assert urls["AUTH-245"] == blocking.source_url
+    current = insight.likely_current_work
+    assert current is None or "AUTH-245" not in cited_keys(current), "not Keshan's work"
