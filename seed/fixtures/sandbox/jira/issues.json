@@ -1558,11 +1558,11 @@
         "resolutiondate": null,
         "security": null,
         "status": {
-          "description": "This work item is being actively worked on at the moment by the assignee.",
-          "iconUrl": "https://keshanuni.atlassian.net/images/icons/statuses/inprogress.png",
-          "id": "3",
-          "name": "In Progress",
-          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/status/3",
+          "description": "",
+          "iconUrl": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/",
+          "id": "10007",
+          "name": "In Review",
+          "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/status/10007",
           "statusCategory": {
             "colorName": "yellow",
             "id": 4,
@@ -1584,7 +1584,7 @@
         "timeestimate": null,
         "timeoriginalestimate": null,
         "timespent": null,
-        "updated": "2026-10-20T02:07:10.558+0530",
+        "updated": "2026-10-23T08:41:04.814+0530",
         "versions": [],
         "votes": {
           "hasVoted": false,
@@ -1644,6 +1644,7 @@
           "self": "https://api.atlassian.com/ex/jira/59179cb0-7968-4d68-9567-84ad3f23c5b1/rest/api/3/user?accountId=712020%3Abbce5350-49a2-499f-968c-cd91a737481d",
           "timeZone": "Asia/Colombo"
         },
+        "customfield_10000": "{}",
         "customfield_10001": null,
         "customfield_10015": null,
         "customfield_10019": "0|i0001w:",
@@ -1664,7 +1665,7 @@
           "type": "doc",
           "version": 1
         },
-        "duedate": "2026-10-27",
+        "duedate": "2026-10-25",
         "environment": null,
         "fixVersions": [],
         "issuelinks": [],
@@ -1680,7 +1681,7 @@
           "subtask": false
         },
         "labels": [],
-        "lastViewed": null,
+        "lastViewed": "2026-10-23T08:42:31.719+0530",
         "priority": {
           "iconUrl": "https://keshanuni.atlassian.net/images/icons/priorities/highest_new.svg",
           "id": "1",
@@ -1750,7 +1751,7 @@
         "timeestimate": null,
         "timeoriginalestimate": null,
         "timespent": null,
-        "updated": "2026-10-20T00:26:32.445+0530",
+        "updated": "2026-10-23T08:42:54.226+0530",
         "versions": [],
         "votes": {
           "hasVoted": false,

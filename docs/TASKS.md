@@ -158,7 +158,7 @@ Confirm both APIs respond. Save raw responses to `seed/fixtures/`.
 **Out of scope:** Writing any client code. Normalization.
 **Owner:** Shared
 **Priority:** P0
-**Status:** IN_PROGRESS
+**Status:** DONE
 **Dependencies:** None. Provisioning the accounts and data needs no repository. Committing the captured fixtures needs P0-001.
 **Parallelizable:** YES, alongside P0-003 and P0-004.
 **Components:** External accounts, `seed/fixtures/`
@@ -184,9 +184,8 @@ Confirm and record in `WORKLOG.md`:
 - The actual rate limit headers returned by both.
 
 **Acceptance criteria:**
-- [ ] A real Jira project exists with the issue mix above. Project HRS has 11 issues and
-  every item except 2: no issue is in an In Review status, and no due date was within 3
-  days at capture (2026-10-23).
+- [x] A real Jira project exists with the issue mix above. Project HRS, 11 issues; HRS-9
+  is In Review and HRS-10 was due within 3 days at the second capture (2026-10-23).
 - [x] A real GitHub repository exists with the branch and pull request mix above.
   `keshan-dev/headref-sandbox`.
 - [x] A fine-grained read-only GitHub token and a Jira API token are generated. Met by the
