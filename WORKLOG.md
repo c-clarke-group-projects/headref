@@ -60,6 +60,19 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-23 | Keshan | P7-003 timed setup by Developer 2
+Status: DONE
+
+### Completed
+- Isiwara, who did not write the setup section, ran README section 9 from a fresh clone
+  to signed in at `/workspaces`, including the GitHub OAuth app (9.3) and
+  `llama3.2:1b`, in under 10 minutes. Every step worked as written; no README change.
+  Reported to Keshan on 2026-10-23; the exact time was not recorded.
+- With the scripted run of 2026-10-22 (148 s to the sign-in page), all P7-003 criteria
+  are met.
+
+---
+
 ## 2026-10-23 | Keshan | P7-002 default model is llama3.2:1b; NFR-013 met
 Status: DONE
 
