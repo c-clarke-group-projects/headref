@@ -110,7 +110,7 @@ no framework, no bundler.
 | Evidence drawer | Client-side panel | Expanded evidence with source links | FR-027 |
 | Unmatched identities | `GET /admin/unmatched` | The unmatched queue | FR-003 |
 
-> **Superseded (DEC-026, Proposed).** The team pages and Refresh are replaced by the workspace pages and **Sync now**, `POST /w/{workspace_id}/sync` (W5), which redirects at once and polls `GET /api/workspaces/{workspace_id}/sync/status`.
+> **Superseded (DEC-026).** The team pages and Refresh are replaced by the workspace pages and **Sync now**, `POST /w/{workspace_id}/sync` (W5), which redirects at once and polls `GET /api/workspaces/{workspace_id}/sync/status`.
 
 There is also 1 action, not a page: **Refresh**, which calls `POST /api/teams/{id}/sync`,
 gets a 202 back immediately, then polls `sync_run.status` until it leaves `running` and
@@ -285,7 +285,7 @@ OIDC. Do not build authentication.
 
 ## 9. Authorization
 
-> **Superseded (DEC-026, Proposed).** `can_view_member` is removed. Every `/w/{workspace_id}` route depends on `workspace_access(min_role)` in `app/web/workspaces.py`: a non-member or an archived workspace gets 404, a role too low 403. `tests/test_workspaces.py` checks every such route uses it, and `tests/test_isolation.py` checks every route and method from another workspace.
+> **Superseded (DEC-026).** `can_view_member` is removed. Every `/w/{workspace_id}` route depends on `workspace_access(min_role)` in `app/web/workspaces.py`: a non-member or an archived workspace gets 404, a role too low 403. `tests/test_workspaces.py` checks every such route uses it, and `tests/test_isolation.py` checks every route and method from another workspace.
 
 Every route returning member data calls 1 function:
 
@@ -380,7 +380,7 @@ Rules:
 
 ## 13. Request flow
 
-> **Superseded (DEC-026, Proposed).** The flow below is the team-page version. Today: `GET /w/{workspace_id}?member={id}`, `workspace_access` (404 if not a member), the code-only analysis per confirmed person, then the summary loaded after the page from `/w/{workspace_id}/members/{id}/summary`, the only model call.
+> **Superseded (DEC-026).** The flow below is the team-page version. Today: `GET /w/{workspace_id}?member={id}`, `workspace_access` (404 if not a member), the code-only analysis per confirmed person, then the summary loaded after the page from `/w/{workspace_id}/members/{id}/summary`, the only model call.
 
 
 ```text
