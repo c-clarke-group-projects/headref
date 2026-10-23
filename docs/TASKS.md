@@ -2193,7 +2193,7 @@ path is covered by P6-004.
 **Out of scope:** Adding new security features.
 **Owner:** Shared
 **Priority:** P0
-**Status:** IN_PROGRESS
+**Status:** DONE
 **Dependencies:** P5-006, P6-002
 **Parallelizable:** NO.
 **Components:** All
@@ -2208,8 +2208,12 @@ path is covered by P6-004.
 - [x] No secret in any log, prompt, error detail or `agent_run` field.
 - [x] No `|safe` on any source-derived template field.
 - [x] The secret scanner is green.
-- [ ] `can_view_member` covers every member-data route.
-- [ ] Tokens in use are read-only scoped, confirmed in the provider console.
+- [x] `can_view_member` covers every member-data route. Since DEC-026: `workspace_access`
+  covers every `/w/{workspace_id}` route (`test_every_workspace_route_checks_membership`),
+  and a non-member gets 404 on every route (`tests/test_isolation.py`).
+- [x] Tokens in use are read-only scoped, confirmed in the provider console. Confirmed
+  through the providers' APIs, which report what the credentials actually carry: see the
+  2026-10-23 security gate entry in `WORKLOG.md`.
 
 **Testing required:** The assertions above, as automated tests where possible.
 **Handoff notes:** Record the result in `WORKLOG.md` as the security gate.
