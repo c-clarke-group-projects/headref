@@ -8,8 +8,8 @@ developers run it end to end before the v0.1.0 tag, and fix what breaks.
 
 1. Close other applications. On an 8 GB machine the model is memory-bound (P7-002 in
    `WORKLOG.md`): with memory full, the uncached p95 was 75 s on `llama3.2` and 8.2 s on
-   `llama3.2:1b`. Decide the model before the demo, not during it.
-2. Pre-warm the model: `ollama run llama3.2 "hi"` (or the model you chose).
+   `llama3.2:1b`, which is why `llama3.2:1b` is the default `MODEL_ID`.
+2. Pre-warm the model: `ollama run llama3.2:1b "hi"` (or `MODEL_ID` if you changed it).
 3. Start the stack and check it: `docker compose up -d`, then
    `docker compose exec api alembic upgrade head`, and `/health` answers 200.
 4. Sign in with GitHub once, then seed the demo workspace:

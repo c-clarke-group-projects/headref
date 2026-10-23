@@ -2236,7 +2236,7 @@ against p95 targets.
 **Out of scope:** Optimization, unless a target is missed.
 **Owner:** Developer 2
 **Priority:** P1
-**Status:** IN_PROGRESS
+**Status:** DONE
 **Dependencies:** P6-004
 **Parallelizable:** YES.
 **Components:** Observability
@@ -2247,7 +2247,10 @@ Ollama response, and peak RAM during a run. Compare warm versus cold, and with o
 applications open versus closed.
 **Acceptance criteria:**
 - [x] p95 cached latency under 5 seconds.
-- [ ] p95 uncached latency under 20 seconds (NFR-013). Measured 75.0 s on 2026-10-22 (7.7 GB machine, memory full): missed, see `WORKLOG.md`.
+- [x] p95 uncached latency under 20 seconds (NFR-013). The 3B model missed it (75.0 s on
+  2026-10-22). With `llama3.2:1b`, the default since 2026-10-23 (the fallback this task and
+  DEC-017 name): p95 13.3 s warm on the real workspace. The first call after a model swap
+  took 22.6 s, so pre-warm (`docs/DEMO.md`). See `WORKLOG.md`.
 - [x] Measured tokens/sec recorded, warm and cold.
 - [x] Peak RAM recorded with PostgreSQL, the app and Ollama all running.
 - [x] The cache is confirmed to prevent a repeat model call.

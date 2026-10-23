@@ -189,7 +189,7 @@ This stage is the product. See DEC-018.
 |---|---|
 | **Purpose** | Turn findings that code has already produced into 2 readable sentences |
 | **Input** | `question_type`, the `Findings` from S4a, the versioned prompt file |
-| **Processing** | Exactly 1 call to Ollama at `http://localhost:11434`. Model from `MODEL_ID`, default `llama3.2`. `temperature: 0`, fixed `seed`, `format` set to the `NarrativeOutput` JSON schema, `num_predict` capped. **No tools are passed.** Untrusted retrieved text appears only inside clearly delimited blocks |
+| **Processing** | Exactly 1 call to Ollama at `http://localhost:11434`. Model from `MODEL_ID`, default `llama3.2:1b` (P7-002). `temperature: 0`, fixed `seed`, `format` set to the `NarrativeOutput` JSON schema, `num_predict` capped. **No tools are passed.** Untrusted retrieved text appears only inside clearly delimited blocks |
 | **Output** | `NarrativeOutput(summary, needs_attention, attention_needed)`. **No claims, no classifications, no evidence IDs** (DEC-018) |
 | **Uses LLM** | **Yes. This is the only stage that does** |
 | **Deterministic** | No |

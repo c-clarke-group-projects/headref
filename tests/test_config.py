@@ -48,7 +48,7 @@ def test_runtime_and_model_settings() -> None:
     """HTTP, model, and database timeout settings must match defaults."""
     assert HTTP_TIMEOUT_SECONDS == 10.0
     assert HTTP_MAX_ATTEMPTS == 3
-    assert MODEL_ID == "llama3.2"
+    assert MODEL_ID == "llama3.2:1b"
     assert OLLAMA_SEED == 42
     assert OLLAMA_NUM_PREDICT == 300
     assert PROMPT_VERSION == "narrative_v1"
@@ -184,7 +184,7 @@ def test_blank_model_and_prompt_settings_fall_back_to_defaults(
 
     settings = Settings(_env_file=None)
 
-    assert settings.model_id == "llama3.2"
+    assert settings.model_id == "llama3.2:1b"
     assert settings.prompt_version == "narrative_v2"
     assert settings.ollama_url == "http://localhost:11434"
 

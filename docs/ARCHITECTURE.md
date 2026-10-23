@@ -318,7 +318,8 @@ function now costs 10 minutes and makes the later change a 1-file edit.
 No inbound webhooks in the MVP. Webhook ingestion is a Stage 2 change.
 
 **Cost: zero.** Inference is local (DEC-017). The constraint is RAM, not money. On the
-7.7 GB target machine, Ollama runs on the host with `llama3.2` (3B, about 2 GB) while
+7.7 GB target machine, Ollama runs on the host with `llama3.2:1b` (the default since
+P7-002; the 3B `llama3.2` measured p95 75 s uncached there) while
 PostgreSQL runs in Docker. Measured generation speed is about 13 tokens/sec warm and about
 4 tokens/sec when RAM is starved, so other applications MUST be closed before a demo
 (NFR-031, NFR-034, NFR-035).
