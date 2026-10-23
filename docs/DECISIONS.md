@@ -39,6 +39,7 @@ supersedes or amends it, not a workaround.
 | DEC-023 | Atlassian OAuth and encrypted per-workspace credentials | Proposed |
 | DEC-024 | Identity confirmation in the UI | Proposed |
 | DEC-025 | Workspace feed and likely next task | Proposed |
+| DEC-026 | Team pages and team API removed; sign-in is identity only | Accepted |
 
 ---
 
@@ -1477,8 +1478,8 @@ DEC-005, DEC-017, DEC-018, DEC-020.
 ## DEC-026: Team pages and team API removed; sign-in is identity only
 
 Date: 2026-10-19
-Status: Proposed
-Owner: Developer 1, needs Developer 2 agreement
+Status: Accepted, agreed by both developers on 2026-10-23
+Owner: Developer 1
 
 ### Context
 

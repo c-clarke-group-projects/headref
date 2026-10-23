@@ -60,6 +60,24 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-23 | Keshan | DEC-026 accepted; P5-004 and P5-007 superseded
+Status: DONE
+
+### Completed
+- Both developers agreed DEC-026 (team pages and team API removed; sign-in is identity
+  only). Set to Accepted in `docs/DECISIONS.md`, with a row added to the index table,
+  and dropped "Proposed" from the DEC-026 notes in `ARCHITECTURE.md` and
+  `PROJECT_REQUIREMENTS.md`.
+- P5-004 (team overview page, #36) and P5-007 (team refresh endpoint, #49) set to
+  `SUPERSEDED`, a new status value in `TASKS.md`. Each names what replaced it: the
+  workspace page `/w/{workspace_id}`, and Sync now with its status polling and history.
+
+### Decisions Needed
+- DEC-020 to DEC-025 are still Proposed. DEC-026 relies on DEC-021 (workspace membership)
+  and DEC-022 (GitHub App), so those 2 should be next.
+
+---
+
 ## 2026-10-23 | Keshan | P0-002 issue mix complete
 Status: DONE
 

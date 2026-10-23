@@ -9,8 +9,10 @@ authoritative view of what has actually happened.
 **Developer 2 = Isiwara** (read path: tools, agent, API, UI).
 **Shared** = both, agreed together, usually 1 person drives while the other reviews live.
 
-**Status values:** `NOT_STARTED`, `READY`, `IN_PROGRESS`, `BLOCKED`, `IN_REVIEW`, `DONE`.
-`READY` means every dependency is `DONE` and work can start now.
+**Status values:** `NOT_STARTED`, `READY`, `IN_PROGRESS`, `BLOCKED`, `IN_REVIEW`, `DONE`,
+`SUPERSEDED`.
+`READY` means every dependency is `DONE` and work can start now. `SUPERSEDED` means an
+Accepted decision removed the task; the task names the decision and what replaced it.
 
 ---
 
@@ -1814,7 +1816,9 @@ the unmatched identity count.
 **Out of scope:** Sorting and filtering.
 **Owner:** Developer 2
 **Priority:** P1
-**Status:** IN_PROGRESS
+**Status:** SUPERSEDED by DEC-026. The team pages were removed; the workspace page
+`/w/{workspace_id}` lists members with attention items and source freshness, behind the
+membership check.
 **Dependencies:** P5-001
 **Parallelizable:** YES, alongside P5-002.
 **Components:** UI
@@ -1938,7 +1942,9 @@ polling against `sync_run`, and the degraded-state handling when a refresh fails
 **Out of scope:** The scheduler itself, which is P2-010. Any change to the read tools.
 **Owner:** Developer 2
 **Priority:** P1
-**Status:** IN_PROGRESS
+**Status:** SUPERSEDED by DEC-026. The team API was removed; Sync now
+(`POST /w/{workspace_id}/sync`) starts a background sync without waiting, polled at
+`/api/workspaces/{workspace_id}/sync/status`, with history at `/w/{workspace_id}/syncs`.
 **Dependencies:** P2-008, P3-001, P5-004, P5-006
 **Parallelizable:** YES, alongside P5-005.
 **Components:** API, UI, ingestion trigger
