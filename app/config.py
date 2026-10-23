@@ -278,7 +278,7 @@ class Settings(BaseSettings):
         description="Maximum retry attempts for HTTP client.",
     )
     model_id: str = Field(
-        default="llama3.2",
+        default="llama3.2:1b",
         validation_alias=AliasChoices("MODEL_ID", "model_id", "OLLAMA_MODEL"),
         description="Ollama model identifier.",
     )
@@ -369,7 +369,7 @@ STUCK_SYNC_TIMEOUT_MINUTES: int = 15
 
 HTTP_TIMEOUT_SECONDS: float = 10.0
 HTTP_MAX_ATTEMPTS: int = 3
-MODEL_ID: str = "llama3.2"
+MODEL_ID: str = "llama3.2:1b"
 OLLAMA_URL: str = "http://localhost:11434"
 OLLAMA_SEED: int = 42
 OLLAMA_NUM_PREDICT: int = 300

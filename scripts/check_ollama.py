@@ -22,7 +22,7 @@ import time
 import urllib.error
 import urllib.request
 
-DEFAULT_MODEL = "llama3.2"
+DEFAULT_MODEL = "llama3.2:1b"
 BASE = "http://localhost:11434"
 TIMEOUT = 900
 

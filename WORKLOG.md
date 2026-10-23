@@ -60,6 +60,38 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-23 | Keshan | P7-002 default model is llama3.2:1b; NFR-013 met
+Status: DONE
+
+### Completed
+- Default `MODEL_ID` changed from `llama3.2` (3B) to `llama3.2:1b`, the last fallback in
+  the P7-002 handoff note and the one DEC-017 names. Changed in `app/config.py`,
+  `scripts/check_ollama.py`, `tests/test_config.py`, README 9.1, `DEMO.md`,
+  `ARCHITECTURE.md` and `AGENT_ARCHITECTURE.md`. A machine with more memory can still
+  set `MODEL_ID=llama3.2`.
+- Measured on the real workspace (2 confirmed people, 10 uncached summary runs each set,
+  the real agent and model, cache lookup bypassed, all in a rolled-back transaction):
+
+| Model | Runs | p50 | p95 (max of 10) | Fallbacks |
+|---|---|---|---|---|
+| `llama3.2` (3B) | 10 | 20.9 s | 30.6 s | 0 |
+| `llama3.2:1b`, first call after swapping from 3B | 10 | 8.8 s | 22.6 s | 0 |
+| `llama3.2:1b`, warm | 10 | 8.5 s | 13.3 s | 0 |
+
+### Discovered
+- 1B summary quality, read on these 20 runs: both validated, both short. 1 calls HRS-7,
+  a Jira issue, a "linked pull request", and 1 says the member is "currently working on"
+  HRS-6, which is To Do and blocked. The 3B summaries had their own slips ("The team is
+  currently working on", for 1 member). The findings and evidence under the summary are
+  code-built either way (DEC-018); only the 2 sentence narrative changes.
+- The local `.env` sets `OLLAMA_MODEL`, which overrides the default. Changed on this
+  machine to `llama3.2:1b`; anyone else with the line set must change it too.
+- `persist_agent_run` defaults `model` to the literal `"llama3.2"`, and the gate-closed and
+  cache-hit paths do not pass the configured model, so those `agent_run` rows name the
+  wrong model. Not changed here.
+
+---
+
 ## 2026-10-23 | Keshan | P7-001 security gate complete
 Status: DONE
 

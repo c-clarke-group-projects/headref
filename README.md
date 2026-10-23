@@ -132,7 +132,7 @@ Full detail in `AGENT_ARCHITECTURE.md`.
 | ORM and migrations | SQLAlchemy 2.0, Alembic |
 | Validation | Pydantic v2 |
 | HTTP client | httpx with tenacity |
-| LLM | **Ollama**, `llama3.2` (3B), runs locally on the host |
+| LLM | **Ollama**, `llama3.2:1b` by default (`llama3.2` 3B optional), runs locally on the host |
 | Tests | pytest, respx |
 | Lint and format | ruff, black |
 | Container | Docker, docker compose |
@@ -193,9 +193,13 @@ GitHub account. To read Jira, an Atlassian account with access to the Jira site.
 ### 9.1 Model
 
 ```bash
-ollama pull llama3.2      # about 2 GB
-ollama run llama3.2 "hi"   # pre-warm before demoing
+ollama pull llama3.2:1b      # about 1.3 GB, the default MODEL_ID
+ollama run llama3.2:1b "hi"   # pre-warm before demoing
 ```
+
+The default is the 1B model because it meets the 20 s uncached target (NFR-013) on an
+8 GB machine: p95 8.2 s, against 75.0 s for the 3B model (P7-002 in `WORKLOG.md`). On a
+machine with more memory, `ollama pull llama3.2` and set `MODEL_ID=llama3.2` in `.env`.
 
 **Memory note:** on a machine with 8 GB RAM or less, run Ollama on the host (not in
 Docker) and close other applications before demoing. Measured difference: about 13
