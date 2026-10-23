@@ -60,6 +60,38 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-23 | Keshan | P7-001 security gate complete
+Status: DONE
+
+### Security gate checklist (P7-001), final
+| Criterion | State | Evidence |
+|---|---|---|
+| No HTTP client under `app/tools/` | Done | `test_tool_import_guard.py` |
+| No tools in the model call | Done | `test_narrative.py` |
+| No write endpoint | Done | `test_no_write_call_to_github_or_jira_data` |
+| No secret in logs, errors, `agent_run` | Done | `test_security_gate.py`, `test_http_client.py`, `test_sync.py` |
+| No secret in the prompt | Done | `test_prompt_secrets.py` (open in the 2026-10-22 table) |
+| No `\|safe` on source fields | Done | `test_no_safe_filter_in_templates` |
+| Secret scanner green | Done | gitleaks green in CI on every pull request through #117 |
+| Every member-data route guarded | Done | DEC-026 Accepted: `test_every_workspace_route_checks_membership`, and `tests/test_isolation.py` gives 404 to a non-member on every route |
+| Read-only scopes | Done | Read from the providers' APIs on 2026-10-23, below |
+
+Run together on 2026-10-23: 31 passed.
+
+### Scopes, as the providers report them
+- GitHub App (`GET /app`): checks, contents, metadata, pull_requests, statuses, all
+  `read`; no webhook events. Installation 172832446 (keshan-dev, selected repositories):
+  the same 5, all `read`.
+- Jira connection 1 (workspace 1): stored scopes `read:jira-work read:jira-user
+  offline_access`; `accessible-resources` grants keshanuni.atlassian.net
+  `read:jira-work` and `read:jira-user` only, no write scope.
+- GitHub sign-in requests no scope (`app/web/routes.py`). The organization check asks for
+  `read:org` once and drops the token (DEC-026).
+- Checked through the APIs rather than by looking at the consoles: the APIs report what
+  the credentials actually carry. Read requests only; no token printed.
+
+---
+
 ## 2026-10-23 | Keshan | DEC-026 accepted; P5-004 and P5-007 superseded
 Status: DONE
 
