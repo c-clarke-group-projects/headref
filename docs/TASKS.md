@@ -2278,7 +2278,7 @@ wrong.
 **Out of scope:** New features.
 **Owner:** Shared
 **Priority:** P1
-**Status:** IN_PROGRESS
+**Status:** DONE
 **Dependencies:** P5-006, P2-009
 **Parallelizable:** YES.
 **Components:** Documentation
@@ -2287,7 +2287,7 @@ wrong.
 **Implementation notes:** Ideally the developer who did **not** write the setup section
 runs it, on a machine with a cleared Docker state.
 **Acceptance criteria:**
-- [ ] Clone to working UI in under 10 minutes, timed. 2026-10-22, scripted by Developer 1: 148 s to a migrated, seeded app serving the sign-in page. Signing in needs the GitHub OAuth app (README 9.3), not timed.
+- [x] Clone to working UI in under 10 minutes, timed. 2026-10-22, scripted by Developer 1: 148 s to a migrated, seeded app serving the sign-in page. 2026-10-23, Developer 2: clone to signed in, under 10 minutes, every README step as written (exact time not recorded).
 - [x] Every command in the README works exactly as written.
 - [x] Missing prerequisites are documented.
 - [x] Documentation status and current sprint are updated.
