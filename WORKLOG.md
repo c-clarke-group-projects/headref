@@ -60,6 +60,21 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-23 | Keshan | P0-002 issue mix complete
+Status: DONE
+
+### Completed
+- In Jira, moved HRS-9 to In Review and set HRS-10's due date to 2026-10-25, the 2 items
+  missing from the issue mix.
+- Synced workspace 1 (Jira HRS and GitHub both `success`), confirmed HRS-9 is
+  `in_review` and HRS-10 is due 2026-10-25, then captured again. The fixtures now carry
+  all 5 statuses (To Do, In Progress, In Review, Done, Blocked) and a due date within 3
+  days. Rescan clean: no address other than the redaction and GitHub's service
+  addresses, `temp_clone_token` redacted, no token patterns.
+- All 7 P0-002 acceptance criteria met.
+
+---
+
 ## 2026-10-23 | Keshan | P0-002 sandbox fixtures captured, A-3 corrected
 Status: IN_PROGRESS
 
