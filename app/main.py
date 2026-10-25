@@ -5,6 +5,7 @@ under /w/{workspace_id} takes the workspace_access dependency (DEC-021); a test 
 one does not.
 """
 
+import logging
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -29,11 +30,30 @@ from app.web.ui_format import templates
 from app.web.workspace_pages import workspace_pages
 from app.web.workspaces import workspace_api
 
+LOG_HANDLER_NAME = "headref-stream"
+
+
+def configure_logging(level: str) -> None:
+    """Print every headref.* log line at LOG_LEVEL, including the agent's tool calls.
+
+    Uvicorn configures only its own loggers, so without a handler here every headref
+    INFO line is dropped. Safe to call again: the reloader and tests restart the app.
+    """
+    logger = logging.getLogger("headref")
+    logger.setLevel(level.upper())
+    if any(handler.get_name() == LOG_HANDLER_NAME for handler in logger.handlers):
+        return
+    handler = logging.StreamHandler()
+    handler.set_name(LOG_HANDLER_NAME)
+    handler.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
+    logger.addHandler(handler)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Verify application configuration and manage scheduler background task."""
     settings = get_settings()
+    configure_logging(settings.log_level)
     task, stop_event = start_scheduler_task(enabled=settings.scheduler_enabled)
     try:
         yield
