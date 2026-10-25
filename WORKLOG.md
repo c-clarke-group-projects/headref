@@ -60,6 +60,20 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-25 | Keshan | Final project report upload
+Status: DONE
+
+### Completed
+- Uploaded the final project report (`docs/final_report/headref_report.pdf`) covering
+  project architecture, multi-source ingestion, deterministic findings engine,
+  evaluation results, and delivery metrics.
+
+### Changed
+`docs/final_report/headref_report.pdf`.
+
+### Next Step
+Final project submission and P7-004 demo rehearsal.
+
 ## 2026-10-25 | Keshan | P7-004 README refresh for v0.1.0
 Status: IN_PROGRESS
 
