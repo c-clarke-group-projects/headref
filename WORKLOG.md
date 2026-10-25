@@ -60,6 +60,30 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-25 | Keshan | P7-004 README refresh for v0.1.0
+Status: IN_PROGRESS
+
+### Completed
+- README: header with CI and stack badges, an animated replay of the real tool-call trace
+  (`docs/assets/headref-demo.svg`, captured 2026-10-25), At a glance, Quick start.
+- Section 6: the ASCII diagram replaced by Mermaid (data paths, and 1 request end to end),
+  plus tables for the 6 agent stages and the 7 read tools.
+- New 9.6 (what to change before a shared host), 10.1 (reading the trace, the corrected
+  `agent_run` query), and trace and audit rows in section 10.
+- Section 4 corrected: the model is called once per member summary, not once per
+  question; the workspace page runs the 3 questions on code alone.
+- Section 14 reconciled: DEC-026 accepted, P0-002, P7-001 to P7-003 done.
+- Section numbers 1 to 14 kept, and section 9 commands unchanged: `CLAUDE.md`, tests,
+  `seed_demo.py` and this log cite them by number.
+
+### Discovered
+- The SVG animation uses SMIL, which GitHub renders inside an image. Headless browser
+  screenshots freeze it at 0 s, so it was checked with a static copy. Both Mermaid
+  diagrams were rendered with Mermaid 10.9.1 without errors.
+
+### Next Step
+Check the README on GitHub after merge, then record the demo video.
+
 ## 2026-10-25 | Keshan | P7-004 the agent's tool-call trace is printed
 Status: IN_PROGRESS
 

@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 520" width="1040" height="520" role="img" aria-labelledby="title desc">
+  <title id="title">headref tool-call trace</title>
+  <desc id="desc">A replay of the real log trace captured on 2026-10-25: Sync now fetches Jira and GitHub, then opening a member runs the agent stages S1 to S6. Each run lists the read tools it called, and the last run makes 1 local model call whose output passes validation.</desc>
+  <style>
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 12px; }
+    .ui { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .dim { fill: #8b949e; }
+    .txt { fill: #e6edf3; }
+    .log { fill: #79c0ff; }
+    .tool { fill: #d2a8ff; }
+    .ok { fill: #7ee787; }
+    .cmt { fill: #8b949e; font-style: italic; }
+    .chip { fill: #161b22; stroke: #30363d; }
+    .chip-on { fill: #12361f; stroke: #2ea043; }
+    .chip-model { fill: #3b2a0a; stroke: #d29922; }
+    .chip-name { fill: #e6edf3; font-size: 13px; font-weight: 600; }
+    .chip-sub { fill: #8b949e; font-size: 11px; }
+  </style>
+
+  <rect width="1040" height="520" rx="12" fill="#0d1117"/>
+  <rect width="1040" height="34" rx="12" fill="#161b22"/>
+  <rect y="22" width="1040" height="12" fill="#161b22"/>
+  <circle cx="20" cy="17" r="6" fill="#ff5f56"/>
+  <circle cx="40" cy="17" r="6" fill="#ffbd2e"/>
+  <circle cx="60" cy="17" r="6" fill="#27c93f"/>
+  <text x="520" y="22" text-anchor="middle" class="ui dim" font-size="12">headref: live tool-call trace, captured 2026-10-25</text>
+
+  <!-- Agent stages. Each lights up when the trace reaches it. -->
+  <g class="ui">
+    <g>
+      <rect x="24" y="48" width="132" height="44" rx="8" class="chip"/>
+      <rect x="24" y="48" width="132" height="44" rx="8" class="chip-on" opacity="0">
+        <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.24;0.26;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+      </rect>
+      <text x="90" y="67" text-anchor="middle" class="chip-name">S1 Plan</text>
+      <text x="90" y="83" text-anchor="middle" class="chip-sub">code, fixed table</text>
+    </g>
+    <g>
+      <rect x="167" y="48" width="132" height="44" rx="8" class="chip"/>
+      <rect x="167" y="48" width="132" height="44" rx="8" class="chip-on" opacity="0">
+        <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.25;0.27;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+      </rect>
+      <text x="233" y="67" text-anchor="middle" class="chip-name">S2 Retrieve</text>
+      <text x="233" y="83" text-anchor="middle" class="chip-sub">read tools, PostgreSQL</text>
+    </g>
+    <g>
+      <rect x="310" y="48" width="132" height="44" rx="8" class="chip"/>
+      <rect x="310" y="48" width="132" height="44" rx="8" class="chip-on" opacity="0">
+        <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.38;0.40;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+      </rect>
+      <text x="376" y="67" text-anchor="middle" class="chip-name">S3 Evidence</text>
+      <text x="376" y="83" text-anchor="middle" class="chip-sub">code, stable IDs</text>
+    </g>
+    <g>
+      <rect x="453" y="48" width="132" height="44" rx="8" class="chip"/>
+      <rect x="453" y="48" width="132" height="44" rx="8" class="chip-on" opacity="0">
+        <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.40;0.42;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+      </rect>
+      <text x="519" y="67" text-anchor="middle" class="chip-name">S4a Findings</text>
+      <text x="519" y="83" text-anchor="middle" class="chip-sub">code, rules</text>
+    </g>
+    <g>
+      <rect x="596" y="48" width="132" height="44" rx="8" class="chip"/>
+      <rect x="596" y="48" width="132" height="44" rx="8" class="chip-model" opacity="0">
+        <animate attributeName="opacity" values="0;0;1;0.45;1;0.45;1;1;0;0" keyTimes="0;0.42;0.44;0.47;0.50;0.52;0.55;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+      </rect>
+      <text x="662" y="67" text-anchor="middle" class="chip-name">S4b Narrative</text>
+      <text x="662" y="83" text-anchor="middle" class="chip-sub">local model, no tools</text>
+    </g>
+    <g>
+      <rect x="739" y="48" width="132" height="44" rx="8" class="chip"/>
+      <rect x="739" y="48" width="132" height="44" rx="8" class="chip-on" opacity="0">
+        <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.53;0.55;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+      </rect>
+      <text x="805" y="67" text-anchor="middle" class="chip-name">S5 Validate</text>
+      <text x="805" y="83" text-anchor="middle" class="chip-sub">code, drops claims</text>
+    </g>
+    <g>
+      <rect x="882" y="48" width="132" height="44" rx="8" class="chip"/>
+      <rect x="882" y="48" width="132" height="44" rx="8" class="chip-on" opacity="0">
+        <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.57;0.59;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+      </rect>
+      <text x="948" y="67" text-anchor="middle" class="chip-name">S6 Respond</text>
+      <text x="948" y="83" text-anchor="middle" class="chip-sub">code, audited</text>
+    </g>
+  </g>
+
+  <line x1="24" y1="108" x2="1016" y2="108" stroke="#21262d"/>
+
+  <!-- The trace. Every line below is real output from the api container. -->
+  <g class="mono">
+    <text x="24" y="134" opacity="0"><tspan class="ok">$</tspan><tspan class="txt"> docker compose logs -f --tail 0 --no-log-prefix api | grep --line-buffered "headref\."</tspan>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.01;0.03;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+    </text>
+    <text x="24" y="162" class="cmt" opacity="0"># Sync now: the write path, the only code that calls GitHub and Jira (read-only)
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.05;0.07;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+    </text>
+    <text x="24" y="184" opacity="0"><tspan class="dim">INFO </tspan><tspan class="log">headref.sync</tspan><tspan class="txt">: Starting Jira sync for scope=HRS, team_id=1, workspace_id=1</tspan>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.085;0.105;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+    </text>
+    <text x="24" y="204" opacity="0"><tspan class="dim">INFO </tspan><tspan class="log">headref.sync</tspan><tspan class="txt">: Starting GitHub sync for scope=keshan-dev/headref-sandbox, team_id=1, workspace_id=1</tspan>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.12;0.14;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+    </text>
+    <text x="24" y="224" opacity="0"><tspan class="dim">INFO </tspan><tspan class="log">headref.workspace_sync</tspan><tspan class="txt">: workspace sync finished: workspace_id=1 runs=2 </tspan><tspan class="ok">statuses=['success']</tspan>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.155;0.175;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+    </text>
+    <text x="24" y="254" class="cmt" opacity="0"># Open a member: 3 code-only questions, then 1 model call for the 2 sentence summary
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.21;0.23;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+    </text>
+    <text x="24" y="276" opacity="0"><tspan class="dim">INFO </tspan><tspan class="log">headref.agent</tspan><tspan class="txt">: s1_s2 done: question=current_work proceed=True </tspan><tspan class="tool">tools=['T-007', 'T-002', 'T-003', 'T-004', 'T-005', 'T-006']</tspan><tspan class="txt"> failures=0</tspan>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.25;0.27;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+    </text>
+    <text x="24" y="296" opacity="0"><tspan class="dim">INFO </tspan><tspan class="log">headref.agent</tspan><tspan class="txt">: s1_s2 done: question=blockers proceed=True </tspan><tspan class="tool">tools=['T-007', 'T-002', 'T-003', 'T-004', 'T-005', 'T-006']</tspan><tspan class="txt"> failures=0</tspan>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.285;0.305;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+    </text>
+    <text x="24" y="316" opacity="0"><tspan class="dim">INFO </tspan><tspan class="log">headref.agent</tspan><tspan class="txt">: s1_s2 done: question=risks proceed=True </tspan><tspan class="tool">tools=['T-007', 'T-002', 'T-002', 'T-003', 'T-004', 'T-006']</tspan><tspan class="txt"> failures=0</tspan>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.32;0.34;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+    </text>
+    <text x="24" y="336" opacity="0"><tspan class="dim">INFO </tspan><tspan class="log">headref.agent</tspan><tspan class="txt">: s1_s2 done: question=current_work proceed=True </tspan><tspan class="tool">tools=['T-007', 'T-002', 'T-003', 'T-004', 'T-005', 'T-006']</tspan><tspan class="txt"> failures=0</tspan>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.365;0.385;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+    </text>
+    <text x="24" y="358" class="cmt" opacity="0"># llama3.2:1b on the host, no tools passed, structured output only
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.42;0.44;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+    </text>
+    <text x="24" y="380" opacity="0"><tspan class="dim">INFO </tspan><tspan class="log">headref.agent</tspan><tspan class="txt">: s4_s5 done: question=current_work </tspan><tspan class="ok">model_called=True latency_ms=11078 dropped=0 fallback=False</tspan>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.53;0.55;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+    </text>
+  </g>
+
+  <!-- The answer the member panel shows. -->
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.57;0.59;0.93;0.97;1" dur="20s" repeatCount="indefinite"/>
+    <rect x="24" y="404" width="992" height="96" rx="10" fill="#161b22" stroke="#2ea043"/>
+    <text x="44" y="430" class="ui dim" font-size="12" letter-spacing="0.6">MEMBER SUMMARY  (model prose, validated against the evidence)</text>
+    <text x="44" y="456" class="ui txt" font-size="16">"The contributor is currently working on HRS-6: Build member export screen, which is blocked by HRS-7."</text>
+    <text x="44" y="482" class="ui" font-size="13"><tspan class="ok">Findings, links and confidence come from code</tspan><tspan class="dim" dx="10">·</tspan><tspan class="dim" dx="10">0 claims dropped</tspan><tspan class="dim" dx="10">·</tspan><tspan class="dim" dx="10">11.1 s on a local model</tspan><tspan class="dim" dx="10">·</tspan><tspan class="dim" dx="10">0 USD</tspan></text>
+  </g>
+</svg>
