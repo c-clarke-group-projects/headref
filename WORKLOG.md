@@ -60,6 +60,40 @@ criterion in `TASKS.md` is met.
 
 ---
 
+## 2026-10-25 | Keshan | P7-004 the agent's tool-call trace is printed
+Status: IN_PROGRESS
+
+### Completed
+- `headref.*` log lines were never printed: uvicorn configures only its own loggers, so
+  every INFO line from the agent, sync and scheduler was dropped. Checked on the running
+  stack: loading `/w/1` left no agent line in `docker compose logs api`.
+- `app/main.py` now attaches 1 stream handler to the `headref` logger at `LOG_LEVEL`
+  during startup, guarded against a second handler on reload.
+- `orchestrator.py` logs 1 `s4_s5 done` line per run (model called or not, latency,
+  dropped claims, fallback), next to the existing `s1_s2 done` line with the tools called.
+- Real trace captured on workspace 1 for the demo video: Sync now, `/w/1`, and a member
+  summary with `model_called=True latency_ms=11078 dropped=0`.
+
+### Changed
+`app/main.py`, `app/agent/orchestrator.py`, `tests/test_logging.py`,
+`tests/test_orchestrator.py`.
+
+### Discovered
+- `docs/DEMO.md` step 7 matches every run with `dropped_claims = []` (167 rows). Use
+  `dropped_claims::text like '[{%'` with `latency_ms > 0` for model runs only.
+- Code-only runs (`skip_llm`) still pass the deterministic text through the validator,
+  and some have `INVENTED_ENTITY` drops for HRS-7 and HRS-9. Not investigated.
+- The insight cache lasts 1 hour, so a member opened within the hour shows `Cache hit`
+  instead of a model call.
+
+### Problems
+- 2 tests fail in the api container on `main` too, from its `.env`:
+  `test_no_key_means_no_encryption` and
+  `test_an_org_installation_without_oauth_configured_says_so`. 645 others pass.
+
+### Next Step
+Record the demo video, then both developers sign off P7-004.
+
 ## 2026-10-23 | Keshan | P7-003 timed setup by Developer 2
 Status: DONE
 

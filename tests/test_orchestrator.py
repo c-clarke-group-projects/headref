@@ -547,7 +547,7 @@ async def test_run_agent_gate_closed() -> None:
 
 
 @pytest.mark.anyio
-async def test_run_agent_full_pipeline_success() -> None:
+async def test_run_agent_full_pipeline_success(caplog: pytest.LogCaptureFixture) -> None:
     """Full execution S1-S6 returns MemberInsight with findings, summary, and cache saved."""
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session as OrmSession
@@ -578,16 +578,20 @@ async def test_run_agent_full_pipeline_success() -> None:
             pull_requests=[pr],
         )
 
-        insight = await run_agent(
-            session=session,
-            subject_user_id=user.id,
-            team_id=1,
-            question_type="current_work",
-            tools=tools,
-            now=NOW,
-            skip_llm=True,
-        )
+        with caplog.at_level("INFO", logger="headref.agent"):
+            insight = await run_agent(
+                session=session,
+                subject_user_id=user.id,
+                team_id=1,
+                question_type="current_work",
+                tools=tools,
+                now=NOW,
+                skip_llm=True,
+            )
 
+        # The tool-call trace: which tools ran, then whether the model was called.
+        assert "s1_s2 done: question=current_work proceed=True tools=['T-007'" in caplog.text
+        assert "s4_s5 done: question=current_work model_called=False" in caplog.text
         assert insight.user_id == user.id
         assert insight.summary is not None
         assert "AUTH-1" in insight.summary or "Assigned" in insight.summary

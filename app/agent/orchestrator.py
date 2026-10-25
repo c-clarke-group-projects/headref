@@ -843,6 +843,14 @@ async def run_agent(
     narrative_error_type = narrative_res.error_type
     if narrative_error_type is None and validated.dropped_claims:
         narrative_error_type = validated.dropped_claims[0].get("reason")
+    logger.info(
+        "s4_s5 done: question=%s model_called=%s latency_ms=%d dropped=%d fallback=%s",
+        question_type,
+        not skip_llm,
+        narrative_res.latency_ms,
+        len(validated.dropped_claims),
+        final_insight.fallback_used,
+    )
 
     # A code-only run (skip_llm) is not cached: its summary is the deterministic text,
     # and caching it under the same evidence hash would serve that text in place of the
